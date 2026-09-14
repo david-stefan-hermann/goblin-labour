@@ -17,7 +17,7 @@ import java.util.Random;
 public class MakeGoblinTexture {
     static final String DIR = "src/main/resources/assets/goblinlabour/textures/entity/";
     static final String[] STYLES = {"lumberjack", "farmer", "miner", "collector"};
-    static final int[] STYLE_SKIN = {0x6BB04E, 0x8FAE4C, 0x809C72, 0x5FA590};
+    static final int[] STYLE_SKIN = {0x6BB04E, 0x8FAE4C, 0x88967F, 0x5FA590};
     static final int LOOKS = 4;
 
     static final int EYE = 0xF2D14B, PUPIL = 0x1C1C1C, MOUTH = 0x2B1B12, FANG = 0xEDE6D2, EAR_INNER = 0xA7715F;
@@ -133,13 +133,11 @@ public class MakeGoblinTexture {
         int[] back = head.back();
         for (int x = 0; x < back[2]; x++) set(back[0] + x, back[1], vary(skinDark, 6));
         if (look == 3) {
-            // topknot: a tuft on the crown that runs down to the back of the head
+            // topknot: a tuft on the crown that just reaches over the back edge of the head
             for (int y = 2; y < 6; y++) {
                 for (int x = 3; x < 5; x++) set(top[0] + x, top[1] + y, vary(HAIR, 8));
             }
-            for (int y = 0; y < 2; y++) {
-                for (int x = 3; x < 5; x++) set(back[0] + x, back[1] + y, vary(HAIR, 8));
-            }
+            for (int x = 3; x < 5; x++) set(back[0] + x, back[1], vary(HAIR, 8));
         }
     }
 

@@ -1,4 +1,5 @@
 goblinlabour job 40 -60 49 farm
 goblinlabour dig 43 -60 49 down 43 -61 36 1 -62 false
 data merge block 46 -60 49 {style:"collector"}
-goblinlabour job 49 -60 49 chop
+goblinlabour dig 49 -60 49 down 49 -61 36 1 -62 false
+tp @e[type=goblinlabour:goblin,name=Ratbag] 46.5 -60 42.5 180 0
