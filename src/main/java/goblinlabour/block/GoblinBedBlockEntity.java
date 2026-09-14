@@ -4,6 +4,7 @@ import goblinlabour.GoblinLabour;
 import goblinlabour.GoblinNames;
 import goblinlabour.GoblinSpeech;
 import goblinlabour.entity.GoblinEntity;
+import goblinlabour.entity.GoblinStyle;
 import goblinlabour.home.HomeRegistry;
 import goblinlabour.item.GoblinData;
 import goblinlabour.job.JobConfig;
@@ -58,6 +59,8 @@ public class GoblinBedBlockEntity extends BlockEntity {
     @Nullable private JobConfig job;
     @Nullable private Assignment assignment;
     @Nullable private BlockPos deathPos;
+    /** Set by the last job that was not REST; the goblin (also after respawning) takes its texture tint from it. */
+    private GoblinStyle style = GoblinStyle.LUMBERJACK;
 
     public GoblinBedBlockEntity(BlockPos pos, BlockState state) {
         super(GoblinLabour.GOBLIN_BED_BLOCK_ENTITY, pos, state);
@@ -145,6 +148,7 @@ public class GoblinBedBlockEntity extends BlockEntity {
         goblin.setYBodyRot(yaw);
         goblin.setYHeadRot(yaw);
         goblin.bindToBed(pos, data);
+        goblin.setStyle(style);
         if (deathPos != null) {
             goblin.setRecoverPos(deathPos, level.getGameTime() + RECOVER_TICKS);
             deathPos = null;
@@ -201,12 +205,21 @@ public class GoblinBedBlockEntity extends BlockEntity {
 
     public void setJob(JobConfig job) {
         this.job = job;
+        GoblinStyle jobStyle = GoblinStyle.forJob(job.job());
+        if (jobStyle != null) style = jobStyle;
         setChanged();
         if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         if (level instanceof ServerLevel serverLevel) {
             GoblinEntity goblin = findGoblin(serverLevel);
-            if (goblin != null) goblin.runner().onJobChanged();
+            if (goblin != null) {
+                goblin.setStyle(style);
+                goblin.runner().onJobChanged();
+            }
         }
+    }
+
+    public GoblinStyle getStyle() {
+        return style;
     }
 
     @Nullable
@@ -275,6 +288,7 @@ public class GoblinBedBlockEntity extends BlockEntity {
         out.storeNullable("job", JobConfig.CODEC, job);
         out.storeNullable("order", Assignment.CODEC, assignment);
         out.storeNullable("deathPos", BlockPos.CODEC, deathPos);
+        out.store("style", GoblinStyle.CODEC, style);
     }
 
     @Override
@@ -295,6 +309,7 @@ public class GoblinBedBlockEntity extends BlockEntity {
         job = in.read("job", JobConfig.CODEC).orElse(null);
         assignment = in.read("order", Assignment.CODEC).orElse(null);
         deathPos = in.read("deathPos", BlockPos.CODEC).orElse(null);
+        style = in.read("style", GoblinStyle.CODEC).orElse(GoblinStyle.LUMBERJACK);
     }
 
     @Override

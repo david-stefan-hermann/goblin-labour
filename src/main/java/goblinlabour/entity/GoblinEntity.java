@@ -59,6 +59,9 @@ import java.util.Optional;
 public class GoblinEntity extends PathfinderMob {
     private static final EntityDataAccessor<Optional<BlockPos>> DATA_BED =
             SynchedEntityData.defineId(GoblinEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+    /** {@link GoblinStyle} ordinal; the bed decides it, clients pick the texture from it. */
+    private static final EntityDataAccessor<Byte> DATA_STYLE =
+            SynchedEntityData.defineId(GoblinEntity.class, EntityDataSerializers.BYTE);
 
     public static final int INVENTORY_SIZE = 18;
     public static final int HOTBAR_SIZE = GoblinData.HOTBAR_SIZE;
@@ -93,6 +96,7 @@ public class GoblinEntity extends PathfinderMob {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_BED, Optional.empty());
+        builder.define(DATA_STYLE, (byte) GoblinStyle.LUMBERJACK.ordinal());
     }
 
     @Override
@@ -172,6 +176,14 @@ public class GoblinEntity extends PathfinderMob {
         return name == null ? "Goblin" : name.getString();
     }
 
+    public GoblinStyle getStyle() {
+        return GoblinStyle.byOrdinal(entityData.get(DATA_STYLE));
+    }
+
+    public void setStyle(GoblinStyle style) {
+        entityData.set(DATA_STYLE, (byte) style.ordinal());
+    }
+
     @Nullable
     public GoblinBedBlockEntity bed() {
         Optional<BlockPos> pos = getBedPos();
@@ -200,7 +212,10 @@ public class GoblinEntity extends PathfinderMob {
         if (bedPos.isEmpty()) return;
         if (!level.isLoaded(bedPos.get())) return;
         GoblinBedBlockEntity bed = bed();
-        if (bed != null && bed.owns(getUUID())) return;
+        if (bed != null && bed.owns(getUUID())) {
+            if (bed.getStyle() != getStyle()) setStyle(bed.getStyle());
+            return;
+        }
         if (bed == null) {
             GoblinSpeech.say(level, goblinName(), GoblinSpeech.BED_GONE);
             ItemStack blank = new ItemStack(GoblinLabour.GOBLIN_BLANK);
@@ -383,6 +398,7 @@ public class GoblinEntity extends PathfinderMob {
         super.addAdditionalSaveData(out);
         out.storeNullable("bed", BlockPos.CODEC, getBedPos().orElse(null));
         out.storeNullable("lastTorch", BlockPos.CODEC, lastTorchPos);
+        out.store("style", GoblinStyle.CODEC, getStyle());
         List<ItemStack> items = new ArrayList<>(INVENTORY_SIZE);
         for (int i = 0; i < INVENTORY_SIZE; i++) items.add(inventory.getItem(i));
         out.store("inventory", ItemStack.OPTIONAL_CODEC.listOf(), items);
@@ -393,6 +409,7 @@ public class GoblinEntity extends PathfinderMob {
         super.readAdditionalSaveData(in);
         entityData.set(DATA_BED, in.read("bed", BlockPos.CODEC));
         lastTorchPos = in.read("lastTorch", BlockPos.CODEC).orElse(null);
+        in.read("style", GoblinStyle.CODEC).ifPresent(this::setStyle);
         List<ItemStack> items = in.read("inventory", ItemStack.OPTIONAL_CODEC.listOf()).orElse(List.of());
         for (int i = 0; i < INVENTORY_SIZE; i++) {
             inventory.setItem(i, i < items.size() ? items.get(i) : ItemStack.EMPTY);

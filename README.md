@@ -21,6 +21,8 @@ Every bed has a **home**: 5 blocks in every horizontal direction and 2 up and do
 
 Breaking a bed sends its goblin back into a blank that keeps the goblin's name and tools. Goblins have 20 health, cannot be targeted by monsters and do not fight. Lava, drowning and falls still kill them; a dead goblin respawns on its bed after five seconds with its tools, the rest of its inventory is dropped where it died.
 
+A goblin's skin shows its trade: lumberjacks (Chop) are green, farmers yellowish, miners (staff orders) greyish, collectors bluish (the collector job is still to come). Resting keeps the last colour. On top of that every goblin has one of four looks, picked by its name so it survives death and blanks: plain leather vest; patched vest, gold earrings and a scar; sackcloth tunic, bandage and nose ring; fur collar, bone necklace, war paint and a topknot. Textures come from `tools/MakeGoblinTexture.java`.
+
 Goblins talk in chat, in English, server-wide: when they start, get picked or ordered with the staff ("Yes, master!"), finish a job, come back from the dead, run out of storage, or cannot find a way out of their home. While working they chatter now and then ("Working, working, working!", "I love my job!"). They also have voices: pitched-up villager and witch sounds defined in `sounds.json`, so a resource pack can replace them.
 
 The **Goblin Handbook** (book + rotten flesh) explains all of this in game, in English and German.
