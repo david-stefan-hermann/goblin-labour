@@ -77,7 +77,7 @@ public class MakeBedModels {
      */
     static final double FOOT_SHIFT = 5;
     /** Height of the extruded items in model pixels. */
-    static final double ITEM_THICKNESS = 1;
+    static final double ITEM_THICKNESS = 0.5;
     static final String CLIENT_JAR = System.getProperty("user.home") + "/.gradle/caches/fabric-loom/26.2/minecraft-client.jar";
     static final Map<String, BufferedImage> VANILLA_TEXTURES = new HashMap<>();
 
