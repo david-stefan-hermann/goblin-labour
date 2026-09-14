@@ -117,9 +117,9 @@ public class MakeTextures {
         save(render(STAFF, STAFF_COLORS), ASSETS + "textures/item/goblin_staff.png");
         BufferedImage head = render(HEAD, HEAD_COLORS);
         save(head, ASSETS + "textures/item/goblin_head.png");
+        // the mod icon (icon.png) comes from tools/MakeLogo.java
         save(render(MEAT, MEAT_COLORS), ASSETS + "textures/item/goblin_meat_pack.png");
         save(render(BLANK, BLANK_COLORS), ASSETS + "textures/item/goblin_blank.png");
-        save(scale(head, 8), ASSETS + "icon.png");
         System.out.println("Textures written");
     }
 
