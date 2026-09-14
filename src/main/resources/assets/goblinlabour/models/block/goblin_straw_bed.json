@@ -13,8 +13,10 @@
     { "from": [0, 0, 14], "to": [2, 3, 16], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "down": {"texture": "#planks"} } },
     { "from": [14, 0, 14], "to": [16, 3, 16], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "down": {"texture": "#planks"} } },
     { "from": [0, 3, 0], "to": [16, 6, 16], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "up": {"texture": "#planks"}, "down": {"texture": "#planks"} } },
-    { "from": [1, 6, 2], "to": [15, 9, 16], "faces": { "north": {"texture": "#hay_side"}, "south": {"texture": "#hay_side"}, "east": {"texture": "#hay_side"}, "west": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
-    { "from": [0, 3, 0], "to": [16, 12, 2], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "up": {"texture": "#planks"} } },
-    { "from": [3, 9, 2], "to": [13, 11, 6], "faces": { "north": {"texture": "#wool"}, "south": {"texture": "#wool"}, "east": {"texture": "#wool"}, "west": {"texture": "#wool"}, "up": {"texture": "#wool"} } }
+    { "from": [1, 6, 6], "to": [15, 9, 15], "faces": { "south": {"texture": "#hay_side"}, "east": {"texture": "#hay_side"}, "west": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
+    { "from": [1, 6, 1], "to": [3, 9, 6], "faces": { "north": {"texture": "#hay_side"}, "west": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
+    { "from": [13, 6, 1], "to": [15, 9, 6], "faces": { "north": {"texture": "#hay_side"}, "east": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
+    { "from": [3, 6, 1], "to": [13, 9, 2], "faces": { "north": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
+    { "from": [3, 6, 2], "to": [13, 9, 6], "faces": { "up": {"texture": "#wool"} } }
   ]
 }

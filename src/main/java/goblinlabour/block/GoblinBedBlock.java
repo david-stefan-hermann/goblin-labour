@@ -28,7 +28,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-/** A one-block straw bed. FACING points from the foot end towards the headboard. */
+/** A one-block straw bed. FACING points from the foot end towards the pillow. */
 public class GoblinBedBlock extends HorizontalDirectionalBlock implements EntityBlock {
     public static final MapCodec<GoblinBedBlock> CODEC = simpleCodec(GoblinBedBlock::new);
     public static final BooleanProperty OCCUPIED = BlockStateProperties.OCCUPIED;

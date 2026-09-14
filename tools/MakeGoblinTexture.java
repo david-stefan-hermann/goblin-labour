@@ -53,13 +53,13 @@ public class MakeGoblinTexture {
                     "dFMMMMFd",
                     "ddGGGGdd",
             }, {
-                    "GGGRRGGG",
-                    "GhGRRGhG",
+                    "GGGGhGGG",
+                    "GhGGGGhG",
                     "DDdGGdDD",
                     "gYBGGBYg",
-                    "gRGddGRg",
+                    "RRGddGRR",
                     "dMFMMMMd",
-                    "ddGGGGdd",
+                    "ddGRRGdd",
             },
     };
 
@@ -122,7 +122,9 @@ public class MakeGoblinTexture {
         fill(head.bottom(), skinDark, 6);
         // a few dark hairs and warts on the scalp
         int[] top = head.top();
-        for (int i = 0; i < 5; i++) set(top[0] + rng.nextInt(top[2]), top[1] + rng.nextInt(top[3]), HAIR);
+        if (look != 3) { // look 3 has a shaved scalp under its topknot
+            for (int i = 0; i < 5; i++) set(top[0] + rng.nextInt(top[2]), top[1] + rng.nextInt(top[3]), HAIR);
+        }
         set(top[0] + 2, top[1] + 4, skinDeep);
         paint(head.front(), FACES[look]);
         // jaw shadow along the bottom row of the sides and back, a wart on one cheek
@@ -133,11 +135,19 @@ public class MakeGoblinTexture {
         int[] back = head.back();
         for (int x = 0; x < back[2]; x++) set(back[0] + x, back[1], vary(skinDark, 6));
         if (look == 3) {
-            // topknot: a tuft on the crown that just reaches over the back edge of the head
-            for (int y = 2; y < 6; y++) {
-                for (int x = 3; x < 5; x++) set(top[0] + x, top[1] + y, vary(HAIR, 8));
+            // topknot geometry (GoblinModel "topknot"): a hair knot with a bone ring, and a braid with a bone bead
+            Box knot = new Box(28, 0, 2, 2, 2);
+            Box braid = new Box(36, 0, 1, 4, 1);
+            for (int[] face : knot.all()) fill(face, HAIR, 10);
+            for (int[] face : knot.sides()) {
+                set(face[0], face[1] + 1, BONE);
+                set(face[0] + 1, face[1] + 1, shade(BONE, 0.85f));
             }
-            for (int x = 3; x < 5; x++) set(back[0] + x, back[1], vary(HAIR, 8));
+            for (int[] face : braid.all()) fill(face, HAIR, 8);
+            for (int[] face : braid.sides()) {
+                set(face[0], face[1] + 1, shade(HAIR, 1.6f));
+                set(face[0], face[1] + 3, BONE);
+            }
         }
     }
 

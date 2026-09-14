@@ -31,8 +31,14 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
     /** The torso leans forward slightly, so its top (neck and shoulders) sits half a pixel in front of the hips. */
     private static final float NECK_Z = -0.5f;
 
+    /** Hair knot with a braid down the back of the head; only look 3 wears it. */
+    private static final int TOPKNOT_LOOK = 3;
+
+    private final ModelPart topknot;
+
     public GoblinModel(ModelPart root) {
         super(root);
+        topknot = head.getChild("topknot");
     }
 
     public static LayerDefinition createBodyLayer() {
@@ -56,6 +62,11 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
                 CubeListBuilder.create().texOffs(0, 0).addBox(-4.0f, -7.0f, -3.0f, 8.0f, 7.0f, 6.0f),
                 PartPose.offsetAndRotation(0.0f, NECK_Y, NECK_Z, HEAD_TILT, 0.0f, 0.0f));
         head.addOrReplaceChild("hat", CubeListBuilder.create(), PartPose.ZERO);
+        head.addOrReplaceChild("topknot",
+                CubeListBuilder.create()
+                        .texOffs(28, 0).addBox(-1.0f, -9.0f, 1.0f, 2.0f, 2.0f, 2.0f)
+                        .texOffs(36, 0).addBox(-0.5f, -8.0f, 3.0f, 1.0f, 4.0f, 1.0f),
+                PartPose.ZERO);
         head.addOrReplaceChild("nose",
                 CubeListBuilder.create()
                         .texOffs(40, 24).addBox(-1.0f, -4.0f, -5.0f, 2.0f, 2.0f, 2.0f)
@@ -99,6 +110,7 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
     @Override
     public void setupAnim(GoblinRenderState state) {
         super.setupAnim(state);
+        topknot.visible = state.look == TOPKNOT_LOOK;
         body.setPos(0.0f, HIP_Y, 0.0f);
         body.xRot = BODY_TILT;
         head.setPos(0.0f, NECK_Y, NECK_Z);
