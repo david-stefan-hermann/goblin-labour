@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:rotten_flesh", "minecraft:rotten_flesh", "minecraft:rotten_flesh",
+    "minecraft:rotten_flesh", "minecraft:rotten_flesh", "minecraft:rotten_flesh",
+    "minecraft:rotten_flesh", "minecraft:rotten_flesh", "minecraft:rotten_flesh"
+  ],
+  "result": { "id": "goblinlabour:goblin_meat_pack" }
+}

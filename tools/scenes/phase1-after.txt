@@ -1,0 +1,4 @@
+item replace entity @a hotbar.0 with goblinlabour:goblin_head
+item replace entity @a hotbar.1 with goblinlabour:goblin_blank
+item replace entity @a hotbar.2 with goblinlabour:goblin_meat_pack
+item replace entity @a hotbar.3 with goblinlabour:goblin_straw_bed

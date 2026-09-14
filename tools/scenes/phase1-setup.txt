@@ -1,0 +1,8 @@
+forceload add -16 -16 16 16
+setworldspawn 0 -60 0
+time set day
+weather clear
+setblock 0 -60 0 goblinlabour:goblin_straw_bed[facing=north]
+setblock 3 -60 -2 goblinlabour:goblin_straw_bed[facing=east]
+goblinlabour spawn 0 -60 0 Grubnak
+goblinlabour spawn 3 -60 -2 Snikkit

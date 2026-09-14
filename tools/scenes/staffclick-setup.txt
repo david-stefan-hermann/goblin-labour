@@ -1,0 +1,9 @@
+forceload add -16 -16 16 16
+time set day
+weather clear
+kill @e[type=goblinlabour:goblin]
+kill @e[type=minecraft:slime]
+setblock 0 -60 0 air
+setblock 0 -60 0 goblinlabour:goblin_straw_bed[facing=north]
+goblinlabour spawn 0 -60 0 Grubnak
+tp @e[type=goblinlabour:goblin,name=Grubnak] 2.5 -60 2.5 135 0

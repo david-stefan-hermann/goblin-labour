@@ -1,0 +1,18 @@
+forceload add 40 40 80 80
+time set day
+weather clear
+kill @e[type=goblinlabour:goblin]
+kill @e[type=item]
+setblock 60 -60 60 air
+fill 55 -61 62 70 -45 75 air
+fill 55 -61 62 70 -61 75 grass_block
+fill 58 -57 65 62 -54 69 oak_leaves[persistent=true]
+fill 59 -53 66 61 -53 68 oak_leaves[persistent=true]
+fill 60 -60 67 60 -54 67 oak_log
+setblock 60 -60 60 goblinlabour:goblin_straw_bed[facing=south]
+setblock 55 -60 63 minecraft:scaffolding
+setblock 56 -60 63 goblinlabour:goblin_scaffold
+setblock 56 -59 63 goblinlabour:goblin_scaffold
+goblinlabour spawn 60 -60 60 Chopper
+goblinlabour tool 60 -60 60 0 minecraft:stone_axe
+goblinlabour tool 60 -60 60 9 minecraft:oak_sapling

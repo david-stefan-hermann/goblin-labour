@@ -1,0 +1,76 @@
+package goblinlabour.client;
+
+import goblinlabour.entity.GoblinEntity;
+import goblinlabour.menu.GoblinInventoryMenu;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Player-inventory look for a goblin: main panel with the storage row, the tool row and the player's inventory;
+ * a side panel on the left with the goblin's portrait. Drawn with rectangles in the goblin colours of
+ * {@link GoblinUi}.
+ */
+public class GoblinInventoryScreen extends AbstractContainerScreen<GoblinInventoryMenu> {
+    public GoblinInventoryScreen(GoblinInventoryMenu menu, Inventory playerInventory, Component title) {
+        super(menu, playerInventory, title, GoblinInventoryMenu.WIDTH, GoblinInventoryMenu.HEIGHT);
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        titleLabelX = 8;
+        titleLabelY = 6;
+        inventoryLabelX = 8;
+        inventoryLabelY = GoblinInventoryMenu.PLAYER_Y - 11;
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(graphics, mouseX, mouseY, partialTick);
+        GoblinUi.drawPanel(graphics, leftPos, topPos, GoblinInventoryMenu.WIDTH, GoblinInventoryMenu.HEIGHT);
+        GoblinUi.drawPanel(graphics, leftPos + GoblinInventoryMenu.SIDE_X, topPos, GoblinInventoryMenu.SIDE_WIDTH, GoblinInventoryMenu.SIDE_HEIGHT);
+
+        // portrait box in the side panel
+        int px0 = leftPos + GoblinInventoryMenu.SIDE_X + 7;
+        int py0 = topPos + 7;
+        int px1 = px0 + GoblinInventoryMenu.SIDE_WIDTH - 14;
+        int py1 = py0 + GoblinInventoryMenu.SIDE_HEIGHT - 14;
+        graphics.fill(px0 - 1, py0 - 1, px1 + 1, py1 + 1, GoblinUi.SLOT_DARK);
+        graphics.fill(px0, py0, px1, py1, GoblinUi.PORTRAIT_BG);
+        GoblinEntity goblin = menu.goblin();
+        if (goblin == null && minecraft != null && minecraft.level != null
+                && minecraft.level.getEntity(menu.data.entityId()) instanceof GoblinEntity g) {
+            goblin = g;
+        }
+        if (goblin != null) {
+            InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, px0, py0, px1, py1, 26, 0.0625f, mouseX, mouseY, goblin);
+        }
+
+        List<Component> tooltip = null;
+        for (Slot slot : menu.slots) {
+            boolean tool = menu.isToolSlot(slot);
+            GoblinUi.drawSlot(graphics, leftPos + slot.x - 1, topPos + slot.y - 1, tool ? GoblinUi.TOOL_SLOT : GoblinUi.SLOT);
+            if (tool && !slot.hasItem() && menu.getCarried().isEmpty() && isHovering(slot.x, slot.y, 16, 16, mouseX, mouseY)) {
+                tooltip = List.of(Component.translatable("gui.goblinlabour.tool_slot"),
+                        Component.translatable("gui.goblinlabour.tool_slot.hint"));
+            }
+        }
+        if (tooltip != null) {
+            graphics.setTooltipForNextFrame(font, tooltip, Optional.empty(), mouseX, mouseY);
+        }
+    }
+
+    @Override
+    protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        graphics.text(font, title, titleLabelX, titleLabelY, GoblinUi.LABEL, false);
+        graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, GoblinUi.LABEL, false);
+        graphics.text(font, Component.translatable("gui.goblinlabour.tools"), 8, GoblinInventoryMenu.TOOLS_Y - 11, GoblinUi.LABEL, false);
+    }
+}

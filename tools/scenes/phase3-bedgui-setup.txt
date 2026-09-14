@@ -1,0 +1,9 @@
+forceload add -16 -16 16 16
+time set day
+weather clear
+kill @e[type=minecraft:slime]
+setblock 0 -60 0 goblinlabour:goblin_straw_bed[facing=north]
+goblinlabour spawn 0 -60 0 Grubnak
+data merge entity @e[type=goblinlabour:goblin,name=Grubnak,limit=1] {NoAI:1b}
+tp @e[type=goblinlabour:goblin,name=Grubnak] 0.5 -59.4 0.5 0 0
+goblinlabour job 0 -60 0 mine_down 3

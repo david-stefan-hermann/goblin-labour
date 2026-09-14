@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [ "minecraft:book", "minecraft:rotten_flesh" ],
+  "result": { "id": "goblinlabour:goblin_handbook" }
+}

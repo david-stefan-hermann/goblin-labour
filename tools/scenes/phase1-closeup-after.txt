@@ -1,0 +1,1 @@
+item replace entity @a hotbar.0 with goblinlabour:goblin_head

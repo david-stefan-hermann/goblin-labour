@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [ "goblinlabour:goblin_blank", "minecraft:torch" ],
+  "result": { "id": "goblinlabour:goblin_head" }
+}

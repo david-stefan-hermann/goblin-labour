@@ -1,0 +1,24 @@
+forceload add 32 32 56 56
+time set day
+weather clear
+kill @e[type=minecraft:slime]
+kill @e[type=goblinlabour:goblin,x=44,y=-60,z=44,distance=..16]
+fill 36 -60 30 52 -50 52 air
+fill 36 -61 30 52 -61 52 grass_block
+setblock 40 -60 46 goblinlabour:goblin_straw_bed[facing=north]
+setblock 44 -60 47 goblinlabour:goblin_straw_bed[facing=north]
+setblock 48 -60 46 goblinlabour:goblin_straw_bed[facing=north]
+goblinlabour spawn 40 -60 46 Grubnak
+goblinlabour spawn 44 -60 47 Snikkit
+goblinlabour spawn 48 -60 46 Muzgash
+data merge entity @e[type=goblinlabour:goblin,name=Grubnak,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Snikkit,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Muzgash,limit=1] {NoAI:1b}
+tp @e[type=goblinlabour:goblin,name=Grubnak] 43.0 -60 42.5 0 0
+tp @e[type=goblinlabour:goblin,name=Snikkit] 44.5 -60 42.5 60 0
+tp @e[type=goblinlabour:goblin,name=Muzgash] 46.0 -60 42.5 330 0
+data merge entity @e[type=goblinlabour:goblin,name=Grubnak,limit=1] {Rotation:[0f,0f]}
+data merge entity @e[type=goblinlabour:goblin,name=Snikkit,limit=1] {Rotation:[60f,0f]}
+data merge entity @e[type=goblinlabour:goblin,name=Muzgash,limit=1] {Rotation:[330f,0f]}
+item replace entity @e[type=goblinlabour:goblin,name=Muzgash] weapon.mainhand with minecraft:iron_pickaxe
+item replace entity @e[type=goblinlabour:goblin,name=Snikkit] weapon.mainhand with minecraft:iron_axe

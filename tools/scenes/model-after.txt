@@ -1,0 +1,3 @@
+data merge entity @e[type=goblinlabour:goblin,name=Grubnak,limit=1] {Rotation:[180f,0f]}
+data merge entity @e[type=goblinlabour:goblin,name=Snikkit,limit=1] {Rotation:[270f,0f]}
+data merge entity @e[type=goblinlabour:goblin,name=Muzgash,limit=1] {Rotation:[150f,0f]}

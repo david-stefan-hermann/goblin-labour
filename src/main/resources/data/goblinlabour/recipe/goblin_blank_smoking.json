@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:smoking",
+  "category": "misc",
+  "experience": 0.35,
+  "cookingtime": 100,
+  "ingredient": "goblinlabour:goblin_meat_pack",
+  "result": { "id": "goblinlabour:goblin_blank" }
+}

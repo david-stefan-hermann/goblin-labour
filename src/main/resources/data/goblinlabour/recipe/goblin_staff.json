@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "  B",
+    " S ",
+    "S  "
+  ],
+  "key": { "B": "goblinlabour:goblin_blank", "S": "minecraft:stick" },
+  "result": { "id": "goblinlabour:goblin_staff" }
+}

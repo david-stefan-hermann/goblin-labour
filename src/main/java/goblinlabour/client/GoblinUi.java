@@ -1,0 +1,99 @@
+package goblinlabour.client;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.network.chat.Component;
+
+/**
+ * The goblin look shared by all screens: a moss-green panel in vanilla's panel pixel layout, darker slots, and a
+ * flat green button. Everything is drawn with rectangles, no textures.
+ */
+public final class GoblinUi {
+    public static final int PANEL = 0xFF6FA35F;
+    public static final int BORDER = 0xFF000000;
+    public static final int LIGHT = 0xFFB9E2A5;
+    public static final int SHADOW = 0xFF3B5E30;
+    public static final int SLOT = 0xFF4E7A44;
+    public static final int SLOT_DARK = 0xFF23391F;
+    public static final int TOOL_SLOT = 0xFF8C9A4B;
+    public static final int PORTRAIT_BG = 0xFF101810;
+    public static final int LABEL = 0xFF14260F;
+    public static final int LABEL_SOFT = 0xFF2E4A27;
+
+    public static final int BUTTON = 0xFF2F8A44;
+    public static final int BUTTON_HOVER = 0xFF43B25A;
+    public static final int BUTTON_OFF = 0xFF55705A;
+    public static final int BUTTON_EDGE = 0xFF163C1E;
+    public static final int BUTTON_LIGHT = 0xFF7FD68F;
+    public static final int BUTTON_TEXT = 0xFFFFFFFF;
+    public static final int BUTTON_TEXT_OFF = 0xFFC9D6C6;
+
+    private GoblinUi() {
+    }
+
+    /** Vanilla container panel: transparent corner pixels, 1 px black border, 2 px highlight, 2 px shadow. */
+    public static void drawPanel(GuiGraphicsExtractor graphics, int x0, int y0, int w, int h) {
+        int x1 = x0 + w;
+        int y1 = y0 + h;
+        graphics.fill(x0 + 1, y0 + 1, x1 - 1, y1 - 1, PANEL);
+        graphics.fill(x0 + 2, y0, x1 - 2, y0 + 1, BORDER);
+        graphics.fill(x0 + 2, y1 - 1, x1 - 2, y1, BORDER);
+        graphics.fill(x0, y0 + 2, x0 + 1, y1 - 2, BORDER);
+        graphics.fill(x1 - 1, y0 + 2, x1, y1 - 2, BORDER);
+        graphics.fill(x0 + 1, y0 + 1, x0 + 2, y0 + 2, BORDER);
+        graphics.fill(x1 - 2, y0 + 1, x1 - 1, y0 + 2, BORDER);
+        graphics.fill(x0 + 1, y1 - 2, x0 + 2, y1 - 1, BORDER);
+        graphics.fill(x1 - 2, y1 - 2, x1 - 1, y1 - 1, BORDER);
+        graphics.fill(x0 + 2, y0 + 1, x1 - 3, y0 + 2, LIGHT);
+        graphics.fill(x0 + 1, y0 + 2, x1 - 3, y0 + 3, LIGHT);
+        graphics.fill(x0 + 1, y0 + 3, x0 + 3, y1 - 3, LIGHT);
+        graphics.fill(x0 + 3, y0 + 3, x0 + 4, y0 + 4, LIGHT);
+        graphics.fill(x0 + 3, y1 - 2, x1 - 2, y1 - 1, SHADOW);
+        graphics.fill(x0 + 3, y1 - 3, x1 - 1, y1 - 2, SHADOW);
+        graphics.fill(x1 - 3, y0 + 3, x1 - 1, y1 - 3, SHADOW);
+        graphics.fill(x1 - 4, y1 - 4, x1 - 3, y1 - 3, SHADOW);
+    }
+
+    public static void drawSlot(GuiGraphicsExtractor graphics, int x, int y, int fill) {
+        graphics.fill(x, y, x + 18, y + 18, fill);
+        graphics.fill(x, y, x + 17, y + 1, SLOT_DARK);
+        graphics.fill(x, y, x + 1, y + 17, SLOT_DARK);
+        graphics.fill(x + 1, y + 17, x + 18, y + 18, LIGHT);
+        graphics.fill(x + 17, y + 1, x + 18, y + 18, LIGHT);
+    }
+
+    /** A flat green button with an optional tooltip. */
+    public static GreenButton button(Component label, Button.OnPress onPress, int x, int y, int w, int h, Component tooltip) {
+        GreenButton button = new GreenButton(x, y, w, h, label, onPress);
+        if (tooltip != null) button.setTooltip(Tooltip.create(tooltip));
+        return button;
+    }
+
+    public static GreenButton button(Component label, Button.OnPress onPress, int x, int y, int w, int h) {
+        return button(label, onPress, x, y, w, h, null);
+    }
+
+    /** Vanilla button behaviour (click, focus, narration, tooltip) with goblin colours. */
+    public static class GreenButton extends Button {
+        public GreenButton(int x, int y, int w, int h, Component label, OnPress onPress) {
+            super(x, y, w, h, label, onPress, DEFAULT_NARRATION);
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+            int x0 = getX();
+            int y0 = getY();
+            int x1 = x0 + getWidth();
+            int y1 = y0 + getHeight();
+            int fill = !active ? BUTTON_OFF : isHoveredOrFocused() ? BUTTON_HOVER : BUTTON;
+            graphics.fill(x0, y0, x1, y1, BUTTON_EDGE);
+            graphics.fill(x0 + 1, y0 + 1, x1 - 1, y1 - 1, fill);
+            if (active) graphics.fill(x0 + 1, y0 + 1, x1 - 1, y0 + 2, BUTTON_LIGHT);
+            graphics.fill(x0 + 1, y1 - 2, x1 - 1, y1 - 1, SHADOW);
+            int textY = y0 + (getHeight() - 8) / 2;
+            graphics.centeredText(Minecraft.getInstance().font, getMessage(), (x0 + x1) / 2, textY, active ? BUTTON_TEXT : BUTTON_TEXT_OFF);
+        }
+    }
+}

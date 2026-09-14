@@ -1,0 +1,52 @@
+{
+  "entity.goblin.ambient": {
+    "subtitle": "subtitles.goblinlabour.goblin.ambient",
+    "sounds": [
+      { "name": "minecraft:mob/villager/idle1", "pitch": 1.45 },
+      { "name": "minecraft:mob/villager/idle2", "pitch": 1.45 },
+      { "name": "minecraft:mob/villager/idle3", "pitch": 1.5 },
+      { "name": "minecraft:entity/witch/ambient1", "pitch": 1.35, "volume": 0.6 },
+      { "name": "minecraft:entity/witch/ambient4", "pitch": 1.4, "volume": 0.6 }
+    ]
+  },
+  "entity.goblin.yes": {
+    "subtitle": "subtitles.goblinlabour.goblin.yes",
+    "sounds": [
+      { "name": "minecraft:mob/villager/yes1", "pitch": 1.4 },
+      { "name": "minecraft:mob/villager/yes2", "pitch": 1.45 },
+      { "name": "minecraft:mob/villager/yes3", "pitch": 1.4 }
+    ]
+  },
+  "entity.goblin.chatter": {
+    "subtitle": "subtitles.goblinlabour.goblin.chatter",
+    "sounds": [
+      { "name": "minecraft:mob/villager/haggle1", "pitch": 1.45 },
+      { "name": "minecraft:mob/villager/haggle2", "pitch": 1.45 },
+      { "name": "minecraft:mob/villager/haggle3", "pitch": 1.5 },
+      { "name": "minecraft:entity/witch/celebrate", "pitch": 1.4, "volume": 0.7 }
+    ]
+  },
+  "entity.goblin.no": {
+    "subtitle": "subtitles.goblinlabour.goblin.no",
+    "sounds": [
+      { "name": "minecraft:mob/villager/no1", "pitch": 1.4 },
+      { "name": "minecraft:mob/villager/no2", "pitch": 1.45 },
+      { "name": "minecraft:mob/villager/no3", "pitch": 1.4 }
+    ]
+  },
+  "entity.goblin.hurt": {
+    "subtitle": "subtitles.goblinlabour.goblin.hurt",
+    "sounds": [
+      { "name": "minecraft:mob/villager/hit1", "pitch": 1.4 },
+      { "name": "minecraft:mob/villager/hit2", "pitch": 1.4 },
+      { "name": "minecraft:mob/villager/hit3", "pitch": 1.45 },
+      { "name": "minecraft:mob/villager/hit4", "pitch": 1.45 }
+    ]
+  },
+  "entity.goblin.death": {
+    "subtitle": "subtitles.goblinlabour.goblin.death",
+    "sounds": [
+      { "name": "minecraft:mob/villager/death", "pitch": 1.4 }
+    ]
+  }
+}
