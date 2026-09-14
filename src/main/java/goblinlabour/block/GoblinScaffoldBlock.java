@@ -1,8 +1,8 @@
 package goblinlabour.block;
 
 import com.mojang.serialization.MapCodec;
-import goblinlabour.entity.GoblinEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
@@ -10,25 +10,28 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
- * The block goblins stack under themselves to reach high logs. Behaves like vanilla scaffolding: you can stand on
- * top of it, climb inside it (it is in the {@code minecraft:climbable} tag) and sneak to drop through it. Not
- * craftable, drops nothing. Every block removes itself one minute after it was placed; only while a goblin is
- * still in that column does it wait a little longer, so nothing is left behind when a goblin dies or teleports
- * away mid-climb.
+ * The block goblins stack under themselves to reach high logs and to climb out of pits. Behaves like vanilla
+ * scaffolding: you can stand on top of it, climb inside it (it is in the {@code minecraft:climbable} tag) and sneak
+ * to drop through it. Not craftable, drops nothing. Goblins never break it; every block removes itself two minutes
+ * after a goblin last touched its column, so a column stays up while goblins are using it.
  */
 public class GoblinScaffoldBlock extends Block {
     public static final MapCodec<GoblinScaffoldBlock> CODEC = simpleCodec(GoblinScaffoldBlock::new);
-    /** One minute. */
-    public static final int LIFETIME_TICKS = 1200;
-    private static final int EXTEND_TICKS = 200;
-    private static final double COLUMN_RANGE_XZ = 2.0;
-    private static final double COLUMN_RANGE_Y = 48.0;
+    /** Two minutes. */
+    public static final int LIFETIME_TICKS = 2400;
+    private static final int COLUMN_SCAN = 256;
+    private static final int PRUNE_ABOVE = 8192;
+
+    /** Game time of the last goblin touch per block position, per dimension. Lost on restart, see {@link #tick}. */
+    private static final Map<ResourceKey<Level>, Map<Long, Long>> TOUCHED = new ConcurrentHashMap<>();
 
     private static final VoxelShape SHAPE_STABLE = Shapes.or(
             Block.box(0, 14, 0, 16, 16, 16),
@@ -65,16 +68,49 @@ public class GoblinScaffoldBlock extends Block {
 
     @Override
     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        touched(serverLevel).put(pos.asLong(), serverLevel.getGameTime());
         level.scheduleTick(pos, this, LIFETIME_TICKS);
     }
 
     @Override
     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
-        AABB column = new AABB(pos).inflate(COLUMN_RANGE_XZ, COLUMN_RANGE_Y, COLUMN_RANGE_XZ);
-        if (level.getEntitiesOfClass(GoblinEntity.class, column).isEmpty()) {
-            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-        } else {
-            level.scheduleTick(pos, this, EXTEND_TICKS);
+        Map<Long, Long> touched = touched(level);
+        long now = level.getGameTime();
+        Long last = touched.get(pos.asLong());
+        if (last == null || last > now) {
+            // unknown after a restart (or from another world with the same dimension): count as touched just now
+            touched.put(pos.asLong(), now);
+            level.scheduleTick(pos, this, LIFETIME_TICKS);
+            return;
         }
+        long remaining = last + LIFETIME_TICKS - now;
+        if (remaining > 0) {
+            level.scheduleTick(pos, this, (int) remaining);
+        } else {
+            touched.remove(pos.asLong());
+            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+        }
+    }
+
+    /** A goblin touched the block at {@code pos}: the whole column it belongs to starts its two minutes again. */
+    public static void touchColumn(ServerLevel level, BlockPos pos) {
+        Map<Long, Long> touched = touched(level);
+        long now = level.getGameTime();
+        if (touched.size() > PRUNE_ABOVE) touched.values().removeIf(t -> t + LIFETIME_TICKS < now);
+        BlockPos.MutableBlockPos cursor = pos.mutable();
+        for (int i = 0; i < COLUMN_SCAN && level.getBlockState(cursor).getBlock() instanceof GoblinScaffoldBlock; i++) {
+            touched.put(cursor.asLong(), now);
+            cursor.move(0, -1, 0);
+        }
+        cursor.set(pos).move(0, 1, 0);
+        for (int i = 0; i < COLUMN_SCAN && level.getBlockState(cursor).getBlock() instanceof GoblinScaffoldBlock; i++) {
+            touched.put(cursor.asLong(), now);
+            cursor.move(0, 1, 0);
+        }
+    }
+
+    private static Map<Long, Long> touched(ServerLevel level) {
+        return TOUCHED.computeIfAbsent(level.dimension(), k -> new ConcurrentHashMap<>());
     }
 }

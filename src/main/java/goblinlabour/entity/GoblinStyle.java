@@ -36,6 +36,7 @@ public enum GoblinStyle implements StringRepresentable {
         return switch (job) {
             case CHOP -> LUMBERJACK;
             case FARM -> FARMER;
+            case COLLECT -> COLLECTOR;
             case MINE_DOWN, MINE_UP, MINE_AHEAD -> MINER;
             case REST -> null;
         };

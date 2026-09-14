@@ -10,14 +10,16 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 /**
- * Bed screen: goblin name and status, Rest / Chop / Farm, and the radius for chop and farm. Dig orders are given
- * with the Goblin Staff. Buttons go through the vanilla "menu button" packet.
+ * Bed screen: goblin name and status, Rest / Chop / Farm / Collect in two rows, and the radius for the working
+ * jobs. Dig orders are given with the Goblin Staff. Buttons go through the vanilla "menu button" packet.
  */
 public class GoblinBedScreen extends AbstractContainerScreen<GoblinBedMenu> {
     private static final int JOB_Y = 30;
-    private static final int RADIUS_Y = 58;
+    private static final int JOB_ROW_2_Y = 52;
+    private static final int JOB_BUTTON_WIDTH = 78;
+    private static final int RADIUS_Y = 80;
 
-    private Button restButton, chopButton, farmButton, radiusDown, radiusUp;
+    private Button restButton, chopButton, farmButton, collectButton, radiusDown, radiusUp;
 
     public GoblinBedScreen(GoblinBedMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title, GoblinBedMenu.WIDTH, GoblinBedMenu.HEIGHT);
@@ -30,9 +32,11 @@ public class GoblinBedScreen extends AbstractContainerScreen<GoblinBedMenu> {
         titleLabelY = 6;
         inventoryLabelY = 10000;
         int x = leftPos + 8;
-        restButton = addRenderableWidget(jobButton(Job.REST, GoblinBedMenu.BUTTON_REST, x));
-        chopButton = addRenderableWidget(jobButton(Job.CHOP, GoblinBedMenu.BUTTON_CHOP, x + 54));
-        farmButton = addRenderableWidget(jobButton(Job.FARM, GoblinBedMenu.BUTTON_FARM, x + 108));
+        int x2 = x + JOB_BUTTON_WIDTH + 4;
+        restButton = addRenderableWidget(jobButton(Job.REST, GoblinBedMenu.BUTTON_REST, x, JOB_Y));
+        chopButton = addRenderableWidget(jobButton(Job.CHOP, GoblinBedMenu.BUTTON_CHOP, x2, JOB_Y));
+        farmButton = addRenderableWidget(jobButton(Job.FARM, GoblinBedMenu.BUTTON_FARM, x, JOB_ROW_2_Y));
+        collectButton = addRenderableWidget(jobButton(Job.COLLECT, GoblinBedMenu.BUTTON_COLLECT, x2, JOB_ROW_2_Y));
         Component radiusTip = Component.translatable("gui.goblinlabour.radius.tooltip");
         radiusDown = addRenderableWidget(GoblinUi.button(Component.literal("-"), b -> send(GoblinBedMenu.BUTTON_RADIUS_DOWN),
                 x + 70, topPos + RADIUS_Y, 14, 14, radiusTip));
@@ -41,8 +45,8 @@ public class GoblinBedScreen extends AbstractContainerScreen<GoblinBedMenu> {
         refresh();
     }
 
-    private Button jobButton(Job job, int id, int x) {
-        return GoblinUi.button(Component.translatable(job.translationKey()), b -> send(id), x, topPos + JOB_Y, 52, 20,
+    private Button jobButton(Job job, int id, int x, int y) {
+        return GoblinUi.button(Component.translatable(job.translationKey()), b -> send(id), x, topPos + y, JOB_BUTTON_WIDTH, 20,
                 Component.translatable(job.translationKey() + ".tooltip"));
     }
 
@@ -63,6 +67,7 @@ public class GoblinBedScreen extends AbstractContainerScreen<GoblinBedMenu> {
         restButton.active = current != Job.REST;
         chopButton.active = current != Job.CHOP;
         farmButton.active = current != Job.FARM;
+        collectButton.active = current != Job.COLLECT;
         radiusDown.active = menu.radius() > 4;
         radiusUp.active = menu.radius() < 64;
     }

@@ -7,7 +7,10 @@ import goblinlabour.GoblinLabour;
 import goblinlabour.GoblinSpeech;
 import goblinlabour.block.GoblinBedBlock;
 import goblinlabour.block.GoblinBedBlockEntity;
+import goblinlabour.block.GoblinScaffoldBlock;
+import goblinlabour.entity.ai.ClimbOutGoal;
 import goblinlabour.entity.ai.FollowStaffGoal;
+import goblinlabour.job.Climber;
 import goblinlabour.entity.ai.RecoverItemsGoal;
 import goblinlabour.entity.ai.RestGoal;
 import goblinlabour.entity.ai.WorkGoal;
@@ -69,6 +72,9 @@ public class GoblinEntity extends PathfinderMob {
     private final SimpleContainer inventory = new SimpleContainer(INVENTORY_SIZE);
     /** Created lazily: registerGoals() runs from the Mob constructor, before field initialisers. */
     private JobRunner runner;
+    private Climber climber;
+    /** Kept for the status command's debug line; set in registerGoals (runs from the Mob constructor). */
+    private RestGoal restGoal;
     private int bedCheckTimer;
     @Nullable private BlockPos lastTorchPos;
     @Nullable private BlockPos recoverPos;
@@ -102,10 +108,12 @@ public class GoblinEntity extends PathfinderMob {
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
+        goalSelector.addGoal(1, new ClimbOutGoal(this));
         goalSelector.addGoal(1, new RecoverItemsGoal(this));
         goalSelector.addGoal(1, new FollowStaffGoal(this));
         goalSelector.addGoal(2, new WorkGoal(this));
-        goalSelector.addGoal(3, new RestGoal(this));
+        restGoal = new RestGoal(this);
+        goalSelector.addGoal(3, restGoal);
         goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 1.0));
         goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 6.0f));
         goalSelector.addGoal(7, new RandomLookAroundGoal(this));
@@ -196,11 +204,23 @@ public class GoblinEntity extends PathfinderMob {
         return runner;
     }
 
+    public String restDebug() {
+        return restGoal == null ? "rest: -" : restGoal.debug();
+    }
+
+    public Climber climber() {
+        if (climber == null) climber = new Climber(this);
+        return climber;
+    }
+
     @Override
     public void tick() {
         super.tick();
         if (level().isClientSide() || isDeadOrDying()) return; // a dying goblin must not re-collect its own drops
-        if (bedCheckTimer % 10 == 0) collectNearbyItems((ServerLevel) level());
+        if (bedCheckTimer % 10 == 0) {
+            collectNearbyItems((ServerLevel) level());
+            touchScaffolds((ServerLevel) level());
+        }
         if (++bedCheckTimer < 20) return;
         bedCheckTimer = 0;
         checkBed((ServerLevel) level());
@@ -336,11 +356,48 @@ public class GoblinEntity extends PathfinderMob {
         if (isStorageFull()) return;
         for (net.minecraft.world.entity.item.ItemEntity item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
                 getBoundingBox().inflate(2.0, 1.0, 2.0), net.minecraft.world.entity.item.ItemEntity::isAlive)) {
-            if (item.hasPickUpDelay()) continue;
-            ItemStack rest = storeInStorage(item.getItem());
-            if (rest.isEmpty()) item.discard();
-            else item.setItem(rest);
+            if (item.hasPickUpDelay() || !canStore(item.getItem())) continue;
+            pickUp(item);
             if (isStorageFull()) return;
+        }
+    }
+
+    /** Takes as much of the item as fits into the storage, with the vanilla pick-up animation. */
+    public void pickUp(net.minecraft.world.entity.item.ItemEntity item) {
+        ItemStack stack = item.getItem();
+        int before = stack.getCount();
+        ItemStack rest = storeInStorage(stack);
+        int taken = before - rest.getCount();
+        if (taken <= 0) return;
+        take(item, taken);
+        if (rest.isEmpty()) item.discard();
+        else item.setItem(rest);
+    }
+
+    /** True if at least part of the stack fits into the storage rows. */
+    public boolean canStore(ItemStack stack) {
+        for (int i = HOTBAR_SIZE; i < INVENTORY_SIZE; i++) {
+            ItemStack slot = inventory.getItem(i);
+            if (slot.isEmpty()) return true;
+            if (ItemStack.isSameItemSameComponents(slot, stack)
+                    && slot.getCount() < Math.min(slot.getMaxStackSize(), inventory.getMaxStackSize())) return true;
+        }
+        return false;
+    }
+
+    /** Goblin scaffold the goblin stands in or on keeps its whole column from vanishing (see GoblinScaffoldBlock). */
+    private void touchScaffolds(ServerLevel level) {
+        net.minecraft.world.phys.AABB box = getBoundingBox().inflate(0.05);
+        int lastX = Integer.MIN_VALUE, lastZ = Integer.MIN_VALUE;
+        for (BlockPos pos : BlockPos.betweenClosed(net.minecraft.util.Mth.floor(box.minX), net.minecraft.util.Mth.floor(box.minY),
+                net.minecraft.util.Mth.floor(box.minZ), net.minecraft.util.Mth.floor(box.maxX), net.minecraft.util.Mth.floor(box.maxY),
+                net.minecraft.util.Mth.floor(box.maxZ))) {
+            if (pos.getX() == lastX && pos.getZ() == lastZ) continue; // column already refreshed
+            if (level.getBlockState(pos).getBlock() instanceof GoblinScaffoldBlock) {
+                GoblinScaffoldBlock.touchColumn(level, pos);
+                lastX = pos.getX();
+                lastZ = pos.getZ();
+            }
         }
     }
 

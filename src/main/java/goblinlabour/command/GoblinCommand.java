@@ -29,7 +29,7 @@ import net.minecraft.world.item.ItemStack;
 /**
  * /goblinlabour spawn <bed> [name]                          spawns a fresh goblin on the bed (no blank needed)
  * /goblinlabour status <bed>                                bed status and the goblin's inventory
- * /goblinlabour job <bed> <rest|chop|farm> [radius]         sets a bed job
+ * /goblinlabour job <bed> <rest|chop|farm|collect> [radius] sets a bed job
  * /goblinlabour dig <bed> <down|up> <origin> <width> <targetY> <stairs>   staff order without a staff
  * /goblinlabour tunnel <bed> <origin> <north|south|east|west> <width> <height> <length>
  * /goblinlabour tool <bed> <slot> <item>                    puts an item into the goblin's slot 0-17
@@ -136,7 +136,8 @@ public final class GoblinCommand {
                 if (!stack.isEmpty()) sb.append(' ').append(i).append('=').append(stack.getCount()).append('x').append(stack.getItem());
             }
             sb.append(" | health=").append(goblin.getHealth()).append(" pos=").append(goblin.blockPosition().toShortString());
-            sb.append(" onGround=").append(goblin.onGround()).append(" | ").append(goblin.runner().debug());
+            sb.append(" onGround=").append(goblin.onGround()).append(" | ").append(goblin.runner().debug())
+                    .append(" | ").append(goblin.restDebug());
             if (bed.getAssignment() != null) sb.append(" | order=").append(bed.getAssignment());
             source.sendSuccess(() -> Component.literal(sb.toString()), false);
         }

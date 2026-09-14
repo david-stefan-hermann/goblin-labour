@@ -14,12 +14,12 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Bed settings: rest, chop or farm and the radius for the latter two. Dig orders come from the Goblin Staff.
- * No slots; the state travels as ContainerData and the buttons arrive as {@link #clickMenuButton} ids.
+ * Bed settings: rest, chop, farm or collect and the radius for the working jobs. Dig orders come from the Goblin
+ * Staff. No slots; the state travels as ContainerData and the buttons arrive as {@link #clickMenuButton} ids.
  */
 public class GoblinBedMenu extends AbstractContainerMenu {
     public static final int WIDTH = 176;
-    public static final int HEIGHT = 100;
+    public static final int HEIGHT = 120;
 
     public static final int DATA_JOB = 0;
     public static final int DATA_RADIUS = 1;
@@ -30,6 +30,7 @@ public class GoblinBedMenu extends AbstractContainerMenu {
     public static final int BUTTON_REST = 0;
     public static final int BUTTON_CHOP = 1;
     public static final int BUTTON_FARM = 2;
+    public static final int BUTTON_COLLECT = 3;
     public static final int BUTTON_RADIUS_DOWN = 10;
     public static final int BUTTON_RADIUS_UP = 11;
 
@@ -78,6 +79,7 @@ public class GoblinBedMenu extends AbstractContainerMenu {
             case BUTTON_REST -> config = config.withJob(Job.REST);
             case BUTTON_CHOP -> config = config.withJob(Job.CHOP);
             case BUTTON_FARM -> config = config.withJob(Job.FARM);
+            case BUTTON_COLLECT -> config = config.withJob(Job.COLLECT);
             case BUTTON_RADIUS_DOWN -> config = config.withLength(config.length() - 4);
             case BUTTON_RADIUS_UP -> config = config.withLength(config.length() + 4);
             default -> {

@@ -4,8 +4,8 @@ import com.mojang.serialization.Codec;
 import net.minecraft.util.StringRepresentable;
 
 /**
- * What a goblin does. REST, CHOP and FARM are set on the bed; MINE_DOWN, MINE_UP and MINE_AHEAD come from a
- * Goblin Staff order ({@link Assignment}). REST is the off switch.
+ * What a goblin does. REST, CHOP, FARM and COLLECT are set on the bed; MINE_DOWN, MINE_UP and MINE_AHEAD come from
+ * a Goblin Staff order ({@link Assignment}). REST is the off switch. New values go at the end (menus sync ordinals).
  */
 public enum Job implements StringRepresentable {
     REST("rest"),
@@ -13,7 +13,8 @@ public enum Job implements StringRepresentable {
     MINE_AHEAD("mine_ahead"),
     CHOP("chop"),
     FARM("farm"),
-    MINE_UP("mine_up");
+    MINE_UP("mine_up"),
+    COLLECT("collect");
 
     public static final Codec<Job> CODEC = StringRepresentable.fromEnum(Job::values);
 

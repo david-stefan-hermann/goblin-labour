@@ -45,6 +45,8 @@ for _ in $(seq 1 100); do grep -q 'RCON running\|EXIT=' run/runServer.out 2>/dev
 if grep -q 'EXIT=' run/runServer.out; then echo "server did not start"; tail -40 run/runServer.out; exit 1; fi
 
 rcon "forceload add 0 0 270 270" "time set day" "weather clear" > /dev/null
+# display beds of the screenshot scenes (x/z 40..49) would merge their homes with A's and protect the shaft
+rcon "fill 36 -60 36 52 -60 52 air replace goblinlabour:goblin_straw_bed" > /dev/null
 # beds first (a bed respawns its goblin 5 s after a kill), then goblins and items, then a clean slate per area
 rcon "setblock 20 -60 20 air" "setblock 10 -60 10 air" "setblock 30 -60 30 air" "setblock 60 -60 60 air" "setblock 90 -60 90 air" \
      "setblock 120 -60 120 air" "setblock 150 -60 150 air" "setblock 180 -60 180 air" "setblock 210 -60 210 air" "setblock 240 -60 240 air" > /dev/null
@@ -127,8 +129,7 @@ out=$(wait_block 60 "90 -60 97" "wheat[age=0]"); check "C wheat harvested and re
 out=$(status "$C"); check "C wheat in inventory" "minecraft:wheat" "$out"
 
 out=$(wait_block 150 "60 -53 67" "air"); check "B top log (8 high) felled" "Test passed" "$out"
-sleep 15
-out=$(rcon "fill 55 -61 62 65 -45 72 air replace goblinlabour:goblin_scaffold"); check "B scaffolds cleaned up" "No blocks" "$out"
+out=$(wait_status "$B" 60 "up=false"); check "B came down the scaffold (it stays for two minutes)" "up=false" "$out"
 out=$(rcon "execute if block 60 -60 67 oak_sapling"); check "B sapling replanted" "Test passed" "$out"
 out=$(status "$B"); check "B logs in inventory" "oak_log" "$out"
 
@@ -148,8 +149,7 @@ echo "  H: $(status "$H" | cut -c1-160)"; echo "  I: $(status "$I" | cut -c1-160
 out=$(wait_notblock 180 "245 -59 253" "stone"); check "I tunnel reached slice 8" "Test passed" "$out"
 echo "  I: $(status "$I" | cut -c1-160)"
 out=$(wait_notblock 240 "210 -50 218" "stone"); check "H dug up to the target" "Test passed" "$out"
-sleep 20
-out=$(rcon "fill 205 -61 213 215 -45 223 air replace goblinlabour:goblin_scaffold"); check "H scaffolds cleaned up" "No blocks" "$out"
+out=$(wait_status "$H" 60 "up=false"); check "H came down the scaffold" "up=false" "$out"
 
 echo "RESULT pass=$pass fail=$fail"
 rcon "stop" | tail -1

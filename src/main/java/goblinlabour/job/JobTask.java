@@ -60,6 +60,7 @@ public interface JobTask {
             case MINE_AHEAD -> MineAheadJob.INSTANCE;
             case CHOP -> ChopJob.INSTANCE;
             case FARM -> FarmJob.INSTANCE;
+            case COLLECT -> CollectJob.INSTANCE;
             case REST -> null;
         };
     }

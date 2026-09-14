@@ -49,6 +49,10 @@ public final class GoblinSpeech {
             "Crops grow, goblin harvest.", "Fresh veggies for master!", "Me like farming. Quiet.", "Snip snip, pluck pluck!",
     };
 
+    public static final String[] WORKING_COLLECT = {
+            "Finders keepers... for master!", "Shinies on the ground!", "Nothing goes to waste!", "Pick pick pick!",
+    };
+
     private GoblinSpeech() {
     }
 
@@ -68,6 +72,9 @@ public final class GoblinSpeech {
                 }
                 case FARM -> {
                     return random(random, WORKING_FARM);
+                }
+                case COLLECT -> {
+                    return random(random, WORKING_COLLECT);
                 }
                 default -> {
                 }
