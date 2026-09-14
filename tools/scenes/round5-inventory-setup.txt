@@ -1,0 +1,17 @@
+forceload add 715 690 730 710
+time set day
+weather clear
+fill 715 -60 695 730 -50 705 air
+fill 715 -61 695 730 -61 705 grass_block
+setblock 720 -60 700 goblinlabour:goblin_straw_bed[facing=north]
+goblinlabour spawn 720 -60 700 Snikkit
+data merge entity @e[type=goblinlabour:goblin,name=Snikkit,limit=1] {NoAI:1b}
+tp @e[type=goblinlabour:goblin,name=Snikkit] 720.5 -59.4 700.5 0 0
+goblinlabour job 720 -60 700 collect 8
+goblinlabour tool 720 -60 700 0 minecraft:iron_shovel
+goblinlabour tool 720 -60 700 9 minecraft:cobblestone
+goblinlabour tool 720 -60 700 10 minecraft:bone
+goblinlabour tool 720 -60 700 11 minecraft:string
+goblinlabour tool 720 -60 700 12 minecraft:apple
+goblinlabour tool 720 -60 700 18 minecraft:rotten_flesh
+goblinlabour tool 720 -60 700 19 minecraft:feather

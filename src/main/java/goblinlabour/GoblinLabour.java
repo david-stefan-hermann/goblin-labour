@@ -2,6 +2,8 @@ package goblinlabour;
 
 import goblinlabour.block.GoblinBedBlock;
 import goblinlabour.block.GoblinBedBlockEntity;
+import goblinlabour.block.GoblinChestBlock;
+import goblinlabour.block.GoblinChestBlockEntity;
 import goblinlabour.block.GoblinScaffoldBlock;
 import goblinlabour.block.HomeMarkerBlock;
 import goblinlabour.item.GoblinStaffItem;
@@ -20,6 +22,7 @@ import goblinlabour.menu.GoblinBedMenuData;
 import goblinlabour.menu.GoblinInventoryMenu;
 import goblinlabour.menu.GoblinMenuData;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -70,10 +73,17 @@ public final class GoblinLabour implements ModInitializer {
             FabricBlockEntityTypeBuilder.create(GoblinBedBlockEntity::new, GOBLIN_STRAW_BED).build());
 
     public static final Block GOBLIN_SCAFFOLD = registerBlock("goblin_scaffold", props -> new GoblinScaffoldBlock(
-            props.mapColor(MapColor.COLOR_BROWN).strength(0.2f).sound(SoundType.SCAFFOLDING).noOcclusion().noLootTable().dynamicShape()
+            props.mapColor(MapColor.COLOR_BROWN).strength(0.2f).sound(SoundType.SCAFFOLDING).noOcclusion().noLootTable().dynamicShape().randomTicks()
                     .isSuffocating((state, level, pos) -> false).isViewBlocking((state, level, pos) -> false)));
     public static final Item GOBLIN_SCAFFOLD_ITEM = registerItem("goblin_scaffold",
             props -> new BlockItem(GOBLIN_SCAFFOLD, props.useBlockDescriptionPrefix()));
+    public static final Block GOBLIN_CHEST = registerBlock("goblin_chest", props -> new GoblinChestBlock(
+            props.mapColor(MapColor.COLOR_GREEN).strength(2.5f).sound(SoundType.WOOD).ignitedByLava()));
+    public static final BlockEntityType<GoblinChestBlockEntity> GOBLIN_CHEST_BLOCK_ENTITY = Registry.register(
+            BuiltInRegistries.BLOCK_ENTITY_TYPE, id("goblin_chest"),
+            FabricBlockEntityTypeBuilder.create(GoblinChestBlockEntity::new, GOBLIN_CHEST).build());
+    public static final Item GOBLIN_CHEST_ITEM = registerItem("goblin_chest",
+            props -> new BlockItem(GOBLIN_CHEST, props.useBlockDescriptionPrefix()));
     /** Technical block, never placed: its particle texture (the emerald item) is what the home markers show. */
     public static final Block HOME_MARKER = registerBlock("home_marker", props -> new HomeMarkerBlock(
             props.noCollision().noLootTable().replaceable().air()));
@@ -116,6 +126,7 @@ public final class GoblinLabour implements ModInitializer {
                         out.accept(GOBLIN_MEAT_PACK);
                         out.accept(GOBLIN_BLANK);
                         out.accept(GOBLIN_STRAW_BED_ITEM);
+                        out.accept(GOBLIN_CHEST_ITEM);
                         out.accept(GOBLIN_HEAD);
                         out.accept(GOBLIN_STAFF);
                         out.accept(GOBLIN_SCAFFOLD_ITEM);
@@ -128,6 +139,7 @@ public final class GoblinLabour implements ModInitializer {
         GoblinSounds.init();
         GoblinCommand.init();
         StaffSelection.init();
+        ServerTickEvents.END_LEVEL_TICK.register(GoblinScaffoldBlock::sweep);
         DevHooks.initServer();
         LOGGER.info("Goblin Labour loaded");
     }

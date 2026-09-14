@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Set;
 
 /**
- * Picks up loose items within {@code length} blocks of the bed (the home included) and brings them to the copper
+ * Picks up loose items within {@code length} blocks of the bed (the home included) and brings them to the goblin
  * chests like any other loot. Works on item entities instead of blocks, so the runner drives it through
  * {@link #findItem} rather than {@link #pick}. Endless.
  */

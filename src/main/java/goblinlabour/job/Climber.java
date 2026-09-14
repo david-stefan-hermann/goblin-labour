@@ -1,6 +1,7 @@
 package goblinlabour.job;
 
 import goblinlabour.GoblinLabour;
+import goblinlabour.block.GoblinScaffoldBlock;
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.home.HomeRegistry;
 import net.minecraft.core.BlockPos;
@@ -64,11 +65,12 @@ public final class Climber {
         if (!goblin.onGround() || !centred) return true; // still landing on the last block, or stepping to the middle
         if (cooldown-- > 0) return true;
         cooldown = PLACE_COOLDOWN;
-        BlockPos head = feet.above(2);
-        BlockState headState = level.getBlockState(head);
-        if (!headState.getCollisionShape(level, head).isEmpty() && !isScaffold(headState)) {
-            if (!headState.is(BlockTags.LEAVES) || HomeRegistry.isProtected(level, head)) return false;
-            level.destroyBlock(head, true, goblin, 512);
+        // the goblin rises through the block above its feet and needs its head free one further up
+        for (BlockPos above : new BlockPos[]{feet.above(), feet.above(2)}) {
+            BlockState aboveState = level.getBlockState(above);
+            if (aboveState.getCollisionShape(level, above).isEmpty() || isScaffold(aboveState)) continue;
+            if (!aboveState.is(BlockTags.LEAVES) || HomeRegistry.isProtected(level, above)) return false;
+            level.destroyBlock(above, true, goblin, 512);
         }
         if (HomeRegistry.isProtected(level, feet)) return false;
         if (!feetState.canBeReplaced()) {
@@ -76,7 +78,9 @@ public final class Climber {
             level.destroyBlock(feet, true, goblin, 512); // own torch in the column: take it along, it gets re-placed later
         }
         if (columnBelow(level, feet) >= MAX_HEIGHT) return false;
-        level.setBlock(feet, GoblinLabour.GOBLIN_SCAFFOLD.defaultBlockState(), 3);
+        BlockState scaffold = ((GoblinScaffoldBlock) GoblinLabour.GOBLIN_SCAFFOLD).placementState(level, feet);
+        if (scaffold == null) return false; // nothing below would hold it (vanilla stability rules)
+        level.setBlock(feet, scaffold, 3);
         level.playSound(null, feet, SoundEvents.SCAFFOLDING_PLACE, SoundSource.BLOCKS, 0.8f, 1.0f);
         goblin.swing(InteractionHand.MAIN_HAND);
         goblin.getJumpControl().jump();

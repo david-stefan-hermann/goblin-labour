@@ -1,9 +1,9 @@
 package goblinlabour.home;
 
+import goblinlabour.block.GoblinChestBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
@@ -62,8 +62,8 @@ public final class HomeRegistry {
         return HomeZone.of(bed);
     }
 
-    /** Copper chests inside the bed's flat (loaded chunks only). */
-    public static List<BlockPos> copperChests(ServerLevel level, BlockPos bed) {
+    /** Goblin chests inside the bed's flat (loaded chunks only; both halves of a double chest). */
+    public static List<BlockPos> goblinChests(ServerLevel level, BlockPos bed) {
         BoundingBox box = flatBox(level, bed);
         List<BlockPos> chests = new ArrayList<>();
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
@@ -72,7 +72,7 @@ public final class HomeRegistry {
                 if (!level.isLoaded(cursor.set(x, box.minY(), z))) continue;
                 for (int y = box.minY(); y <= box.maxY(); y++) {
                     cursor.set(x, y, z);
-                    if (level.getBlockState(cursor).is(BlockTags.COPPER_CHESTS)) chests.add(cursor.immutable());
+                    if (level.getBlockState(cursor).getBlock() instanceof GoblinChestBlock) chests.add(cursor.immutable());
                 }
             }
         }

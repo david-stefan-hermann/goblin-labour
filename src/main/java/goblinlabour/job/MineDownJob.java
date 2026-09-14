@@ -71,6 +71,7 @@ public final class MineDownJob implements JobTask {
             BlockPos missingStair = null;
             BlockState missingState = null;
             boolean layerHasWork = false;
+            boolean sawSkipped = false;
             for (int x = box.minX(); x <= box.maxX(); x++) {
                 for (int z = box.minZ(); z <= box.maxZ(); z++) {
                     cursor.set(x, y, z);
@@ -94,8 +95,12 @@ public final class MineDownJob implements JobTask {
                         layerHasWork = true;
                         continue;
                     }
-                    if (verdict != Mining.Verdict.OK || skipped.contains(cursor)) continue;
+                    if (verdict != Mining.Verdict.OK) continue;
                     layerHasWork = true;
+                    if (skipped.contains(cursor)) {
+                        sawSkipped = true;
+                        continue;
+                    }
                     double d = me.distanceToSqr(Vec3.atCenterOf(cursor));
                     if (d < bestDist) {
                         bestDist = d;
@@ -104,6 +109,7 @@ public final class MineDownJob implements JobTask {
                 }
             }
             if (best != null) return Pick.of(best);
+            if (sawSkipped) return Pick.RETRY; // never dig on below a layer that still has blocks in it
             if (layerHasWork) return Pick.NEEDS_TOOL; // only unbreakable-without-tool blocks left on this layer
             if (missingStair != null) return Pick.place(missingStair, missingState);
         }

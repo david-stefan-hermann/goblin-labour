@@ -15,6 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleContainer;
@@ -23,6 +24,7 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.pathfinder.Path;
@@ -37,18 +39,27 @@ import java.util.Map;
 /**
  * Per-goblin work loop (Minions Remastered's goalTick, one goblin at a time): pick a block, walk there, swing until
  * it breaks (or until the stair step is placed), collect, repeat. Extras: scaffold climbing for high targets (see
- * {@link Climber}), unloading into the flat's copper chests when the storage is full (waiting in bed when nothing
+ * {@link Climber}), unloading into the flat's goblin chests when the storage is full (waiting in bed when nothing
  * fits), picking up loose items for the collect job, and a "no exit" check. Tool choice and the rules live in
  * {@link Mining}; what comes next is the job's business.
  */
 public final class JobRunner {
     /** Distance (squared) from the eyes at which the goblin swings instead of walking. */
     private static final double REACH_SQ = 4.5 * 4.5;
+    private static final double COMFORT_REACH_SQ = 3.5 * 3.5;
     private static final double CHEST_REACH_SQ = 2.5 * 2.5;
+    private static final int CHEST_OPEN_TICKS = 16;
     private static final double PICKUP_SQ = 1.5 * 1.5;
-    /** Targets more than this far up (and at most this far sideways) are reached by stacking scaffold. */
+    /** Targets more than this far above the eyes are reached by stacking scaffold. */
     private static final double CLIMB_MIN_DY = 1.5;
-    private static final double CLIMB_MAX_HORIZONTAL = 1.6;
+    /** How far beside a high target a scaffold column may stand, and how many of those spots get a path check. */
+    private static final int COLUMN_RANGE = 2;
+    /** Horizontal distance (squared) from a target within which a goblin in scaffold is on a column meant for it. */
+    private static final double CLIMB_BESIDE_SQ = 3.0 * 3.0;
+    private static final int MAX_STAND_PATH_CHECKS = 4;
+    private static final int MAX_COLUMN_PATH_CHECKS = 6;
+    /** Drops up to this many blocks are stepped off; higher up the goblin sneaks down its column. */
+    private static final int SAFE_DROP = 2;
     /** The exit check must fail this often in a row (100 ticks apart) before the goblin complains. */
     private static final int EXIT_FAILURES_TO_REPORT = 2;
     private static final float PLACE_PROGRESS_PER_TICK = 0.1f;
@@ -71,15 +82,29 @@ public final class JobRunner {
     @Nullable private BlockPos target;
     @Nullable private BlockState placeState;
     @Nullable private BlockPos chestTarget;
+    /** The chest the goblin holds open while unloading, and when it lets go. */
+    @Nullable private BlockPos openChest;
+    private long chestCloseAt;
     @Nullable private ItemEntity itemTarget;
+    /** The scaffold column chosen for {@link #climbFor}, the high target the goblin is climbing towards. */
+    @Nullable private BlockPos climbFor;
+    @Nullable private BlockPos climbColumn;
+    /** The spot the goblin walks to for {@link #standFor}, a block out of reach (see {@link #standSpot}). */
+    @Nullable private BlockPos standFor;
+    @Nullable private BlockPos standSpot;
     private float progress;
     private int retryIn;
     private int stuckTicks;
+    /** Debug: runner ticks so far and the last movement branch taken. */
+    private int ticks;
+    private String branch = "-";
     private int stuckStrikes;
     private long waitUntil;
     private boolean exitChecked;
     private int exitFailures;
-    private Vec3 lastPos = Vec3.ZERO;
+    /** The point {@link #headway} measures progress towards, and the closest the goblin got to it. */
+    @Nullable private Vec3 headwayPoint;
+    private double headwayBest;
     @Nullable private Block lastBrokenBlock;
     private final Map<BlockPos, Long> skipped = new HashMap<>();
     private final Map<Integer, Long> skippedItems = new HashMap<>();
@@ -100,7 +125,11 @@ public final class JobRunner {
         return "phase=" + phase + " target=" + (target == null ? "-" : target.toShortString()) + (placeState != null ? "(place)" : "")
                 + (itemTarget != null ? " item=" + itemTarget.getItem().getItem() : "")
                 + " progress=" + String.format(java.util.Locale.ROOT, "%.2f", progress) + " stuck=" + stuckTicks + "/" + stuckStrikes
-                + " up=" + Climber.isUp(goblin.level(), goblin) + " skipped=" + skipped.size() + " retryIn=" + retryIn;
+                + " up=" + Climber.isUp(goblin.level(), goblin) + " skipped=" + skipped.size() + " retryIn=" + retryIn
+                + " ticks=" + ticks + " branch=" + branch
+                + " stand=" + (standSpot == null ? "-" : standSpot.toShortString())
+                + " column=" + (climbColumn == null ? "-" : climbColumn.toShortString())
+                + (goblin.level() instanceof ServerLevel level ? " " + ChopJob.debug(level, goblin) : "");
     }
 
     public boolean hasPendingDeposit() {
@@ -129,9 +158,11 @@ public final class JobRunner {
         skipped.clear();
         skippedItems.clear();
         if (phase == Phase.WAIT_ROOM) phase = Phase.DEPOSIT;
+        if (goblin.level() instanceof ServerLevel level) ChopJob.release(level, goblin);
     }
 
     public void stop(ServerLevel level) {
+        closeChest(level);
         clearTarget(level);
         itemTarget = null;
         goblin.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
@@ -144,10 +175,15 @@ public final class JobRunner {
         target = null;
         placeState = null;
         progress = 0.0f;
+        climbFor = null;
+        climbColumn = null;
+        standFor = null;
+        standSpot = null;
     }
 
     /** One tick. {@code task} may be null when only a deposit run is pending. */
     public void tick(ServerLevel level, GoblinBedBlockEntity bed, JobConfig config, @Nullable JobTask task) {
+        ticks++;
         switch (phase) {
             case DEPOSIT -> tickDeposit(level, bed);
             case WAIT_ROOM -> { /* the rest goal has the goblin in bed */ }
@@ -184,6 +220,13 @@ public final class JobRunner {
                     retryIn = PICK_RETRY_TICKS;
                     bed.setStatus(GoblinBedBlockEntity.Status.BLOCKED);
                     say(level, GoblinSpeech.NO_TOOL);
+                } else if (pick == JobTask.Pick.RETRY) {
+                    // only blocks the goblin could not get to are left for now; they come back after the skip time
+                    if (up) {
+                        goblin.climber().descend(level);
+                        return;
+                    }
+                    retryIn = ENDLESS_RETRY_TICKS;
                 } else if (task.endless()) {
                     bed.setStatus(GoblinBedBlockEntity.Status.IDLE);
                     if (up) {
@@ -227,9 +270,12 @@ public final class JobRunner {
 
         Vec3 center = Vec3.atCenterOf(target);
         goblin.getLookControl().setLookAt(center);
-        if (center.y - goblin.getEyeY() > 0.5 && level.getBlockState(goblin.blockPosition()).is(GoblinLabour.GOBLIN_SCAFFOLD)) {
-            // half-way up a scaffold block: finish the climb onto it before swinging, or the goblin bobs at the
-            // edge of its reach (rise, in reach, stop jumping, fall, out of reach, ...)
+        double besideX = center.x - goblin.getX(), besideZ = center.z - goblin.getZ();
+        if (center.y - goblin.getEyeY() > 0.5 && besideX * besideX + besideZ * besideZ <= CLIMB_BESIDE_SQ
+                && level.getBlockState(goblin.blockPosition()).is(GoblinLabour.GOBLIN_SCAFFOLD)) {
+            // half-way up a scaffold block beside the target: finish the climb onto it before swinging, or the goblin
+            // bobs at the edge of its reach (rise, in reach, stop jumping, fall, out of reach, ...). On a column
+            // further away it has to come down instead (moveTowards).
             progress = 0.0f;
             level.destroyBlockProgress(goblin.getId(), target, -1);
             goblin.getNavigation().stop();
@@ -300,56 +346,226 @@ public final class JobRunner {
     }
 
     /**
-     * Climb, come down or walk, whatever brings the goblin closer. A target well above the goblin is reached by
-     * first walking (almost) under it and then climbing scaffold; scaffold is never stacked inside a home or under
-     * a blocked ceiling. Returns false when the goblin gave up on the target.
+     * Climb, come down or walk, whatever brings the goblin closer. A target well above the goblin is reached from a
+     * scaffold column: one column is chosen per target (see {@link #chooseColumn}), the goblin walks to its foot and
+     * climbs until the target is in reach. Scaffold is never stacked inside a home or under a blocked ceiling.
+     * Returns false when the goblin gave up on the target.
      */
     private boolean moveTowards(ServerLevel level, BlockPos targetPos, Vec3 center, long now) {
-        double dy = center.y - goblin.getEyeY();
-        double horizontal = Math.hypot(center.x - goblin.getX(), center.z - goblin.getZ());
-        boolean up = Climber.isUp(level, goblin);
-        if (dy > CLIMB_MIN_DY) {
-            if (horizontal <= CLIMB_MAX_HORIZONTAL && goblin.climber().climb(level)) return true;
-            if (up) {
-                goblin.climber().descend(level); // wrong column: come down and walk over
+        // only up on a scaffold column: standing on the rim of a hole (block position over the hole) is not "high"
+        boolean high = Climber.isUp(level, goblin) && fallHeight(level) > SAFE_DROP;
+        BlockPos spot = standSpot(level, targetPos, center);
+        branch = "move" + (spot != null ? "-spot" : "") + (high ? "-high" : "");
+        if (spot == null && center.y - goblin.getEyeY() > CLIMB_MIN_DY) {
+            if (!targetPos.equals(climbFor)) {
+                climbFor = targetPos;
+                climbColumn = chooseColumn(level, targetPos);
+            }
+            if (climbColumn == null) return giveUp(targetPos, now);
+            BlockPos feet = goblin.blockPosition();
+            if (feet.getX() == climbColumn.getX() && feet.getZ() == climbColumn.getZ()) {
+                if (goblin.climber().climb(level)) return true;
+                return giveUp(targetPos, now); // blocked above, or as high as a column goes, and still out of reach
+            }
+            if (high) {
+                goblin.climber().descend(level); // on another column: come down, then walk over
                 return true;
             }
-            Vec3 under = new Vec3(center.x, goblin.getY(), center.z);
-            if (!approach(level, under)) {
-                skipped.put(targetPos, now + SKIP_TICKS);
-                return false;
-            }
-            return true;
+            return approachSpot(level, climbColumn) || giveUp(targetPos, now);
         }
-        if (up) {
+        if (high) {
             goblin.climber().descend(level);
             return true;
         }
-        if (!approach(level, center)) {
-            skipped.put(targetPos, now + SKIP_TICKS);
-            return false;
-        }
-        return true;
+        if (spot != null) return approachSpot(level, spot) || giveUp(targetPos, now);
+        return approach(level, center) || giveUp(targetPos, now);
     }
 
     /**
-     * Walks towards {@code point}; teleports next to it after standing still too long (outside homes). Returns false
-     * when the goblin gave up on this point.
+     * Like {@link #approach}, but the last steps go straight to the middle of the block: path following stops about
+     * a block short of its goal, which can leave the goblin just out of reach of what it came for.
+     */
+    private boolean approachSpot(ServerLevel level, BlockPos spot) {
+        Vec3 point = Vec3.atBottomCenterOf(spot);
+        double dx = point.x - goblin.getX(), dz = point.z - goblin.getZ();
+        if (dx * dx + dz * dz > 1.5 * 1.5 || Math.abs(point.y - goblin.getY()) > 1.2) return approach(level, point);
+        branch = "steer";
+        goblin.setShiftKeyDown(false);
+        goblin.getNavigation().stop();
+        goblin.getMoveControl().setWantedPosition(point.x, point.y, point.z, 0.8);
+        return headway(level, point);
+    }
+
+    private boolean giveUp(BlockPos targetPos, long now) {
+        skipped.put(targetPos, now + SKIP_TICKS);
+        climbFor = null;
+        climbColumn = null;
+        standFor = null;
+        standSpot = null;
+        return false;
+    }
+
+    /**
+     * Where to stand to work on a block that is out of reach: the nearest spot around it with solid ground (not
+     * leaves or scaffold) from which the block is in reach, or null (then the goblin climbs, or walks at the block).
+     * Walking at a solid block itself does not work: GroundPathNavigation lifts a solid target up to the first open
+     * block above it, which sent tunnel diggers up the stairs and across the surface above their tunnel.
+     */
+    @Nullable
+    private BlockPos standSpot(ServerLevel level, BlockPos targetPos, Vec3 center) {
+        if (targetPos.equals(standFor) && (standSpot == null || standableOnGround(level, standSpot))) return standSpot;
+        standFor = targetPos;
+        standSpot = null;
+        record Candidate(BlockPos spot, double cost) {
+        }
+        List<Candidate> candidates = new java.util.ArrayList<>();
+        for (int dy = -3; dy <= 1; dy++) {
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    BlockPos spot = targetPos.offset(dx, dy, dz);
+                    if (!standableOnGround(level, spot)) continue;
+                    Vec3 eyes = new Vec3(spot.getX() + 0.5, spot.getY() + goblin.getEyeHeight(), spot.getZ() + 0.5);
+                    double reach = eyes.distanceToSqr(center);
+                    if (reach > REACH_SQ) continue;
+                    // spots well inside the reach first: at the very edge a goblin half a block off is out of reach
+                    double cost = goblin.position().distanceToSqr(Vec3.atBottomCenterOf(spot)) + (reach > COMFORT_REACH_SQ ? 1000.0 : 0.0);
+                    candidates.add(new Candidate(spot.immutable(), cost));
+                }
+            }
+        }
+        candidates.sort((a, b) -> Double.compare(a.cost(), b.cost()));
+        // only spots the goblin can walk to: the bottom of a shaft without stairs or the ground above a shaft dug
+        // upwards are next to the target but not a way to it (then it climbs, or walks at the block and blinks)
+        int pathChecks = 0;
+        for (Candidate candidate : candidates) {
+            if (goblin.position().distanceToSqr(Vec3.atBottomCenterOf(candidate.spot())) < 2.0) {
+                standSpot = candidate.spot();
+                break;
+            }
+            if (pathChecks++ >= MAX_STAND_PATH_CHECKS) break;
+            if (reachable(goblin.getNavigation(), candidate.spot())) {
+                standSpot = candidate.spot();
+                break;
+            }
+        }
+        return standSpot;
+    }
+
+    /** Room for the goblin at {@code pos} on solid ground; leaves, logs (a tree) and scaffold do not count as ground here. */
+    private static boolean standableOnGround(ServerLevel level, BlockPos pos) {
+        BlockState ground = level.getBlockState(pos.below());
+        return standable(level, pos) && !ground.is(BlockTags.LEAVES) && !ground.is(BlockTags.LOGS) && !Climber.isScaffold(ground)
+                && ground.getFluidState().isEmpty();
+    }
+
+    /** Blocks of air (or scaffold) below the goblin's feet: more than {@link #SAFE_DROP} and it sneaks down instead of stepping off. */
+    private int fallHeight(ServerLevel level) {
+        BlockPos.MutableBlockPos cursor = goblin.blockPosition().mutable().move(0, -1, 0);
+        int height = 0;
+        while (height <= SAFE_DROP) {
+            BlockState state = level.getBlockState(cursor);
+            if (!Climber.isScaffold(state) && !state.getCollisionShape(level, cursor).isEmpty()) break;
+            height++;
+            cursor.move(0, -1, 0);
+        }
+        return height;
+    }
+
+    /**
+     * Where to stack scaffold for a target high above: a spot up to two blocks beside the target's column (not right
+     * under it, where the goblin's head would hit the target) whose ground holds scaffold and whose column is free up
+     * to just below the target: air, plants, leaves (broken on the way) or existing scaffold. Existing scaffold is
+     * preferred, then spots near the target, then spots near the goblin; the first one the goblin can walk to wins.
+     */
+    @Nullable
+    private BlockPos chooseColumn(ServerLevel level, BlockPos target) {
+        record Candidate(BlockPos foot, double cost) {
+        }
+        List<Candidate> candidates = new java.util.ArrayList<>();
+        BlockPos feet = goblin.blockPosition();
+        boolean up = Climber.isUp(level, goblin);
+        for (int dx = -COLUMN_RANGE; dx <= COLUMN_RANGE; dx++) {
+            for (int dz = -COLUMN_RANGE; dz <= COLUMN_RANGE; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                BlockPos foot = columnFoot(level, target.getX() + dx, target.getY() - 1, target.getZ() + dz);
+                if (foot == null) continue;
+                boolean existing = Climber.isScaffold(level.getBlockState(foot));
+                double cost = (existing ? -10.0 : 0.0) + dx * dx + dz * dz + 0.05 * Math.sqrt(foot.distSqr(feet));
+                if (foot.getX() == feet.getX() && foot.getZ() == feet.getZ()) {
+                    cost -= up ? 30.0 : 1.0; // already standing there, or even climbing that column
+                }
+                candidates.add(new Candidate(foot, cost));
+            }
+        }
+        candidates.sort((a, b) -> Double.compare(a.cost(), b.cost()));
+        int pathChecks = 0;
+        for (Candidate candidate : candidates) {
+            BlockPos foot = candidate.foot();
+            if (foot.getX() == feet.getX() && foot.getZ() == feet.getZ()) return foot;
+            if (pathChecks++ >= MAX_COLUMN_PATH_CHECKS) break;
+            if (reachable(goblin.getNavigation(), foot)) return foot;
+        }
+        return null;
+    }
+
+    /**
+     * The foot of a scaffold column at x/z that reaches up to {@code topY}: scanning down from {@code topY}, the block
+     * above the first thing a column cannot go through. Null when the column is blocked, protected, too tall, stands
+     * in liquid or on ground that does not hold scaffold.
+     */
+    @Nullable
+    private static BlockPos columnFoot(ServerLevel level, int x, int topY, int z) {
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(x, topY, z);
+        if (!level.isLoaded(cursor)) return null;
+        for (int i = 0; i < Climber.MAX_HEIGHT; i++, cursor.move(0, -1, 0)) {
+            BlockState state = level.getBlockState(cursor);
+            if (HomeRegistry.isProtected(level, cursor)) return null;
+            if (Climber.isScaffold(state) || state.is(BlockTags.LEAVES) || (state.canBeReplaced() && state.getFluidState().isEmpty())) continue;
+            if (!state.getFluidState().isEmpty()) return null;
+            BlockPos foot = cursor.above();
+            if (foot.getY() > topY) return null; // no room at all below the target
+            BlockState footState = level.getBlockState(foot);
+            if (Climber.isScaffold(footState)) return foot.immutable();
+            if (!footState.canBeReplaced()) return null; // leaves at the foot: the goblin could not stand there
+            return ((goblinlabour.block.GoblinScaffoldBlock) GoblinLabour.GOBLIN_SCAFFOLD).placementState(level, foot) != null
+                    ? foot.immutable() : null;
+        }
+        return null;
+    }
+
+    /**
+     * Walks towards {@code point}; teleports next to it after making no headway too long (outside homes). Only
+     * horizontal movement counts: bobbing up and down in a scaffold block is no progress. Returns false when the
+     * goblin gave up on this point.
      */
     private boolean approach(ServerLevel level, Vec3 point) {
         PathNavigation navigation = goblin.getNavigation();
         goblin.setShiftKeyDown(false);
-        if (goblin.tickCount % 10 == 0) navigation.moveTo(point.x, point.y, point.z, 1.0);
-        if (goblin.position().distanceToSqr(lastPos) < 0.01) {
-            if (++stuckTicks > STUCK_TICKS) {
-                stuckTicks = 0;
-                if (++stuckStrikes > 2) return false;
-                goblin.blinkTo(level, BlockPos.containing(point));
-            }
-        } else {
+        if (goblin.tickCount % 10 == 0 || (navigation.isDone() && goblin.tickCount % 5 == 0)) navigation.moveTo(point.x, point.y, point.z, 1.0);
+        return headway(level, point);
+    }
+
+    /**
+     * Counts ticks in which the goblin got no closer to {@code point} (jittering at the end of a path or bobbing in a
+     * scaffold block is no progress); blinks next to the point now and then, false after three tries.
+     */
+    private boolean headway(ServerLevel level, Vec3 point) {
+        double distance = goblin.position().distanceTo(point);
+        branch += "-headway";
+        if (headwayPoint == null || headwayPoint.distanceToSqr(point) > 0.25) {
+            headwayPoint = point;
+            headwayBest = distance;
             stuckTicks = 0;
         }
-        lastPos = goblin.position();
+        if (distance < headwayBest - 0.3) {
+            headwayBest = distance;
+            stuckTicks = 0;
+        } else if (++stuckTicks > STUCK_TICKS) {
+            stuckTicks = 0;
+            if (++stuckStrikes > 2) return false;
+            goblin.blinkTo(level, BlockPos.containing(point));
+            headwayBest = goblin.position().distanceTo(point);
+        }
         return true;
     }
 
@@ -491,15 +707,39 @@ public final class JobRunner {
             return;
         }
         goblin.getNavigation().stop();
+        if (openChest == null) {
+            // lift the lid (the jaw opens), rummage for a moment, then unload
+            openChest(level, chestTarget);
+            chestCloseAt = level.getGameTime() + CHEST_OPEN_TICKS;
+            goblin.swing(InteractionHand.MAIN_HAND);
+            return;
+        }
+        if (level.getGameTime() < chestCloseAt) return;
         goblin.swing(InteractionHand.MAIN_HAND);
         unloadInto(level, chestTarget);
+        closeChest(level);
         chestTarget = null;
     }
 
-    /** Nearest copper chest of the flat that accepts at least one of the carried stacks. */
+    private void openChest(ServerLevel level, BlockPos pos) {
+        openChest = pos;
+        if (level.getBlockEntity(pos) instanceof ChestBlockEntity chest) {
+            goblin.setOpenChest(pos);
+            chest.startOpen(goblin);
+        }
+    }
+
+    private void closeChest(ServerLevel level) {
+        if (openChest == null) return;
+        if (level.getBlockEntity(openChest) instanceof ChestBlockEntity chest) chest.stopOpen(goblin);
+        goblin.setOpenChest(null);
+        openChest = null;
+    }
+
+    /** Nearest goblin chest of the flat that accepts at least one of the carried stacks. */
     @Nullable
     private BlockPos findChest(ServerLevel level, GoblinBedBlockEntity bed) {
-        List<BlockPos> chests = HomeRegistry.copperChests(level, bed.getBlockPos());
+        List<BlockPos> chests = HomeRegistry.goblinChests(level, bed.getBlockPos());
         BlockPos best = null;
         double bestDist = Double.MAX_VALUE;
         for (BlockPos chest : chests) {

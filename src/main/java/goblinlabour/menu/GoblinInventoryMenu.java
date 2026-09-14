@@ -13,17 +13,14 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The goblin's 18 slots laid out like a player inventory: one row of storage, below it the nine tool slots
- * ("hotbar"), then the player's own inventory. Only tools go into the tool row. The portrait lives in a side panel
- * on the left (see GoblinInventoryScreen).
+ * The goblin's slots laid out like a player inventory: one row of storage (two for a collector, whose second row is
+ * its backpack), below it the nine tool slots ("hotbar"), then the player's own inventory. Only tools go into the
+ * tool row. The portrait lives in a side panel on the left (see GoblinInventoryScreen).
  */
 public class GoblinInventoryMenu extends AbstractContainerMenu {
     public static final int WIDTH = 176;
-    public static final int HEIGHT = 156;
     public static final int STORAGE_Y = 18;
-    public static final int TOOLS_Y = 48;
-    public static final int PLAYER_Y = 74;
-    public static final int PLAYER_HOTBAR_Y = 132;
+    public static final int ROW = 18;
     public static final int SIDE_X = -68;
     public static final int SIDE_WIDTH = 66;
     public static final int SIDE_HEIGHT = 70;
@@ -31,6 +28,7 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
     public final GoblinMenuData data;
     @Nullable private final GoblinEntity goblin;
     private final Container inventory;
+    private final int storageSlots;
 
     /** Client side: the container is a placeholder, contents arrive through the normal slot sync. */
     public GoblinInventoryMenu(int containerId, Inventory playerInventory, GoblinMenuData data) {
@@ -43,21 +41,43 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
         this.data = data;
         this.goblin = goblin;
         this.inventory = inventory;
+        int rows = Math.clamp(data.storageRows(), 1, 2);
+        this.storageSlots = rows * GoblinEntity.STORAGE_SIZE;
 
-        for (int col = 0; col < GoblinEntity.INVENTORY_SIZE - GoblinEntity.HOTBAR_SIZE; col++) {
-            addSlot(new Slot(inventory, GoblinEntity.HOTBAR_SIZE + col, 8 + col * 18, STORAGE_Y));
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < GoblinEntity.STORAGE_SIZE; col++) {
+                int index = GoblinEntity.HOTBAR_SIZE + row * GoblinEntity.STORAGE_SIZE + col;
+                int x = 8 + col * 18, y = STORAGE_Y + row * ROW;
+                addSlot(row == 0 ? new Slot(inventory, index, x, y) : new BackpackSlot(inventory, index, x, y, data.backpack()));
+            }
         }
         for (int col = 0; col < GoblinEntity.HOTBAR_SIZE; col++) {
-            addSlot(new ToolSlot(inventory, col, 8 + col * 18, TOOLS_Y));
+            addSlot(new ToolSlot(inventory, col, 8 + col * 18, toolsY()));
         }
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInventory, 9 + row * 9 + col, 8 + col * 18, PLAYER_Y + row * 18));
+                addSlot(new Slot(playerInventory, 9 + row * 9 + col, 8 + col * 18, playerY() + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, PLAYER_HOTBAR_Y));
+            addSlot(new Slot(playerInventory, col, 8 + col * 18, playerHotbarY()));
         }
+    }
+
+    public int toolsY() {
+        return STORAGE_Y + storageSlots / GoblinEntity.STORAGE_SIZE * ROW + 12;
+    }
+
+    public int playerY() {
+        return toolsY() + 26;
+    }
+
+    public int playerHotbarY() {
+        return playerY() + 58;
+    }
+
+    public int height() {
+        return playerHotbarY() + 24;
     }
 
     @Nullable
@@ -74,13 +94,17 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
         return slot instanceof ToolSlot;
     }
 
+    public boolean isBackpackSlot(Slot slot) {
+        return slot instanceof BackpackSlot;
+    }
+
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
         Slot slot = slots.get(index);
         if (!slot.hasItem()) return ItemStack.EMPTY;
         ItemStack stack = slot.getItem();
         ItemStack result = stack.copy();
-        int storageEnd = GoblinEntity.INVENTORY_SIZE - GoblinEntity.HOTBAR_SIZE;
+        int storageEnd = storageSlots;
         int toolsEnd = storageEnd + GoblinEntity.HOTBAR_SIZE;
         int playerEnd = toolsEnd + 36;
         if (index < toolsEnd) {
@@ -107,6 +131,21 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
         @Override
         public boolean mayPlace(ItemStack stack) {
             return isTool(stack);
+        }
+    }
+
+    /** The second storage row: a collector fills it, anyone else can only take out what is left in it. */
+    private static final class BackpackSlot extends Slot {
+        private final boolean open;
+
+        BackpackSlot(Container container, int index, int x, int y, boolean open) {
+            super(container, index, x, y);
+            this.open = open;
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return open;
         }
     }
 }

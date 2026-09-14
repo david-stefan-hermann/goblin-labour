@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [ "minecraft:chest", "goblinlabour:goblin_meat_pack" ],
+  "result": { "id": "goblinlabour:goblin_chest" }
+}

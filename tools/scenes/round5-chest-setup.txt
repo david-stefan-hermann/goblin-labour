@@ -1,0 +1,10 @@
+forceload add 690 690 715 715
+time set day
+weather clear
+kill @e[type=minecraft:item,x=690,y=-64,z=690,dx=30,dy=20,dz=30]
+fill 690 -60 690 715 -50 715 air
+fill 690 -61 690 715 -61 715 grass_block
+setblock 700 -60 700 goblinlabour:goblin_chest[facing=south]
+setblock 703 -60 700 goblinlabour:goblin_chest[facing=south,type=right]
+setblock 704 -60 700 goblinlabour:goblin_chest[facing=south,type=left]
+setblock 707 -60 700 goblinlabour:goblin_chest[facing=south]

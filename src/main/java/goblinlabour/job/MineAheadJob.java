@@ -52,6 +52,7 @@ public final class MineAheadJob implements JobTask {
             BlockPos best = null;
             double bestDist = Double.MAX_VALUE;
             boolean sliceHasWork = false;
+            boolean sawSkipped = false;
             for (int s = -half; s < w - half; s++) {
                 for (int y = 0; y < h; y++) {
                     cursor.set(slice.getX() + side.getStepX() * s, slice.getY() + y, slice.getZ() + side.getStepZ() * s);
@@ -62,8 +63,12 @@ public final class MineAheadJob implements JobTask {
                         sliceHasWork = true;
                         continue;
                     }
-                    if (verdict != Mining.Verdict.OK || skipped.contains(cursor)) continue;
+                    if (verdict != Mining.Verdict.OK) continue;
                     sliceHasWork = true;
+                    if (skipped.contains(cursor)) {
+                        sawSkipped = true;
+                        continue;
+                    }
                     double dist = me.distanceToSqr(Vec3.atCenterOf(cursor));
                     if (dist < bestDist) {
                         bestDist = dist;
@@ -72,6 +77,7 @@ public final class MineAheadJob implements JobTask {
                 }
             }
             if (best != null) return Pick.of(best);
+            if (sawSkipped) return Pick.RETRY; // never leave a slice behind unfinished
             if (sliceHasWork) return Pick.NEEDS_TOOL;
         }
         return sawToolProblem ? Pick.NEEDS_TOOL : Pick.DONE;

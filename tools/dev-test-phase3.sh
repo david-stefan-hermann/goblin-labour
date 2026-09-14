@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 3 functional test over RCON: stairs in the shaft, chop + replant, farm + replant, unload into a copper
+# Phase 3 functional test over RCON: stairs in the shaft, chop + replant, farm + replant, unload into a goblin
 # chest and wait when it is full, "no exit" detection. Five beds far apart on the flat world. Prints PASS/FAIL.
 set -u
 cd "$(dirname "$0")/.."
@@ -82,9 +82,9 @@ sleep 1
 rcon "goblinlabour spawn $C Farmer" "goblinlabour tool $C 9 minecraft:wheat_seeds" > /dev/null
 out=$(rcon "goblinlabour job $C farm 16"); check "C set job" "FARM" "$out"
 
-# ---- D: unload into a copper chest, then wait when it is full (bed 120,-60,120, chest 122,-60,120) ----
+# ---- D: unload into a goblin chest, then wait when it is full (bed 120,-60,120, chest 122,-60,120) ----
 D="120 -60 120"
-rcon "setblock $D air" "setblock 122 -60 120 air" "setblock 122 -60 120 copper_chest" "setblock $D goblinlabour:goblin_straw_bed[facing=south]" > /dev/null
+rcon "setblock $D air" "setblock 122 -60 120 air" "setblock 122 -60 120 goblinlabour:goblin_chest[facing=north]" "setblock $D goblinlabour:goblin_straw_bed[facing=south]" > /dev/null
 # 18 of the 27 chest slots pre-filled: the goblin's 9 stacks fill it up, the next load has to wait
 PRE=(); for n in $(seq 0 17); do PRE+=("item replace block 122 -60 120 container.$n with minecraft:cobblestone 64"); done
 rcon "${PRE[@]}" > /dev/null
@@ -134,7 +134,7 @@ out=$(rcon "execute if block 60 -60 67 oak_sapling"); check "B sapling replanted
 out=$(status "$B"); check "B logs in inventory" "oak_log" "$out"
 
 out=$(wait_status "$D" 60 "idle"); echo "  D: $out"
-out=$(rcon "data get block 122 -60 120 Items"); check "D unloaded into the copper chest" "cobblestone" "$out"
+out=$(rcon "data get block 122 -60 120 Items"); check "D unloaded into the goblin chest" "cobblestone" "$out"
 rcon "goblinlabour fillstorage $D minecraft:cobblestone" > /dev/null
 out=$(wait_status "$D" 60 "waiting"); check "D waits when the chest is full" "waiting" "$out"
 

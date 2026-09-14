@@ -18,6 +18,8 @@ public interface JobTask {
     record Pick(@Nullable BlockPos target, Mining.Verdict verdict, @Nullable BlockState place) {
         public static final Pick DONE = new Pick(null, Mining.Verdict.NOTHING, null);
         public static final Pick NEEDS_TOOL = new Pick(null, Mining.Verdict.NEEDS_TOOL, null);
+        /** Not done: the only work left is on blocks the goblin could not reach (skipped for a while). */
+        public static final Pick RETRY = new Pick(null, Mining.Verdict.NOTHING, null);
 
         public static Pick of(BlockPos pos) {
             return new Pick(pos, Mining.Verdict.OK, null);

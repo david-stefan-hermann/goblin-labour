@@ -69,9 +69,9 @@ sleep 1
 rcon "goblinlabour spawn $S Digger" "goblinlabour tool $S 0 minecraft:iron_pickaxe" > /dev/null
 out=$(rcon "goblinlabour dig $S down 360 -52 350 3 -60 false"); check "S dig order without stairs" "Order for Digger" "$out"
 
-# ---- C: collect (bed 400,-60,400, copper chest in the flat, two items in the radius, one outside) ----
+# ---- C: collect (bed 400,-60,400, goblin chest in the flat, two items in the radius, one outside) ----
 C="400 -60 400"
-rcon "setblock 402 -60 400 copper_chest" "setblock $C goblinlabour:goblin_straw_bed[facing=south]" > /dev/null
+rcon "setblock 402 -60 400 goblinlabour:goblin_chest[facing=north]" "setblock $C goblinlabour:goblin_straw_bed[facing=south]" > /dev/null
 sleep 1
 rcon "goblinlabour spawn $C Magpie" > /dev/null
 rcon "summon item 404 -60 406 {Item:{id:\"minecraft:diamond\",count:3}}" "summon item 397 -60 407 {Item:{id:\"minecraft:apple\",count:5}}" \

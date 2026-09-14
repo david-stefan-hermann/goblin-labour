@@ -25,6 +25,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.permissions.Permission.HasCommandLevel;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * /goblinlabour spawn <bed> [name]                          spawns a fresh goblin on the bed (no blank needed)
@@ -33,7 +35,8 @@ import net.minecraft.world.item.ItemStack;
  * /goblinlabour dig <bed> <down|up> <origin> <width> <targetY> <stairs>   staff order without a staff
  * /goblinlabour tunnel <bed> <origin> <north|south|east|west> <width> <height> <length>
  * /goblinlabour tool <bed> <slot> <item>                    puts an item into the goblin's slot 0-17
- * /goblinlabour fillstorage <bed> <item>                    fills the storage row with full stacks
+ * /goblinlabour fillstorage <bed> <item>                    fills the storage row(s) with full stacks
+ * /goblinlabour lid <chest> <true|false>                    opens or closes a chest lid (screenshots)
  * Operator level 2. Used by the RCON test scripts.
  */
 public final class GoblinCommand {
@@ -90,6 +93,11 @@ public final class GoblinCommand {
                                                                                 IntegerArgumentType.getInteger(ctx, "width"),
                                                                                 IntegerArgumentType.getInteger(ctx, "height"),
                                                                                 IntegerArgumentType.getInteger(ctx, "length"))))))))))
+                .then(Commands.literal("lid")
+                        .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                .then(Commands.argument("open", BoolArgumentType.bool())
+                                        .executes(ctx -> lid(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"),
+                                                BoolArgumentType.getBool(ctx, "open"))))))
                 .then(Commands.literal("fillstorage")
                         .then(Commands.argument("bed", BlockPosArgument.blockPos())
                                 .then(Commands.argument("item", ItemArgument.item(context))
@@ -137,7 +145,7 @@ public final class GoblinCommand {
             }
             sb.append(" | health=").append(goblin.getHealth()).append(" pos=").append(goblin.blockPosition().toShortString());
             sb.append(" onGround=").append(goblin.onGround()).append(" | ").append(goblin.runner().debug())
-                    .append(" | ").append(goblin.restDebug());
+                    .append(" | ").append(goblin.restDebug()).append(" | ").append(goblin.goalDebug());
             if (bed.getAssignment() != null) sb.append(" | order=").append(bed.getAssignment());
             source.sendSuccess(() -> Component.literal(sb.toString()), false);
         }
@@ -186,6 +194,18 @@ public final class GoblinCommand {
         return 1;
     }
 
+    /** Opens or closes a chest lid for everyone watching (the block event players send), for screenshots. */
+    private static int lid(CommandSourceStack source, BlockPos pos, boolean open) {
+        BlockState state = source.getLevel().getBlockState(pos);
+        if (!(state.getBlock() instanceof ChestBlock)) {
+            source.sendFailure(Component.literal("No chest at " + pos.toShortString()));
+            return 0;
+        }
+        source.getLevel().blockEvent(pos, state.getBlock(), 1, open ? 1 : 0);
+        source.sendSuccess(() -> Component.literal("Lid at " + pos.toShortString() + (open ? " open" : " closed")), false);
+        return 1;
+    }
+
     private static int fill(CommandSourceStack source, BlockPos pos, ItemStack stack) {
         GoblinBedBlockEntity bed = bed(source, pos);
         if (bed == null) return 0;
@@ -194,7 +214,7 @@ public final class GoblinCommand {
             source.sendFailure(Component.literal("No goblin at " + pos.toShortString()));
             return 0;
         }
-        for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) {
+        for (int i = GoblinEntity.HOTBAR_SIZE; i < goblin.storageEnd(); i++) {
             ItemStack full = stack.copy();
             full.setCount(full.getMaxStackSize());
             goblin.getInventory().setItem(i, full);

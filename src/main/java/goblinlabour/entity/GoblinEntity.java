@@ -31,7 +31,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.ContainerUser;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
@@ -56,18 +58,22 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * A goblin worker. Bound to one {@link GoblinBedBlockEntity}; has a 36-slot inventory whose first nine slots
- * (the "hotbar") hold its tools. Monsters ignore it and it ignores them.
+ * A goblin worker. Bound to one {@link GoblinBedBlockEntity}; its inventory has nine tool slots (the "hotbar"),
+ * nine storage slots and nine more that only a collector (with its backpack) can use. Monsters ignore it and it
+ * ignores them.
  */
-public class GoblinEntity extends PathfinderMob {
+public class GoblinEntity extends PathfinderMob implements ContainerUser {
     private static final EntityDataAccessor<Optional<BlockPos>> DATA_BED =
             SynchedEntityData.defineId(GoblinEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     /** {@link GoblinStyle} ordinal; the bed decides it, clients pick the texture from it. */
     private static final EntityDataAccessor<Byte> DATA_STYLE =
             SynchedEntityData.defineId(GoblinEntity.class, EntityDataSerializers.BYTE);
 
-    public static final int INVENTORY_SIZE = 18;
     public static final int HOTBAR_SIZE = GoblinData.HOTBAR_SIZE;
+    /** Storage slots every goblin has, and the extra row a collector carries in its backpack. */
+    public static final int STORAGE_SIZE = 9;
+    public static final int BACKPACK_SIZE = 9;
+    public static final int INVENTORY_SIZE = HOTBAR_SIZE + STORAGE_SIZE + BACKPACK_SIZE;
 
     private final SimpleContainer inventory = new SimpleContainer(INVENTORY_SIZE);
     /** Created lazily: registerGoals() runs from the Mob constructor, before field initialisers. */
@@ -80,6 +86,8 @@ public class GoblinEntity extends PathfinderMob {
     @Nullable private BlockPos recoverPos;
     private long recoverUntil;
     @Nullable private java.util.UUID following;
+    /** The chest the goblin holds open while unloading; chests count it as an opener (lid up) until it lets go. */
+    @Nullable private BlockPos openChest;
 
     public GoblinEntity(EntityType<? extends GoblinEntity> type, Level level) {
         super(type, level);
@@ -208,6 +216,14 @@ public class GoblinEntity extends PathfinderMob {
         return restGoal == null ? "rest: -" : restGoal.debug();
     }
 
+    /** Debug: the goals running right now. */
+    public String goalDebug() {
+        StringBuilder sb = new StringBuilder("goals:");
+        goalSelector.getAvailableGoals().stream().filter(net.minecraft.world.entity.ai.goal.WrappedGoal::isRunning)
+                .forEach(goal -> sb.append(' ').append(goal.getGoal().getClass().getSimpleName()));
+        return sb.toString();
+    }
+
     public Climber climber() {
         if (climber == null) climber = new Climber(this);
         return climber;
@@ -294,11 +310,22 @@ public class GoblinEntity extends PathfinderMob {
         return list;
     }
 
+    /** Collectors carry a backpack: twice the storage. */
+    public boolean hasBackpack() {
+        return getStyle() == GoblinStyle.COLLECTOR;
+    }
+
+    /** End (exclusive) of the storage slots the goblin fills: one row, two with a backpack. */
+    public int storageEnd() {
+        return HOTBAR_SIZE + STORAGE_SIZE + (hasBackpack() ? BACKPACK_SIZE : 0);
+    }
+
     /** Puts a stack into the storage rows (never the tool row). Returns what did not fit. */
     public ItemStack storeInStorage(ItemStack stack) {
         ItemStack rest = stack.copy();
+        int end = storageEnd();
         for (int pass = 0; pass < 2 && !rest.isEmpty(); pass++) {
-            for (int i = HOTBAR_SIZE; i < INVENTORY_SIZE && !rest.isEmpty(); i++) {
+            for (int i = HOTBAR_SIZE; i < end && !rest.isEmpty(); i++) {
                 ItemStack slot = inventory.getItem(i);
                 if (pass == 0) {
                     if (slot.isEmpty() || !ItemStack.isSameItemSameComponents(slot, rest)) continue;
@@ -325,7 +352,7 @@ public class GoblinEntity extends PathfinderMob {
     }
 
     public boolean isStorageFull() {
-        for (int i = HOTBAR_SIZE; i < INVENTORY_SIZE; i++) {
+        for (int i = HOTBAR_SIZE, end = storageEnd(); i < end; i++) {
             if (inventory.getItem(i).isEmpty()) return false;
         }
         return true;
@@ -376,7 +403,7 @@ public class GoblinEntity extends PathfinderMob {
 
     /** True if at least part of the stack fits into the storage rows. */
     public boolean canStore(ItemStack stack) {
-        for (int i = HOTBAR_SIZE; i < INVENTORY_SIZE; i++) {
+        for (int i = HOTBAR_SIZE, end = storageEnd(); i < end; i++) {
             ItemStack slot = inventory.getItem(i);
             if (slot.isEmpty()) return true;
             if (ItemStack.isSameItemSameComponents(slot, stack)
@@ -399,6 +426,20 @@ public class GoblinEntity extends PathfinderMob {
                 lastZ = pos.getZ();
             }
         }
+    }
+
+    public void setOpenChest(@Nullable BlockPos pos) {
+        openChest = pos == null ? null : pos.immutable();
+    }
+
+    @Override
+    public boolean hasContainerOpen(ContainerOpenersCounter counter, BlockPos pos) {
+        return pos.equals(openChest);
+    }
+
+    @Override
+    public double getContainerInteractionRange() {
+        return 4.0;
     }
 
     /** Where the goblin died last; it walks back there after respawning to pick up its dropped storage. */

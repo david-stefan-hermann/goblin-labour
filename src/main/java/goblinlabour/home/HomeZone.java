@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * The "home" around a goblin bed: 5 blocks in every horizontal direction and 2 up/down (11 x 11 x 5, bed in the
- * middle). Goblins never mine, place torches or cobblestone inside any home; copper chests inside the home are
+ * middle). Goblins never mine, place torches or cobblestone inside any home; goblin chests inside the home are
  * where they unload. Homes of beds that touch or overlap are merged into one box (a "flat").
  */
 public final class HomeZone {

@@ -11,16 +11,18 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 public record GoblinMenuProvider(GoblinEntity goblin) implements ExtendedMenuProvider<GoblinMenuData> {
     @Override
     public GoblinMenuData getScreenOpeningData(ServerPlayer player) {
-        return new GoblinMenuData(goblin.getId());
+        return GoblinMenuData.of(goblin);
     }
 
+    /** "Grubnak the Lumberjack": the name plus the trade the goblin's colour shows. */
     @Override
     public Component getDisplayName() {
-        return Component.literal(goblin.goblinName());
+        return Component.translatable("gui.goblinlabour.goblin_title", goblin.goblinName(),
+                Component.translatable("goblinlabour.trade." + goblin.getStyle().getSerializedName()));
     }
 
     @Override
     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-        return new GoblinInventoryMenu(containerId, playerInventory, new GoblinMenuData(goblin.getId()), goblin, goblin.getInventory());
+        return new GoblinInventoryMenu(containerId, playerInventory, GoblinMenuData.of(goblin), goblin, goblin.getInventory());
     }
 }

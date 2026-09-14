@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/scaffolding_unstable",
+  "textures": {
+    "particle": "goblinlabour:block/goblin_scaffold_top",
+    "top": "goblinlabour:block/goblin_scaffold_top",
+    "side": "goblinlabour:block/goblin_scaffold_side",
+    "bottom": "goblinlabour:block/goblin_scaffold_bottom"
+  }
+}

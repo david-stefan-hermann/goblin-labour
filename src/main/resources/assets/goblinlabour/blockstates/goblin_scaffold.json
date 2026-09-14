@@ -1,1 +1,6 @@
-{ "variants": { "": { "model": "goblinlabour:block/goblin_scaffold" } } }
+{
+  "variants": {
+    "bottom=false": { "model": "goblinlabour:block/goblin_scaffold" },
+    "bottom=true": { "model": "goblinlabour:block/goblin_scaffold_unstable" }
+  }
+}

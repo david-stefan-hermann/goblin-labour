@@ -1,0 +1,2 @@
+goblinlabour lid 700 -60 700 true
+goblinlabour lid 703 -60 700 true

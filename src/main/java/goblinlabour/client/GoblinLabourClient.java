@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.inventory.BookViewScreen;
 import goblinlabour.GoblinLabour;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 import net.minecraft.client.gui.screens.MenuScreens;
@@ -19,6 +20,10 @@ public final class GoblinLabourClient implements ClientModInitializer {
     public void onInitializeClient() {
         ModelLayerRegistry.registerModelLayer(GOBLIN_LAYER, GoblinModel::createBodyLayer);
         EntityRendererRegistry.register(GoblinLabour.GOBLIN, GoblinRenderer::new);
+        ModelLayerRegistry.registerModelLayer(GoblinChestLayers.SINGLE, GoblinChestLayers::single);
+        ModelLayerRegistry.registerModelLayer(GoblinChestLayers.LEFT, GoblinChestLayers::left);
+        ModelLayerRegistry.registerModelLayer(GoblinChestLayers.RIGHT, GoblinChestLayers::right);
+        BlockEntityRendererRegistry.register(GoblinLabour.GOBLIN_CHEST_BLOCK_ENTITY, GoblinChestRenderer::new);
         MenuScreens.register(GoblinLabour.GOBLIN_MENU, GoblinInventoryScreen::new);
         MenuScreens.register(GoblinLabour.BED_MENU, GoblinBedScreen::new);
         MenuScreens.register(GoblinLabour.STAFF_MENU, StaffScreen::new);
