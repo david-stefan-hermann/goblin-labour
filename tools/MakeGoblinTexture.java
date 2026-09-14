@@ -10,7 +10,7 @@ import java.util.Random;
  * Generates the 64x64 goblin entity textures goblin_<style>_<look>.png: one skin tint per job style (lumberjack
  * green, farmer yellowish, miner greyish, collector bluish) times four looks
  * (0 plain leather vest; 1 patched dark vest, gold earrings, scar; 2 sackcloth tunic, rope belt, bandage, nose ring;
- * 3 fur collar, bone necklace, war paint, topknot). Box positions and sizes must match GoblinModel.createBodyLayer,
+ * 3 fur collar, bone necklace, one fang, topknot). Box positions and sizes must match GoblinModel.createBodyLayer,
  * file names GoblinRenderer. Also writes build/goblin-texture-preview.png (rows = styles, columns = looks).
  * Run from the project root: java tools/MakeGoblinTexture.java
  */
@@ -57,9 +57,9 @@ public class MakeGoblinTexture {
                     "GhGGGGhG",
                     "DDdGGdDD",
                     "gYBGGBYg",
-                    "RRGddGRR",
+                    "gGGddGGg",
                     "dMFMMMMd",
-                    "ddGRRGdd",
+                    "ddGGGGdd",
             },
     };
 

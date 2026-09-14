@@ -1,0 +1,1 @@
+tp @e[type=goblinlabour:goblin,name=Ratbag] 44.0 -60 42.1 0 0

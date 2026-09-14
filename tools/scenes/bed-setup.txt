@@ -1,0 +1,14 @@
+forceload add 32 32 56 56
+time set day
+weather clear
+kill @e[type=minecraft:slime]
+kill @e[type=minecraft:cow]
+kill @e[type=goblinlabour:goblin,x=44,y=-60,z=44,distance=..20]
+fill 36 -60 30 52 -50 52 air
+fill 36 -61 30 52 -61 52 grass_block
+kill @e[type=minecraft:item]
+setblock 43 -60 41 goblinlabour:goblin_straw_bed[facing=north]
+setblock 45 -60 41 goblinlabour:goblin_straw_bed[facing=east]
+goblinlabour spawn 43 -60 41 Ratbag
+data merge entity @e[type=goblinlabour:goblin,name=Ratbag,limit=1] {NoAI:1b}
+tp @e[type=goblinlabour:goblin,name=Ratbag] 39.5 -60 44.5 0 0
