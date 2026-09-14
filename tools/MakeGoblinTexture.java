@@ -317,6 +317,12 @@ public class MakeGoblinTexture {
         set(mid[0] + 1, mid[1] + 1, skinDark);
         int[] tip = parts[2].front();
         set(tip[0] + 1, tip[1], skinDark);
+        // outer column of the base below the notch (model part "left_ear_notched", look 1)
+        Box notchBase = new Box(32, 40, 1, 2, 1);
+        for (int[] face : notchBase.all()) fill(face, skin, 10);
+        int[] notchFront = notchBase.front();
+        set(notchFront[0], notchFront[1], EAR_INNER);
+        set(notchFront[0], notchFront[1] + 1, skinDark);
         if (look == 1) {
             // gold hoop through the lobe
             int[] back = parts[0].back();
@@ -325,6 +331,9 @@ public class MakeGoblinTexture {
             set(back[0], back[1] + 2, GOLD);
             set(bottom[0], bottom[1], GOLD_DARK);
             set(bottom[0] + 1, bottom[1], GOLD);
+            set(notchFront[0], notchFront[1] + 1, GOLD);
+            set(notchBase.back()[0], notchBase.back()[1] + 1, GOLD);
+            set(notchBase.bottom()[0], notchBase.bottom()[1], GOLD);
         } else if (look == 3) {
             int[] back = parts[1].back();
             set(mid[0] + 1, mid[1], BONE);

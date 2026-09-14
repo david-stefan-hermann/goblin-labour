@@ -1,11 +1,19 @@
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Generates the straw bed block models: the bed, four "props" arrangements per goblin style (things lying under the
@@ -68,6 +76,29 @@ public class MakeBedModels {
      * from under the frame where a standing player can see it. The head end usually stands against a wall.
      */
     static final double FOOT_SHIFT = 5;
+    /** Height of the extruded items in model pixels. */
+    static final double ITEM_THICKNESS = 1;
+    static final String CLIENT_JAR = System.getProperty("user.home") + "/.gradle/caches/fabric-loom/26.2/minecraft-client.jar";
+    static final Map<String, BufferedImage> VANILLA_TEXTURES = new HashMap<>();
+
+    /** A texture such as "item/diamond" from the Minecraft client jar that Loom downloaded. */
+    static BufferedImage vanillaTexture(String path) {
+        return VANILLA_TEXTURES.computeIfAbsent(path, key -> {
+            try (ZipFile jar = new ZipFile(CLIENT_JAR)) {
+                ZipEntry entry = jar.getEntry("assets/minecraft/textures/" + key + ".png");
+                if (entry == null) throw new IllegalArgumentException("No texture " + key + " in " + CLIENT_JAR);
+                try (InputStream in = jar.getInputStream(entry)) {
+                    return ImageIO.read(in);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+    }
+
+    static boolean opaque(BufferedImage image, int x, int y) {
+        return x >= 0 && y >= 0 && x < image.getWidth() && y < image.getHeight() && (image.getRGB(x, y) >>> 24) != 0;
+    }
 
     static Props props(String style, int variant) {
         Props p = new Props();
@@ -106,13 +137,37 @@ public class MakeBedModels {
             return "#" + key;
         }
 
-        /** A flat item lying on the floor. */
+        /**
+         * An item lying on the floor, extruded like a held item: every opaque texture pixel becomes a box
+         * {@link #ITEM_THICKNESS} px high, with side faces only where the neighbouring pixel is transparent.
+         * The pixels are read from the vanilla client jar.
+         */
         Props plane(String texture, double x1, double z1, double x2, double z2, double angle) {
             z1 += FOOT_SHIFT;
             z2 += FOOT_SHIFT;
-            elements.add(String.format(Locale.ROOT,
-                    "{ \"from\": [%s, 0.1, %s], \"to\": [%s, 0.1, %s]%s, \"faces\": { \"up\": {\"texture\": \"%s\", \"uv\": [0, 0, 16, 16]} } }",
-                    num(x1), num(z1), num(x2), num(z2), rotation(x1, z1, x2, z2, angle), ref(texture)));
+            String tex = ref(texture);
+            BufferedImage image = vanillaTexture(texture);
+            int size = image.getWidth();
+            double sx = (x2 - x1) / size;
+            double sz = (z2 - z1) / size;
+            String rotation = rotation(x1, z1, x2, z2, angle);
+            for (int py = 0; py < size; py++) {
+                for (int px = 0; px < size; px++) {
+                    if (!opaque(image, px, py)) continue;
+                    String face = String.format(Locale.ROOT, "{\"texture\": \"%s\", \"uv\": [%s, %s, %s, %s]}", tex,
+                            num(px * 16.0 / size), num(py * 16.0 / size), num((px + 1) * 16.0 / size), num((py + 1) * 16.0 / size));
+                    List<String> faces = new ArrayList<>();
+                    faces.add("\"up\": " + face);
+                    if (!opaque(image, px, py - 1)) faces.add("\"north\": " + face);
+                    if (!opaque(image, px, py + 1)) faces.add("\"south\": " + face);
+                    if (!opaque(image, px - 1, py)) faces.add("\"west\": " + face);
+                    if (!opaque(image, px + 1, py)) faces.add("\"east\": " + face);
+                    double ex = x1 + px * sx;
+                    double ez = z1 + py * sz;
+                    elements.add(String.format(Locale.ROOT, "{ \"from\": [%s, 0, %s], \"to\": [%s, %s, %s]%s, \"faces\": { %s } }",
+                            num(ex), num(ez), num(ex + sx), num(ITEM_THICKNESS), num(ez + sz), rotation, String.join(", ", faces)));
+                }
+            }
             return this;
         }
 

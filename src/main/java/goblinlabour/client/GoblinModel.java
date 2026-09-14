@@ -81,12 +81,12 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
         head.addOrReplaceChild("head_cap",
                 CubeListBuilder.create().texOffs(0, 40).addBox(-4.0f, -8.0f, -3.0f, 8.0f, 1.0f, 6.0f),
                 PartPose.ZERO);
-        // same ear with a one-pixel bite out of the top edge between base and tip
+        // same ear with a one-pixel bite out of the top edge, one pixel away from the head
         head.addOrReplaceChild("left_ear_notched",
                 CubeListBuilder.create()
-                        .texOffs(32, 24).addBox(0.0f, 0.0f, 0.0f, 2.0f, 3.0f, 1.0f)
-                        .texOffs(32, 28).addBox(2.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f)
-                        .texOffs(32, 28).addBox(3.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f)
+                        .texOffs(32, 24).addBox(0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f)
+                        .texOffs(32, 40).addBox(1.0f, 1.0f, 0.0f, 1.0f, 2.0f, 1.0f)
+                        .texOffs(32, 28).addBox(2.0f, 0.0f, 0.0f, 2.0f, 2.0f, 1.0f)
                         .texOffs(32, 31).addBox(4.0f, 0.0f, 0.0f, 2.0f, 1.0f, 1.0f),
                 PartPose.offsetAndRotation(4.0f, -5.0f, 0.0f, 0.0f, -0.5f, -0.25f));
         head.addOrReplaceChild("nose",
