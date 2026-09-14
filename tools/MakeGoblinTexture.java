@@ -134,6 +134,15 @@ public class MakeGoblinTexture {
         set(head.right()[0] + 1, head.right()[1] + 4, skinDeep);
         int[] back = head.back();
         for (int x = 0; x < back[2]; x++) set(back[0] + x, back[1], vary(skinDark, 6));
+        // taller skull (model part "head_cap", look 2): skin with the scalp hairs on top
+        Box cap = new Box(0, 40, 8, 1, 6);
+        for (int[] face : cap.all()) fill(face, skin, 10);
+        int[] capTop = cap.top();
+        for (int i = 0; i < 5; i++) set(capTop[0] + rng.nextInt(capTop[2]), capTop[1] + rng.nextInt(capTop[3]), HAIR);
+        // tusks (model part "tusks", look 0)
+        Box tusk = new Box(28, 40, 1, 1, 1);
+        for (int[] face : tusk.all()) fill(face, FANG, 6);
+        fill(tusk.bottom(), shade(FANG, 0.8f), 4);
         if (look == 3) {
             // topknot geometry (GoblinModel "topknot"): a hair knot with a bone ring, and a braid with a bone bead
             Box knot = new Box(28, 0, 2, 2, 2);

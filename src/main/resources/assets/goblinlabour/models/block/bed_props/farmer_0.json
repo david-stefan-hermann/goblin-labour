@@ -1,0 +1,11 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "goblinlabour:block/props/wheat",
+    "wheat": "goblinlabour:block/props/wheat"
+  },
+  "elements": [
+    { "from": [2, 0.1, 2], "to": [10, 0.1, 10], "rotation": {"origin": [6, 0, 6], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#wheat", "uv": [0, 0, 16, 16]} } },
+    { "from": [6, 0.1, 6], "to": [14, 0.1, 14], "rotation": {"origin": [10, 0, 10], "axis": "y", "angle": -22.5}, "faces": { "up": {"texture": "#wheat", "uv": [0, 0, 16, 16]} } }
+  ]
+}

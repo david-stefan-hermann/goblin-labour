@@ -1,0 +1,13 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "goblinlabour:block/props/diamond",
+    "diamond": "goblinlabour:block/props/diamond",
+    "redstone": "goblinlabour:block/props/redstone"
+  },
+  "elements": [
+    { "from": [3, 0.1, 3], "to": [8, 0.1, 8], "rotation": {"origin": [5.5, 0, 5.5], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#diamond", "uv": [0, 0, 16, 16]} } },
+    { "from": [9, 0.1, 5], "to": [13, 0.1, 9], "rotation": {"origin": [11, 0, 7], "axis": "y", "angle": -22.5}, "faces": { "up": {"texture": "#diamond", "uv": [0, 0, 16, 16]} } },
+    { "from": [5, 0.1, 9], "to": [11, 0.1, 14], "faces": { "up": {"texture": "#redstone", "uv": [0, 0, 16, 16]} } }
+  ]
+}

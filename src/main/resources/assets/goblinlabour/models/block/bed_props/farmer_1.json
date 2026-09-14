@@ -1,0 +1,13 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "goblinlabour:block/props/carrot",
+    "carrot": "goblinlabour:block/props/carrot",
+    "potato": "goblinlabour:block/props/potato"
+  },
+  "elements": [
+    { "from": [3, 0.1, 3], "to": [9, 0.1, 9], "rotation": {"origin": [6, 0, 6], "axis": "y", "angle": 45}, "faces": { "up": {"texture": "#carrot", "uv": [0, 0, 16, 16]} } },
+    { "from": [8, 0.1, 4], "to": [13, 0.1, 9], "faces": { "up": {"texture": "#potato", "uv": [0, 0, 16, 16]} } },
+    { "from": [5, 0.1, 9], "to": [10, 0.1, 14], "rotation": {"origin": [7.5, 0, 11.5], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#potato", "uv": [0, 0, 16, 16]} } }
+  ]
+}

@@ -9,6 +9,8 @@ import goblinlabour.home.HomeRegistry;
 import goblinlabour.item.GoblinData;
 import goblinlabour.job.JobConfig;
 import goblinlabour.job.Assignment;
+import goblinlabour.job.Job;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
@@ -85,6 +87,7 @@ public class GoblinBedBlockEntity extends BlockEntity {
     public static void serverTick(Level level, BlockPos pos, BlockState state, GoblinBedBlockEntity bed) {
         if (!(level instanceof ServerLevel serverLevel)) return;
         if (++bed.tickCounter % 20 != 0) return;
+        bed.updateProps();
         if (bed.goblinUuid == null) return;
 
         GoblinEntity goblin = bed.findGoblin(serverLevel);
@@ -215,6 +218,18 @@ public class GoblinBedBlockEntity extends BlockEntity {
                 goblin.setStyle(style);
                 goblin.runner().onJobChanged();
             }
+        }
+        updateProps();
+    }
+
+    /** Tools and loot under the bed show the goblin's trade; a resting goblin (or an empty bed) has nothing there. */
+    private void updateProps() {
+        if (level == null || level.isClientSide()) return;
+        BlockState state = getBlockState();
+        if (!state.hasProperty(GoblinBedBlock.PROPS)) return;
+        BedProps wanted = goblinUuid == null || getJob().job() == Job.REST ? BedProps.NONE : BedProps.of(style);
+        if (state.getValue(GoblinBedBlock.PROPS) != wanted) {
+            level.setBlock(worldPosition, state.setValue(GoblinBedBlock.PROPS, wanted), Block.UPDATE_ALL);
         }
     }
 

@@ -1,0 +1,13 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "minecraft:block/barrel_side",
+    "barrel_side": "minecraft:block/barrel_side",
+    "barrel_top": "minecraft:block/barrel_top",
+    "string": "goblinlabour:block/props/string"
+  },
+  "elements": [
+    { "from": [3, 0, 4], "to": [8, 3, 9], "faces": { "north": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "south": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "east": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "west": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "up": {"texture": "#barrel_top", "uv": [0, 0, 16, 16]} } },
+    { "from": [8, 0.1, 8], "to": [14, 0.1, 14], "rotation": {"origin": [11, 0, 11], "axis": "y", "angle": -22.5}, "faces": { "up": {"texture": "#string", "uv": [0, 0, 16, 16]} } }
+  ]
+}

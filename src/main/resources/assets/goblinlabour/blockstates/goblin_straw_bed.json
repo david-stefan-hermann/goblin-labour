@@ -1,8 +1,24 @@
 {
-  "variants": {
-    "facing=north": { "model": "goblinlabour:block/goblin_straw_bed" },
-    "facing=east": { "model": "goblinlabour:block/goblin_straw_bed", "y": 90 },
-    "facing=south": { "model": "goblinlabour:block/goblin_straw_bed", "y": 180 },
-    "facing=west": { "model": "goblinlabour:block/goblin_straw_bed", "y": 270 }
-  }
+  "multipart": [
+    { "when": {"facing": "north"}, "apply": {"model": "goblinlabour:block/goblin_straw_bed"} },
+    { "when": {"facing": "north", "props": "lumberjack"}, "apply": [{"model": "goblinlabour:block/bed_props/lumberjack_0"}, {"model": "goblinlabour:block/bed_props/lumberjack_1"}, {"model": "goblinlabour:block/bed_props/lumberjack_2"}, {"model": "goblinlabour:block/bed_props/lumberjack_3"}] },
+    { "when": {"facing": "north", "props": "farmer"}, "apply": [{"model": "goblinlabour:block/bed_props/farmer_0"}, {"model": "goblinlabour:block/bed_props/farmer_1"}, {"model": "goblinlabour:block/bed_props/farmer_2"}, {"model": "goblinlabour:block/bed_props/farmer_3"}] },
+    { "when": {"facing": "north", "props": "miner"}, "apply": [{"model": "goblinlabour:block/bed_props/miner_0"}, {"model": "goblinlabour:block/bed_props/miner_1"}, {"model": "goblinlabour:block/bed_props/miner_2"}, {"model": "goblinlabour:block/bed_props/miner_3"}] },
+    { "when": {"facing": "north", "props": "collector"}, "apply": [{"model": "goblinlabour:block/bed_props/collector_0"}, {"model": "goblinlabour:block/bed_props/collector_1"}, {"model": "goblinlabour:block/bed_props/collector_2"}, {"model": "goblinlabour:block/bed_props/collector_3"}] },
+    { "when": {"facing": "east"}, "apply": {"model": "goblinlabour:block/goblin_straw_bed", "y": 90} },
+    { "when": {"facing": "east", "props": "lumberjack"}, "apply": [{"model": "goblinlabour:block/bed_props/lumberjack_0", "y": 90}, {"model": "goblinlabour:block/bed_props/lumberjack_1", "y": 90}, {"model": "goblinlabour:block/bed_props/lumberjack_2", "y": 90}, {"model": "goblinlabour:block/bed_props/lumberjack_3", "y": 90}] },
+    { "when": {"facing": "east", "props": "farmer"}, "apply": [{"model": "goblinlabour:block/bed_props/farmer_0", "y": 90}, {"model": "goblinlabour:block/bed_props/farmer_1", "y": 90}, {"model": "goblinlabour:block/bed_props/farmer_2", "y": 90}, {"model": "goblinlabour:block/bed_props/farmer_3", "y": 90}] },
+    { "when": {"facing": "east", "props": "miner"}, "apply": [{"model": "goblinlabour:block/bed_props/miner_0", "y": 90}, {"model": "goblinlabour:block/bed_props/miner_1", "y": 90}, {"model": "goblinlabour:block/bed_props/miner_2", "y": 90}, {"model": "goblinlabour:block/bed_props/miner_3", "y": 90}] },
+    { "when": {"facing": "east", "props": "collector"}, "apply": [{"model": "goblinlabour:block/bed_props/collector_0", "y": 90}, {"model": "goblinlabour:block/bed_props/collector_1", "y": 90}, {"model": "goblinlabour:block/bed_props/collector_2", "y": 90}, {"model": "goblinlabour:block/bed_props/collector_3", "y": 90}] },
+    { "when": {"facing": "south"}, "apply": {"model": "goblinlabour:block/goblin_straw_bed", "y": 180} },
+    { "when": {"facing": "south", "props": "lumberjack"}, "apply": [{"model": "goblinlabour:block/bed_props/lumberjack_0", "y": 180}, {"model": "goblinlabour:block/bed_props/lumberjack_1", "y": 180}, {"model": "goblinlabour:block/bed_props/lumberjack_2", "y": 180}, {"model": "goblinlabour:block/bed_props/lumberjack_3", "y": 180}] },
+    { "when": {"facing": "south", "props": "farmer"}, "apply": [{"model": "goblinlabour:block/bed_props/farmer_0", "y": 180}, {"model": "goblinlabour:block/bed_props/farmer_1", "y": 180}, {"model": "goblinlabour:block/bed_props/farmer_2", "y": 180}, {"model": "goblinlabour:block/bed_props/farmer_3", "y": 180}] },
+    { "when": {"facing": "south", "props": "miner"}, "apply": [{"model": "goblinlabour:block/bed_props/miner_0", "y": 180}, {"model": "goblinlabour:block/bed_props/miner_1", "y": 180}, {"model": "goblinlabour:block/bed_props/miner_2", "y": 180}, {"model": "goblinlabour:block/bed_props/miner_3", "y": 180}] },
+    { "when": {"facing": "south", "props": "collector"}, "apply": [{"model": "goblinlabour:block/bed_props/collector_0", "y": 180}, {"model": "goblinlabour:block/bed_props/collector_1", "y": 180}, {"model": "goblinlabour:block/bed_props/collector_2", "y": 180}, {"model": "goblinlabour:block/bed_props/collector_3", "y": 180}] },
+    { "when": {"facing": "west"}, "apply": {"model": "goblinlabour:block/goblin_straw_bed", "y": 270} },
+    { "when": {"facing": "west", "props": "lumberjack"}, "apply": [{"model": "goblinlabour:block/bed_props/lumberjack_0", "y": 270}, {"model": "goblinlabour:block/bed_props/lumberjack_1", "y": 270}, {"model": "goblinlabour:block/bed_props/lumberjack_2", "y": 270}, {"model": "goblinlabour:block/bed_props/lumberjack_3", "y": 270}] },
+    { "when": {"facing": "west", "props": "farmer"}, "apply": [{"model": "goblinlabour:block/bed_props/farmer_0", "y": 270}, {"model": "goblinlabour:block/bed_props/farmer_1", "y": 270}, {"model": "goblinlabour:block/bed_props/farmer_2", "y": 270}, {"model": "goblinlabour:block/bed_props/farmer_3", "y": 270}] },
+    { "when": {"facing": "west", "props": "miner"}, "apply": [{"model": "goblinlabour:block/bed_props/miner_0", "y": 270}, {"model": "goblinlabour:block/bed_props/miner_1", "y": 270}, {"model": "goblinlabour:block/bed_props/miner_2", "y": 270}, {"model": "goblinlabour:block/bed_props/miner_3", "y": 270}] },
+    { "when": {"facing": "west", "props": "collector"}, "apply": [{"model": "goblinlabour:block/bed_props/collector_0", "y": 270}, {"model": "goblinlabour:block/bed_props/collector_1", "y": 270}, {"model": "goblinlabour:block/bed_props/collector_2", "y": 270}, {"model": "goblinlabour:block/bed_props/collector_3", "y": 270}] }
+  ]
 }

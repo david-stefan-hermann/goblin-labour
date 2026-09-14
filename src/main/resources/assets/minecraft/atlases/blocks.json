@@ -1,0 +1,21 @@
+{
+  "sources": [
+    { "type": "minecraft:single", "resource": "minecraft:item/wooden_axe", "sprite": "goblinlabour:block/props/wooden_axe" },
+    { "type": "minecraft:single", "resource": "minecraft:item/stone_axe", "sprite": "goblinlabour:block/props/stone_axe" },
+    { "type": "minecraft:single", "resource": "minecraft:item/stick", "sprite": "goblinlabour:block/props/stick" },
+    { "type": "minecraft:single", "resource": "minecraft:item/wheat", "sprite": "goblinlabour:block/props/wheat" },
+    { "type": "minecraft:single", "resource": "minecraft:item/wheat_seeds", "sprite": "goblinlabour:block/props/wheat_seeds" },
+    { "type": "minecraft:single", "resource": "minecraft:item/carrot", "sprite": "goblinlabour:block/props/carrot" },
+    { "type": "minecraft:single", "resource": "minecraft:item/potato", "sprite": "goblinlabour:block/props/potato" },
+    { "type": "minecraft:single", "resource": "minecraft:item/beetroot", "sprite": "goblinlabour:block/props/beetroot" },
+    { "type": "minecraft:single", "resource": "minecraft:item/wooden_hoe", "sprite": "goblinlabour:block/props/wooden_hoe" },
+    { "type": "minecraft:single", "resource": "minecraft:item/diamond", "sprite": "goblinlabour:block/props/diamond" },
+    { "type": "minecraft:single", "resource": "minecraft:item/emerald", "sprite": "goblinlabour:block/props/emerald" },
+    { "type": "minecraft:single", "resource": "minecraft:item/redstone", "sprite": "goblinlabour:block/props/redstone" },
+    { "type": "minecraft:single", "resource": "minecraft:item/bundle", "sprite": "goblinlabour:block/props/bundle" },
+    { "type": "minecraft:single", "resource": "minecraft:item/red_bundle", "sprite": "goblinlabour:block/props/red_bundle" },
+    { "type": "minecraft:single", "resource": "minecraft:item/brown_bundle", "sprite": "goblinlabour:block/props/brown_bundle" },
+    { "type": "minecraft:single", "resource": "minecraft:item/string", "sprite": "goblinlabour:block/props/string" },
+    { "type": "minecraft:single", "resource": "minecraft:item/leather", "sprite": "goblinlabour:block/props/leather" }
+  ]
+}

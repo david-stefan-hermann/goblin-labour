@@ -31,13 +31,19 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
     /** The torso leans forward slightly, so its top (neck and shoulders) sits half a pixel in front of the hips. */
     private static final float NECK_Z = -0.5f;
 
-    /** Hair knot with a braid down the back of the head; only look 3 wears it. */
-    private static final int TOPKNOT_LOOK = 3;
-
+    // One small extra per look: 0 tusks, 1 notched left ear, 2 taller skull, 3 topknot with braid.
+    private final ModelPart tusks;
+    private final ModelPart leftEar;
+    private final ModelPart leftEarNotched;
+    private final ModelPart headCap;
     private final ModelPart topknot;
 
     public GoblinModel(ModelPart root) {
         super(root);
+        tusks = head.getChild("tusks");
+        leftEar = head.getChild("left_ear");
+        leftEarNotched = head.getChild("left_ear_notched");
+        headCap = head.getChild("head_cap");
         topknot = head.getChild("topknot");
     }
 
@@ -67,6 +73,22 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
                         .texOffs(28, 0).addBox(-1.0f, -9.0f, 1.0f, 2.0f, 2.0f, 2.0f)
                         .texOffs(36, 0).addBox(-0.5f, -8.0f, 3.0f, 1.0f, 4.0f, 1.0f),
                 PartPose.ZERO);
+        head.addOrReplaceChild("tusks",
+                CubeListBuilder.create()
+                        .texOffs(28, 40).addBox(-2.0f, -2.0f, -4.0f, 1.0f, 1.0f, 1.0f)
+                        .texOffs(28, 40).addBox(1.0f, -2.0f, -4.0f, 1.0f, 1.0f, 1.0f),
+                PartPose.ZERO);
+        head.addOrReplaceChild("head_cap",
+                CubeListBuilder.create().texOffs(0, 40).addBox(-4.0f, -8.0f, -3.0f, 8.0f, 1.0f, 6.0f),
+                PartPose.ZERO);
+        // same ear with a one-pixel bite out of the top edge between base and tip
+        head.addOrReplaceChild("left_ear_notched",
+                CubeListBuilder.create()
+                        .texOffs(32, 24).addBox(0.0f, 0.0f, 0.0f, 2.0f, 3.0f, 1.0f)
+                        .texOffs(32, 28).addBox(2.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f)
+                        .texOffs(32, 28).addBox(3.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f)
+                        .texOffs(32, 31).addBox(4.0f, 0.0f, 0.0f, 2.0f, 1.0f, 1.0f),
+                PartPose.offsetAndRotation(4.0f, -5.0f, 0.0f, 0.0f, -0.5f, -0.25f));
         head.addOrReplaceChild("nose",
                 CubeListBuilder.create()
                         .texOffs(40, 24).addBox(-1.0f, -4.0f, -5.0f, 2.0f, 2.0f, 2.0f)
@@ -110,7 +132,11 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
     @Override
     public void setupAnim(GoblinRenderState state) {
         super.setupAnim(state);
-        topknot.visible = state.look == TOPKNOT_LOOK;
+        tusks.visible = state.look == 0;
+        leftEar.visible = state.look != 1;
+        leftEarNotched.visible = state.look == 1;
+        headCap.visible = state.look == 2;
+        topknot.visible = state.look == 3;
         body.setPos(0.0f, HIP_Y, 0.0f);
         body.xRot = BODY_TILT;
         head.setPos(0.0f, NECK_Y, NECK_Z);

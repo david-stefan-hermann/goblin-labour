@@ -1,0 +1,13 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "minecraft:block/hay_block_side",
+    "hay_block_side": "minecraft:block/hay_block_side",
+    "hay_block_top": "minecraft:block/hay_block_top",
+    "wheat_seeds": "goblinlabour:block/props/wheat_seeds"
+  },
+  "elements": [
+    { "from": [3, 0, 4], "to": [8, 3, 9], "faces": { "north": {"texture": "#hay_block_side", "uv": [0, 0, 16, 16]}, "south": {"texture": "#hay_block_side", "uv": [0, 0, 16, 16]}, "east": {"texture": "#hay_block_side", "uv": [0, 0, 16, 16]}, "west": {"texture": "#hay_block_side", "uv": [0, 0, 16, 16]}, "up": {"texture": "#hay_block_top", "uv": [0, 0, 16, 16]} } },
+    { "from": [8, 0.1, 8], "to": [14, 0.1, 14], "rotation": {"origin": [11, 0, 11], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#wheat_seeds", "uv": [0, 0, 16, 16]} } }
+  ]
+}

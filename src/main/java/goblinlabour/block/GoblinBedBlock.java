@@ -24,6 +24,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -32,11 +33,14 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class GoblinBedBlock extends HorizontalDirectionalBlock implements EntityBlock {
     public static final MapCodec<GoblinBedBlock> CODEC = simpleCodec(GoblinBedBlock::new);
     public static final BooleanProperty OCCUPIED = BlockStateProperties.OCCUPIED;
+    /** Kept in sync with the goblin's job by {@link GoblinBedBlockEntity}; only changes the model. */
+    public static final EnumProperty<BedProps> PROPS = EnumProperty.create("props", BedProps.class);
     private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 9, 16);
 
     public GoblinBedBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(OCCUPIED, false));
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(OCCUPIED, false)
+                .setValue(PROPS, BedProps.NONE));
     }
 
     @Override
@@ -46,7 +50,7 @@ public class GoblinBedBlock extends HorizontalDirectionalBlock implements Entity
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, OCCUPIED);
+        builder.add(FACING, OCCUPIED, PROPS);
     }
 
     @Override

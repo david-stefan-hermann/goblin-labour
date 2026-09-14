@@ -1,0 +1,31 @@
+forceload add 32 32 56 56
+time set day
+weather clear
+kill @e[type=minecraft:slime]
+kill @e[type=minecraft:cow]
+kill @e[type=goblinlabour:goblin,x=44,y=-60,z=44,distance=..20]
+fill 36 -60 30 52 -50 52 air
+fill 36 -61 30 52 -61 52 grass_block
+kill @e[type=minecraft:item]
+fill 36 -61 44 52 -61 47 air
+setblock 41 -60 41 goblinlabour:goblin_straw_bed[facing=north]
+setblock 43 -60 41 goblinlabour:goblin_straw_bed[facing=north]
+setblock 45 -60 41 goblinlabour:goblin_straw_bed[facing=north]
+setblock 47 -60 41 goblinlabour:goblin_straw_bed[facing=north]
+goblinlabour spawn 41 -60 41 Grubnak
+goblinlabour spawn 43 -60 41 Snikkit
+goblinlabour spawn 45 -60 41 Gorbag
+goblinlabour spawn 47 -60 41 Ratbag
+data merge entity @e[type=goblinlabour:goblin,name=Grubnak,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Snikkit,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Gorbag,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Ratbag,limit=1] {NoAI:1b}
+tp @e[type=goblinlabour:goblin,name=Grubnak] 42.0 -60 39.3 0 0
+tp @e[type=goblinlabour:goblin,name=Snikkit] 43.8 -60 39.3 0 0
+tp @e[type=goblinlabour:goblin,name=Gorbag] 45.2 -60 39.3 0 0
+tp @e[type=goblinlabour:goblin,name=Ratbag] 47.0 -60 39.3 0 0
+goblinlabour job 41 -60 41 chop
+goblinlabour job 43 -60 41 farm
+goblinlabour dig 45 -60 41 down 45 -61 32 1 -62 false
+goblinlabour job 47 -60 41 chop
+data merge block 47 -60 41 {style:"collector"}

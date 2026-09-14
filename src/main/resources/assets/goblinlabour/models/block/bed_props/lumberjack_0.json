@@ -1,0 +1,12 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "goblinlabour:block/props/wooden_axe",
+    "wooden_axe": "goblinlabour:block/props/wooden_axe",
+    "stick": "goblinlabour:block/props/stick"
+  },
+  "elements": [
+    { "from": [3, 0.1, 3], "to": [11, 0.1, 11], "rotation": {"origin": [7, 0, 7], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#wooden_axe", "uv": [0, 0, 16, 16]} } },
+    { "from": [8, 0.1, 8], "to": [14, 0.1, 14], "rotation": {"origin": [11, 0, 11], "axis": "y", "angle": -22.5}, "faces": { "up": {"texture": "#stick", "uv": [0, 0, 16, 16]} } }
+  ]
+}

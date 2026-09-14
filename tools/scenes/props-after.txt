@@ -1,0 +1,5 @@
+goblinlabour job 41 -60 41 farm
+goblinlabour dig 43 -60 41 down 43 -61 32 1 -62 false
+goblinlabour job 45 -60 41 chop
+data merge block 45 -60 41 {style:"collector"}
+goblinlabour job 47 -60 41 rest
