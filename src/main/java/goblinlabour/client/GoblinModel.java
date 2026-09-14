@@ -1,6 +1,7 @@
 package goblinlabour.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import goblinlabour.entity.GoblinStyle;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
@@ -37,9 +38,12 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
     private final ModelPart leftEarNotched;
     private final ModelPart headCap;
     private final ModelPart topknot;
+    /** Collectors carry a small leather pack, whatever their look. */
+    private final ModelPart backpack;
 
     public GoblinModel(ModelPart root) {
         super(root);
+        backpack = body.getChild("backpack");
         tusks = head.getChild("tusks");
         leftEar = head.getChild("left_ear");
         leftEarNotched = head.getChild("left_ear_notched");
@@ -63,6 +67,12 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
                         .texOffs(48, 24).addBox(-2.0f, 0.0f, -2.6f, 4.0f, 3.0f, 0.0f)
                         .texOffs(48, 27).addBox(-2.0f, 0.0f, 2.6f, 4.0f, 3.0f, 0.0f),
                 PartPose.rotation(-BODY_TILT, 0.0f, 0.0f));
+        // bag on the back of the vest with a lid flap over its top
+        body.addOrReplaceChild("backpack",
+                CubeListBuilder.create()
+                        .texOffs(40, 44).addBox(-2.0f, -5.0f, 2.3f, 4.0f, 4.0f, 2.0f)
+                        .texOffs(40, 50).addBox(-2.0f, -5.5f, 2.3f, 4.0f, 1.0f, 2.0f, new CubeDeformation(0.2f)),
+                PartPose.ZERO);
 
         PartDefinition head = root.addOrReplaceChild("head",
                 CubeListBuilder.create().texOffs(0, 0).addBox(-4.0f, -7.0f, -3.0f, 8.0f, 7.0f, 6.0f),
@@ -137,6 +147,7 @@ public class GoblinModel extends HumanoidModel<GoblinRenderState> {
         leftEarNotched.visible = state.look == 1;
         headCap.visible = state.look == 2;
         topknot.visible = state.look == 3;
+        backpack.visible = state.style == GoblinStyle.COLLECTOR;
         body.setPos(0.0f, HIP_Y, 0.0f);
         body.xRot = BODY_TILT;
         head.setPos(0.0f, NECK_Y, NECK_Z);

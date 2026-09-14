@@ -1,0 +1,4 @@
+tp @e[type=goblinlabour:goblin,name=Grubnak] 42.65 -60 42.3 90 0
+tp @e[type=goblinlabour:goblin,name=Snikkit] 43.55 -60 42.3 90 0
+tp @e[type=goblinlabour:goblin,name=Gorbag] 44.45 -60 42.3 90 0
+tp @e[type=goblinlabour:goblin,name=Ratbag] 45.35 -60 42.3 90 0

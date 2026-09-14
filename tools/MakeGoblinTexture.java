@@ -21,11 +21,14 @@ public class MakeGoblinTexture {
     static final int LOOKS = 4;
 
     static final int EYE = 0xF2D14B, PUPIL = 0x1C1C1C, MOUTH = 0x2B1B12, FANG = 0xEDE6D2, EAR_INNER = 0xA7715F;
-    static final int LEATHER = 0x6B4A2B, LEATHER_DARK = 0x4E3520, STITCH = 0x8C6A45, PATCH = 0x8A6A45;
-    static final int BELT = 0x3A2A1C, BUCKLE = 0xB8A060, CLOTH = 0x8A6F4A, CLOTH_DARK = 0x6E5638, CLAW = 0xD9D2B0;
+    // clothing colours go through rich(): the same hues, more saturated
+    static final float CLOTHING_SATURATION = 1.3f;
+    static final int LEATHER = rich(0x6B4A2B), LEATHER_DARK = rich(0x4E3520), STITCH = rich(0x8C6A45), PATCH = rich(0x8A6A45);
+    static final int BELT = rich(0x3A2A1C), BUCKLE = 0xB8A060, CLOTH = rich(0x8A6F4A), CLOTH_DARK = rich(0x6E5638), CLAW = 0xD9D2B0;
     static final int GOLD = 0xE0B83A, GOLD_DARK = 0x9C7A22, SCAR = 0xC79A86, HAIR = 0x2E3024;
-    static final int BURLAP = 0x9C8560, BURLAP_DARK = 0x7A6545, ROPE = 0xB89B63, BANDAGE = 0xD8CFB8;
-    static final int FUR = 0x8A7B66, FUR_DARK = 0x6A5C4A, BONE = 0xE3DAC0, PAINT = 0x8E3A2F;
+    static final int BURLAP = rich(0x9C8560), BURLAP_DARK = rich(0x7A6545), ROPE = rich(0xB89B63), BANDAGE = rich(0xD8CFB8);
+    static final int FUR = rich(0x8A7B66), FUR_DARK = rich(0x6A5C4A), BONE = 0xE3DAC0, PAINT = rich(0x8E3A2F);
+    static final int PATCHED_VEST = rich(0x553A22);
 
     static final String[][] FACES = {
             {
@@ -65,6 +68,8 @@ public class MakeGoblinTexture {
 
     static int skin, skinDark, skinDeep, skinLight, brow, vest;
     static int look;
+    static String style;
+    static final int PACK = rich(0x7A5230), STRAP = rich(0x3A2A1C);
     static BufferedImage img;
     static Random rng;
 
@@ -87,13 +92,14 @@ public class MakeGoblinTexture {
         Graphics2D sheet = preview.createGraphics();
         for (int s = 0; s < STYLES.length; s++) {
             skin = STYLE_SKIN[s];
+            style = STYLES[s];
             skinDark = shade(skin, 0.82f);
             skinDeep = shade(skin, 0.66f);
             skinLight = shade(skin, 1.13f);
             brow = shade(skin, 0.44f);
             for (int l = 0; l < LOOKS; l++) {
                 look = l;
-                vest = look == 1 ? 0x553A22 : LEATHER;
+                vest = look == 1 ? PATCHED_VEST : LEATHER;
                 img = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
                 rng = new Random(1337 + l); // same grain for a look in every style
                 head();
@@ -105,6 +111,7 @@ public class MakeGoblinTexture {
                 ears();
                 nose();
                 loincloth();
+                backpack();
                 ImageIO.write(img, "png", new File(DIR + "goblin_" + STYLES[s] + "_" + l + ".png"));
                 sheet.drawImage(scale(img, 4), l * 256, s * 256, null);
             }
@@ -251,6 +258,25 @@ public class MakeGoblinTexture {
             }
         }
 
+        if (style.equals("collector")) {
+            // backpack straps over the shoulders (model part "backpack", collectors only)
+            int[] strapFront = over.front();
+            int[] strapTop = over.top();
+            int[] strapBack = over.back();
+            for (int y = look == 3 ? 1 : 0; y < 5; y++) {
+                set(strapFront[0], strapFront[1] + y, vary(STRAP, 6));
+                set(strapFront[0] + 5, strapFront[1] + y, vary(STRAP, 6));
+            }
+            for (int y = 0; y < strapTop[3]; y++) {
+                set(strapTop[0], strapTop[1] + y, vary(STRAP, 6));
+                set(strapTop[0] + 5, strapTop[1] + y, vary(STRAP, 6));
+            }
+            for (int y = 0; y < 2; y++) {
+                set(strapBack[0] + 1, strapBack[1] + y, vary(STRAP, 6));
+                set(strapBack[0] + 4, strapBack[1] + y, vary(STRAP, 6));
+            }
+        }
+
         Box belt = new Box(40, 18, 6, 1, 4);
         int beltColor = look == 2 ? ROPE : BELT;
         for (int[] face : belt.all()) fill(face, beltColor, 8);
@@ -381,6 +407,24 @@ public class MakeGoblinTexture {
         }
     }
 
+    /** Leather pack (model part "backpack", shown for collectors). Its south face is the one people see. */
+    static void backpack() {
+        Box bag = new Box(40, 44, 4, 4, 2);
+        for (int[] face : bag.all()) fill(face, PACK, 10);
+        int[] back = bag.back();
+        for (int x = 0; x < back[2]; x++) set(back[0] + x, back[1], vary(shade(PACK, 0.78f), 6));
+        for (int y = 2; y < 4; y++) {
+            for (int x = 0; x < back[2]; x++) set(back[0] + x, back[1] + y, vary(PATCH, 6)); // front pocket
+        }
+        set(back[0] + 1, back[1] + 2, STITCH);
+        set(back[0] + 2, back[1] + 2, STITCH);
+        Box lid = new Box(40, 50, 4, 1, 2);
+        for (int[] face : lid.all()) fill(face, shade(PACK, 0.78f), 8);
+        int[] lidBack = lid.back();
+        set(lidBack[0] + 1, lidBack[1], BUCKLE);
+        set(lidBack[0] + 2, lidBack[1], BUCKLE);
+    }
+
     // ---- painting helpers ----
 
     static void paint(int[] face, String[] rows) {
@@ -440,6 +484,12 @@ public class MakeGoblinTexture {
         int g = clamp(((rgb >> 8) & 0xFF) + delta);
         int b = clamp((rgb & 0xFF) + delta);
         return (r << 16) | (g << 8) | b;
+    }
+
+    /** Raises the saturation by {@link #CLOTHING_SATURATION}, keeping hue and brightness. */
+    static int rich(int rgb) {
+        float[] hsb = java.awt.Color.RGBtoHSB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, null);
+        return java.awt.Color.HSBtoRGB(hsb[0], Math.min(1.0f, hsb[1] * CLOTHING_SATURATION), hsb[2]) & 0xFFFFFF;
     }
 
     static int shade(int rgb, float factor) {
