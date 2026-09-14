@@ -8,8 +8,8 @@
     "leather": "goblinlabour:block/props/leather"
   },
   "elements": [
-    { "from": [8, 0, 3], "to": [13, 3, 8], "rotation": {"origin": [10.5, 0, 5.5], "axis": "y", "angle": 22.5}, "faces": { "north": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "south": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "east": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "west": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "up": {"texture": "#barrel_top", "uv": [0, 0, 16, 16]} } },
-    { "from": [3, 0.1, 7], "to": [10, 0.1, 14], "faces": { "up": {"texture": "#bundle", "uv": [0, 0, 16, 16]} } },
-    { "from": [3, 0.1, 2], "to": [8, 0.1, 7], "rotation": {"origin": [5.5, 0, 4.5], "axis": "y", "angle": 45}, "faces": { "up": {"texture": "#leather", "uv": [0, 0, 16, 16]} } }
+    { "from": [8, 0, 8], "to": [13, 3, 13], "rotation": {"origin": [10.5, 0, 10.5], "axis": "y", "angle": 22.5}, "faces": { "north": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "south": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "east": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "west": {"texture": "#barrel_side", "uv": [0, 0, 16, 16]}, "up": {"texture": "#barrel_top", "uv": [0, 0, 16, 16]} } },
+    { "from": [3, 0.1, 12], "to": [10, 0.1, 19], "faces": { "up": {"texture": "#bundle", "uv": [0, 0, 16, 16]} } },
+    { "from": [3, 0.1, 7], "to": [8, 0.1, 12], "rotation": {"origin": [5.5, 0, 9.5], "axis": "y", "angle": 45}, "faces": { "up": {"texture": "#leather", "uv": [0, 0, 16, 16]} } }
   ]
 }

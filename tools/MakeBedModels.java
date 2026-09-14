@@ -62,7 +62,13 @@ public class MakeBedModels {
 
     // ---- props ----
 
-    /** Space under the frame: x/z 2..14 between the legs, y 0..3. Flat items lie at y 0.1. */
+    /**
+     * Arrangements are laid out in x/z 2..14 (between the legs), y 0..3, flat items at y 0.1, and then pushed
+     * {@link #FOOT_SHIFT} px towards the foot end (+z, away from the pillow), so part of each arrangement sticks out
+     * from under the frame where a standing player can see it. The head end usually stands against a wall.
+     */
+    static final double FOOT_SHIFT = 5;
+
     static Props props(String style, int variant) {
         Props p = new Props();
         switch (style + variant) {
@@ -102,6 +108,8 @@ public class MakeBedModels {
 
         /** A flat item lying on the floor. */
         Props plane(String texture, double x1, double z1, double x2, double z2, double angle) {
+            z1 += FOOT_SHIFT;
+            z2 += FOOT_SHIFT;
             elements.add(String.format(Locale.ROOT,
                     "{ \"from\": [%s, 0.1, %s], \"to\": [%s, 0.1, %s]%s, \"faces\": { \"up\": {\"texture\": \"%s\", \"uv\": [0, 0, 16, 16]} } }",
                     num(x1), num(z1), num(x2), num(z2), rotation(x1, z1, x2, z2, angle), ref(texture)));
@@ -110,6 +118,8 @@ public class MakeBedModels {
 
         /** A miniature block with the whole texture on each face. */
         Props cube(String side, String top, double x1, double y1, double z1, double x2, double y2, double z2, double angle) {
+            z1 += FOOT_SHIFT;
+            z2 += FOOT_SHIFT;
             String s = ref(side);
             String t = ref(top);
             String face = "{\"texture\": \"%s\", \"uv\": [0, 0, 16, 16]}";
@@ -122,6 +132,8 @@ public class MakeBedModels {
 
         /** A small oak log, 3 px thick, lying along the x axis. */
         Props log(double x1, double z1, double x2, double z2, double angle) {
+            z1 += FOOT_SHIFT;
+            z2 += FOOT_SHIFT;
             String bark = ref("block/oak_log");
             String end = ref("block/oak_log_top");
             String along = "{\"texture\": \"%s\", \"uv\": [0, 0, 16, 16], \"rotation\": 90}".formatted(bark);

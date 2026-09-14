@@ -7,8 +7,8 @@
     "redstone": "goblinlabour:block/props/redstone"
   },
   "elements": [
-    { "from": [3, 0, 3], "to": [6, 3, 6], "faces": { "north": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]}, "south": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]}, "east": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]}, "west": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]}, "up": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]} } },
-    { "from": [8, 0.1, 3], "to": [13, 0.1, 8], "rotation": {"origin": [10.5, 0, 5.5], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#emerald", "uv": [0, 0, 16, 16]} } },
-    { "from": [5, 0.1, 8], "to": [11, 0.1, 14], "rotation": {"origin": [8, 0, 11], "axis": "y", "angle": -22.5}, "faces": { "up": {"texture": "#redstone", "uv": [0, 0, 16, 16]} } }
+    { "from": [3, 0, 8], "to": [6, 3, 11], "faces": { "north": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]}, "south": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]}, "east": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]}, "west": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]}, "up": {"texture": "#diamond_ore", "uv": [0, 0, 16, 16]} } },
+    { "from": [8, 0.1, 8], "to": [13, 0.1, 13], "rotation": {"origin": [10.5, 0, 10.5], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#emerald", "uv": [0, 0, 16, 16]} } },
+    { "from": [5, 0.1, 13], "to": [11, 0.1, 19], "rotation": {"origin": [8, 0, 16], "axis": "y", "angle": -22.5}, "faces": { "up": {"texture": "#redstone", "uv": [0, 0, 16, 16]} } }
   ]
 }

@@ -5,6 +5,6 @@
     "bundle": "goblinlabour:block/props/bundle"
   },
   "elements": [
-    { "from": [3, 0.1, 3], "to": [12, 0.1, 12], "rotation": {"origin": [7.5, 0, 7.5], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#bundle", "uv": [0, 0, 16, 16]} } }
+    { "from": [3, 0.1, 8], "to": [12, 0.1, 17], "rotation": {"origin": [7.5, 0, 12.5], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#bundle", "uv": [0, 0, 16, 16]} } }
   ]
 }

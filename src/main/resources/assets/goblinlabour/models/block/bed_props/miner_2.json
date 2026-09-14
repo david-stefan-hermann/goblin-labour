@@ -6,8 +6,8 @@
     "emerald": "goblinlabour:block/props/emerald"
   },
   "elements": [
-    { "from": [2, 0.1, 2], "to": [9, 0.1, 9], "faces": { "up": {"texture": "#redstone", "uv": [0, 0, 16, 16]} } },
-    { "from": [7, 0.1, 7], "to": [14, 0.1, 14], "rotation": {"origin": [10.5, 0, 10.5], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#redstone", "uv": [0, 0, 16, 16]} } },
-    { "from": [3, 0.1, 9], "to": [7, 0.1, 13], "rotation": {"origin": [5, 0, 11], "axis": "y", "angle": -22.5}, "faces": { "up": {"texture": "#emerald", "uv": [0, 0, 16, 16]} } }
+    { "from": [2, 0.1, 7], "to": [9, 0.1, 14], "faces": { "up": {"texture": "#redstone", "uv": [0, 0, 16, 16]} } },
+    { "from": [7, 0.1, 12], "to": [14, 0.1, 19], "rotation": {"origin": [10.5, 0, 15.5], "axis": "y", "angle": 22.5}, "faces": { "up": {"texture": "#redstone", "uv": [0, 0, 16, 16]} } },
+    { "from": [3, 0.1, 14], "to": [7, 0.1, 18], "rotation": {"origin": [5, 0, 16], "axis": "y", "angle": -22.5}, "faces": { "up": {"texture": "#emerald", "uv": [0, 0, 16, 16]} } }
   ]
 }

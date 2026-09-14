@@ -7,7 +7,7 @@
     "oak_log_top": "minecraft:block/oak_log_top"
   },
   "elements": [
-    { "from": [7, 0.1, 2], "to": [14, 0.1, 9], "rotation": {"origin": [10.5, 0, 5.5], "axis": "y", "angle": -45}, "faces": { "up": {"texture": "#stone_axe", "uv": [0, 0, 16, 16]} } },
-    { "from": [2, 0, 9], "to": [12, 3, 12], "faces": { "north": {"texture": "#oak_log", "uv": [0, 0, 16, 16], "rotation": 90}, "south": {"texture": "#oak_log", "uv": [0, 0, 16, 16], "rotation": 90}, "up": {"texture": "#oak_log", "uv": [0, 0, 16, 16], "rotation": 90}, "east": {"texture": "#oak_log_top", "uv": [0, 0, 16, 16]}, "west": {"texture": "#oak_log_top", "uv": [0, 0, 16, 16]} } }
+    { "from": [7, 0.1, 7], "to": [14, 0.1, 14], "rotation": {"origin": [10.5, 0, 10.5], "axis": "y", "angle": -45}, "faces": { "up": {"texture": "#stone_axe", "uv": [0, 0, 16, 16]} } },
+    { "from": [2, 0, 14], "to": [12, 3, 17], "faces": { "north": {"texture": "#oak_log", "uv": [0, 0, 16, 16], "rotation": 90}, "south": {"texture": "#oak_log", "uv": [0, 0, 16, 16], "rotation": 90}, "up": {"texture": "#oak_log", "uv": [0, 0, 16, 16], "rotation": 90}, "east": {"texture": "#oak_log_top", "uv": [0, 0, 16, 16]}, "west": {"texture": "#oak_log_top", "uv": [0, 0, 16, 16]} } }
   ]
 }
