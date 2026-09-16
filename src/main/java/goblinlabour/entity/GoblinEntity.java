@@ -106,6 +106,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
 
     public GoblinEntity(EntityType<? extends GoblinEntity> type, Level level) {
         super(type, level);
+        moveControl = new GoblinMoveControl(this);
         setPersistenceRequired();
         setCanPickUpLoot(false);
         for (EquipmentSlot slot : EquipmentSlot.values()) {
@@ -617,6 +618,10 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     public void die(DamageSource source) {
         super.die(source);
         if (level().isClientSide()) return;
+        if (runner != null && net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            // the dev test suites count deaths; this line says what the goblin was doing when it died
+            GoblinLabour.LOGGER.info("Dev: {} died at {}: {}", goblinName(), blockPosition().toShortString(), runner.debug());
+        }
         GoblinBedBlockEntity bed = bed();
         if (bed != null) bed.onGoblinDied(this);
         dropStorage();

@@ -209,6 +209,32 @@ public final class JobRunner {
     /** One tick. {@code task} may be null when only a deposit run is pending. */
     public void tick(ServerLevel level, JobHost bed, JobConfig config, @Nullable JobTask task) {
         ticks++;
+        tickPhase(level, bed, config, task);
+        if (TRACE != null && TRACE.equals(goblin.goblinName())) trace(level);
+    }
+
+    /** Dev only: GOBLINLABOUR_TRACE=<name> logs every tick that goblin spends up, in the air or sneaking. */
+    @Nullable private static final String TRACE = net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()
+            ? System.getenv("GOBLINLABOUR_TRACE") : null;
+
+    private void trace(ServerLevel level) {
+        BlockPos column = Climber.columnUnder(level, goblin);
+        if (column == null && goblin.onGround() && !goblin.isShiftKeyDown()) return;
+        Vec3 v = goblin.getDeltaMovement();
+        BlockPos feet = goblin.blockPosition();
+        GoblinLabour.LOGGER.info(String.format(java.util.Locale.ROOT,
+                "Trace %d " + phase + " retryIn=" + retryIn + " item=" + (itemTarget != null) + " exit=" + exitChecked
+                + " pos=%.3f,%.3f,%.3f v=%.3f,%.3f,%.3f ground=%s sneak=%s yaw=%.0f zza=%.3f xxa=%.3f want=%s,%.3f,%.3f col=%s branch=%s target=%s climb=%s feet=%s below=%s fall=%.1f",
+                ticks, goblin.getX(), goblin.getY(), goblin.getZ(), v.x, v.y, v.z, goblin.onGround(), goblin.isShiftKeyDown(),
+                goblin.getYRot(), goblin.zza, goblin.xxa, goblin.getMoveControl().hasWanted(), goblin.getMoveControl().getWantedX(),
+                goblin.getMoveControl().getWantedZ(),
+                column == null ? "-" : column.toShortString(), branch, target == null ? "-" : target.toShortString(),
+                climbColumn == null ? "-" : climbColumn.toShortString(),
+                BuiltInRegistries.BLOCK.getKey(level.getBlockState(feet).getBlock()).getPath(),
+                BuiltInRegistries.BLOCK.getKey(level.getBlockState(feet.below()).getBlock()).getPath(), goblin.fallDistance));
+    }
+
+    private void tickPhase(ServerLevel level, JobHost bed, JobConfig config, @Nullable JobTask task) {
         switch (phase) {
             case DEPOSIT -> tickDeposit(level, bed);
             case WAIT_ROOM -> { /* the rest goal has the goblin in bed */ }
@@ -243,6 +269,7 @@ public final class JobRunner {
             JobTask.Pick pick = task.pick(level, goblin, bed, config, skipped.keySet());
             if (pick.target() == null) {
                 boolean up = Climber.isUp(level, goblin);
+                branch = "none-" + (pick == JobTask.Pick.RETRY ? "retry" : pick == JobTask.Pick.DONE ? "done" : pick.verdict()) + (up ? "-up" : "");
                 if (pick.verdict() == Mining.Verdict.NEEDS_TOOL) {
                     retryIn = PICK_RETRY_TICKS;
                     bed.setStatus(GoblinBedBlockEntity.Status.BLOCKED);
@@ -303,17 +330,18 @@ public final class JobRunner {
         goblin.getLookControl().setLookAt(center);
         double besideX = center.x - goblin.getX(), besideZ = center.z - goblin.getZ();
         BlockPos feetPos = goblin.blockPosition();
-        if (center.y - goblin.getEyeY() > 0.5 && besideX * besideX + besideZ * besideZ <= CLIMB_BESIDE_SQ
+        // still rising through the block: the target may already look in reach, but the climb is not finished
+        boolean rising = !goblin.onGround() && goblin.getDeltaMovement().y > 0.0 && center.y > goblin.getY();
+        if ((center.y - goblin.getEyeY() > 0.5 || rising) && besideX * besideX + besideZ * besideZ <= CLIMB_BESIDE_SQ
                 && climbColumn != null && feetPos.getX() == climbColumn.getX() && feetPos.getZ() == climbColumn.getZ()
                 && level.getBlockState(feetPos).is(GoblinLabour.GOBLIN_SCAFFOLD)) {
             // half-way up a scaffold block of its column beside the target: finish the climb onto it before swinging,
             // or the goblin bobs at the edge of its reach (rise, in reach, stop jumping, fall, out of reach, ...). On
             // any other column it has to come down instead (moveTowards), or it climbs one it is being sent down.
+            // Climbing also keeps it in the middle of the column: off the middle its head catches on the target's block.
             progress = 0.0f;
             level.destroyBlockProgress(goblin.getId(), target, -1);
-            goblin.getNavigation().stop();
-            goblin.setShiftKeyDown(false);
-            goblin.getJumpControl().jump();
+            goblin.climber().climb(level);
             return;
         }
         // in reach is not enough: the goblin has to see the block (no reaching through stairs or round corners)

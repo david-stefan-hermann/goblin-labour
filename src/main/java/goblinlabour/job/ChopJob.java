@@ -100,6 +100,20 @@ public final class ChopJob implements JobTask {
         stumps(level).remove(goblin.getUUID());
     }
 
+    /**
+     * A bed respawned its goblin (a new entity with a new UUID): the new one takes over the dead one's tree and
+     * stumps. Otherwise the rest of the tree stays claimed by a goblin that is gone, and the new one leaves it alone.
+     */
+    public static void handOver(ServerLevel level, UUID from, UUID to) {
+        Tree tree = claims(level).remove(from);
+        if (tree != null) {
+            tree.lastUsed = level.getGameTime();
+            claims(level).put(to, tree);
+        }
+        List<Stump> stumps = stumps(level).remove(from);
+        if (stumps != null) stumps(level).put(to, stumps);
+    }
+
     /** Debug summary for the status command. */
     public static String debug(ServerLevel level, GoblinEntity goblin) {
         List<Stump> stumps = stumps(level).get(goblin.getUUID());

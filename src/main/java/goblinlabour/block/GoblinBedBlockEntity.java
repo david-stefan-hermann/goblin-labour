@@ -9,6 +9,7 @@ import goblinlabour.home.HomeRegistry;
 import goblinlabour.item.GoblinData;
 import goblinlabour.job.JobConfig;
 import goblinlabour.job.Assignment;
+import goblinlabour.job.ChopJob;
 import goblinlabour.job.Job;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.core.BlockPos;
@@ -158,6 +159,7 @@ public class GoblinBedBlockEntity extends BlockEntity implements goblinlabour.jo
             goblin.setRecoverPos(deathPos, level.getGameTime() + RECOVER_TICKS);
             deathPos = null;
         }
+        if (goblinUuid != null) ChopJob.handOver(level, goblinUuid, goblin.getUUID());
 
         goblinUuid = goblin.getUUID();
         goblinName = data.name();
