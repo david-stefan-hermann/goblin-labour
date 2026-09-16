@@ -1,9 +1,12 @@
 package goblinlabour.item;
 
+import goblinlabour.ring.RingBooks;
 import goblinlabour.ring.RingContainer;
 import goblinlabour.ring.RingCrew;
 import goblinlabour.ring.RingInventory;
 import goblinlabour.ring.RingMenu;
+import goblinlabour.ring.RingMenuData;
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -11,9 +14,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUtils;
@@ -52,9 +56,25 @@ public class GoblinRingItem extends Item {
     public static void openMenu(ServerPlayer player, ItemStack ring) {
         UUID id = RingInventory.ensureId(ring);
         RingContainer container = RingInventory.open(player, id);
-        if (container == null) return;
-        player.openMenu(new SimpleMenuProvider((containerId, inventory, viewer) -> new RingMenu(containerId, inventory, container, id),
-                ring.getHoverName()));
+        RingBooks books = RingInventory.books(player, id);
+        if (container == null || books == null) return;
+        Component title = ring.getHoverName();
+        player.openMenu(new ExtendedMenuProvider<RingMenuData>() {
+            @Override
+            public RingMenuData getScreenOpeningData(ServerPlayer viewer) {
+                return new RingMenuData(id);
+            }
+
+            @Override
+            public Component getDisplayName() {
+                return title;
+            }
+
+            @Override
+            public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player viewer) {
+                return new RingMenu(containerId, inventory, container, books, id);
+            }
+        });
     }
 
     /** A ring burnt in lava or blown up spills its loot, like a shulker box. */

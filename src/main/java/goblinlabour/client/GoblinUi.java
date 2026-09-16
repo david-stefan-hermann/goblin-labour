@@ -4,7 +4,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Pose;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 /**
  * The goblin look shared by all screens: a moss-green panel in vanilla's panel pixel layout, darker slots, and a
@@ -95,5 +102,35 @@ public final class GoblinUi {
             int textY = y0 + (getHeight() - 8) / 2;
             graphics.centeredText(Minecraft.getInstance().font, getMessage(), (x0 + x1) / 2, textY, active ? BUTTON_TEXT : BUTTON_TEXT_OFF);
         }
+    }
+
+    /**
+     * {@code InventoryScreen.extractEntityInInventoryFollowsMouse} without the name tag: the name is already the
+     * screen's title.
+     */
+    public static void extractPortrait(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, int scale, float yOffset,
+                                       float mouseX, float mouseY, LivingEntity entity) {
+        float centerX = (x0 + x1) / 2.0f;
+        float centerY = (y0 + y1) / 2.0f;
+        float xAngle = (float) Math.atan((centerX - mouseX) / 40.0f);
+        float yAngle = (float) Math.atan((centerY - mouseY) / 40.0f);
+        Quaternionf rotation = new Quaternionf().rotateZ(Mth.PI);
+        Quaternionf xRotation = new Quaternionf().rotateX(yAngle * 20.0f * Mth.DEG_TO_RAD);
+        rotation.mul(xRotation);
+        EntityRenderState state = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(entity).createRenderState(entity, 1.0f);
+        state.shadowPieces.clear();
+        state.outlineColor = 0;
+        state.nameTag = null;
+        state.scoreText = null;
+        if (state instanceof LivingEntityRenderState living) {
+            living.bodyRot = 180.0f + xAngle * 20.0f;
+            living.yRot = xAngle * 20.0f;
+            living.xRot = living.pose != Pose.FALL_FLYING ? -yAngle * 20.0f : 0.0f;
+            living.boundingBoxWidth /= living.scale;
+            living.boundingBoxHeight /= living.scale;
+            living.scale = 1.0f;
+        }
+        Vector3f translation = new Vector3f(0.0f, state.boundingBoxHeight / 2.0f + yOffset, 0.0f);
+        graphics.entity(state, scale, translation, rotation, xRotation, x0, y0, x1, y1);
     }
 }

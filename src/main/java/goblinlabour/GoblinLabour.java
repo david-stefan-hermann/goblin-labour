@@ -6,16 +6,6 @@ import goblinlabour.block.GoblinChestBlock;
 import goblinlabour.block.GoblinChestBlockEntity;
 import goblinlabour.block.GoblinScaffoldBlock;
 import goblinlabour.block.HomeMarkerBlock;
-import goblinlabour.item.GoblinRingItem;
-import goblinlabour.item.GoblinStaffItem;
-import goblinlabour.ring.RingCrew;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.core.UUIDUtil;
-import net.minecraft.world.item.Rarity;
-import java.util.UUID;
-import goblinlabour.menu.StaffMenu;
-import goblinlabour.menu.StaffMenuData;
-import goblinlabour.staff.StaffSelection;
 import goblinlabour.command.GoblinCommand;
 import goblinlabour.dev.DevHooks;
 import goblinlabour.entity.GoblinEntity;
@@ -23,17 +13,25 @@ import goblinlabour.item.GoblinBlankItem;
 import goblinlabour.item.GoblinData;
 import goblinlabour.item.GoblinHandbookItem;
 import goblinlabour.item.GoblinHeadItem;
+import goblinlabour.item.GoblinRingItem;
+import goblinlabour.item.GoblinStaffItem;
 import goblinlabour.menu.GoblinBedMenu;
 import goblinlabour.menu.GoblinBedMenuData;
 import goblinlabour.menu.GoblinInventoryMenu;
 import goblinlabour.menu.GoblinMenuData;
+import goblinlabour.menu.StaffMenu;
+import goblinlabour.menu.StaffMenuData;
+import goblinlabour.ring.RingCrew;
+import goblinlabour.staff.StaffSelection;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
-import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -46,6 +44,8 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -54,6 +54,7 @@ import net.minecraft.world.level.material.MapColor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
 import java.util.function.Function;
 
 public final class GoblinLabour implements ModInitializer {
@@ -74,6 +75,14 @@ public final class GoblinLabour implements ModInitializer {
                     .build());
 
     /** Which Goblin Ring an item is; its crew and open screen find the ring by this id (see RingInventory). */
+    /** A Goblin Ring's two book slots (enchanted books whose enchantments go onto the crew's tools). */
+    public static final DataComponentType<ItemContainerContents> RING_BOOKS = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE, id("ring_books"),
+            DataComponentType.<ItemContainerContents>builder()
+                    .persistent(ItemContainerContents.CODEC)
+                    .networkSynchronized(ItemContainerContents.STREAM_CODEC)
+                    .build());
+
     public static final DataComponentType<UUID> RING_ID = Registry.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE, id("ring_id"),
             DataComponentType.<UUID>builder()
@@ -127,6 +136,10 @@ public final class GoblinLabour implements ModInitializer {
     public static final ExtendedMenuType<StaffMenu, StaffMenuData> STAFF_MENU = Registry.register(
             BuiltInRegistries.MENU, id("staff"),
             new ExtendedMenuType<>(StaffMenu::new, StaffMenuData.STREAM_CODEC));
+
+    public static final ExtendedMenuType<goblinlabour.ring.RingMenu, goblinlabour.ring.RingMenuData> RING_MENU = Registry.register(
+            BuiltInRegistries.MENU, id("ring"),
+            new ExtendedMenuType<>(goblinlabour.ring.RingMenu::new, goblinlabour.ring.RingMenuData.STREAM_CODEC));
 
     public static final ExtendedMenuType<GoblinBedMenu, GoblinBedMenuData> BED_MENU = Registry.register(
             BuiltInRegistries.MENU, id("bed"),

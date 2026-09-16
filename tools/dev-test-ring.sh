@@ -6,7 +6,8 @@
 # its time is up (D), and digs a whole staff order off the leash before coming back (E); picked with the staff it
 # stops and follows, and goes back to the order when let go (E); a vein is mined out completely, hidden blocks
 # included, before any other ore (F); when the player digs natural blocks the crew helps around them, but never below
-# the player's feet and never the block the player looks at (G).
+# the player's feet and never the block the player looks at (G); enchanted books in the ring's book slots put their
+# enchantments on the crew's tools (H).
 # Scenes live at x/z 1190..1270 on the flat world. Prints PASS/FAIL and RESULT.
 set -u
 cd "$(dirname "$0")/.."
@@ -40,6 +41,7 @@ overlaps() {
         if (dy < 1.0 && dx * dx + dz * dz < 0.36) bad = 1
       }
       over += bad
+      if (bad) print $0 > "run/ring-overlaps.txt"
     }
     END { printf "%d %d\n", over, samples }'
 }
@@ -93,8 +95,10 @@ ok "A the crew kept out of the player's way (at most 1 in 10 samples)" "$(( tota
 idle=""
 for _ in $(seq 1 30); do sleep 2; idle="$idle
 $(ring status)"; done
+: > run/ring-overlaps.txt
 read -r over total_o <<< "$(overlaps "$idle")"
 echo "  A idle samples: $(echo "$idle" | grep -c 'pos=') lines, $total_o with two or more goblins, $over overlapping"
+tr '|' '\n' < run/ring-overlaps.txt | grep 'pos=' | cut -c1-160 | sed 's/^/    /'
 ok "A the idle crew goblins did not stand in one another (at most 1 in 20 samples)" "$(( total_o >= 20 && over * 20 <= total_o ? 1 : 0 ))" "$over of $total_o"
 positions=$(echo "$samples" | grep -o 'pos=[-0-9]*\.[0-9],[-0-9.]*,[-0-9]*\.[0-9]' | sed 's/\.[0-9]//g' | sort -u | wc -l)
 ok "A the crew moved about ($positions distinct spots)" "$(( positions >= 8 ? 1 : 0 ))"
@@ -254,6 +258,19 @@ sleep 24
 st=$(ring status)
 check "G the help ended 20 s after the player's last block" "assist=-" "$st"
 check_not "G no goblin still helping" "mode=ASSIST" "$st"
+
+# ---- H: enchanted books in the ring's two book slots go onto the crew's tools ----
+out=$(ring "book minecraft:fortune 3"); check "H a Fortune III book goes into the first book slot" "Ring book slot 0: minecraft:fortune 3" "$out"
+out=$(ring "book minecraft:efficiency 5"); check "H an Efficiency V book goes into the second book slot" "Ring book slot 1: minecraft:efficiency 5" "$out"
+out=$(rcon "goblinlabour ring book minecraft:silk_touch 1" | grep -v '^>'); check "H a third book does not fit" "Both book slots are full" "$out"
+st=$(ring status); echo "  H: $(echo "$st" | grep -o 'pick=\[[^]]*\]' | tr '\n' ' ')"
+ok "H all three crew pickaxes carry Fortune III" "$(( $(echo "$st" | grep -o 'fortune 3' | wc -l) == 3 ? 1 : 0 ))"
+ok "H all three crew pickaxes carry Efficiency V" "$(( $(echo "$st" | grep -o 'efficiency 5' | wc -l) == 3 ? 1 : 0 ))"
+# a new crew gets the books' enchantments too
+rcon "goblinlabour ring toggle" > /dev/null; sleep 1
+out=$(ring toggle); check "H a new crew is called" "crew of 3" "$out"
+st=$(ring status)
+ok "H the new crew's pickaxes carry both enchantments" "$(( $(echo "$st" | grep -o 'fortune 3' | wc -l) == 3 && $(echo "$st" | grep -o 'efficiency 5' | wc -l) == 3 ? 1 : 0 ))"
 
 echo "RESULT pass=$pass fail=$fail"
 rcon "stop" | tail -1

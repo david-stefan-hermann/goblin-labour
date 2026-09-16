@@ -7,9 +7,11 @@ import goblinlabour.entity.GoblinEntity;
 import goblinlabour.entity.ai.CrewGoal;
 import goblinlabour.home.HomeRegistry;
 import goblinlabour.job.Mining;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBlockTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -22,6 +24,11 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -133,6 +140,32 @@ public final class RingCrew {
         public void assist(BlockPos pos) {
             assistFocus = pos.immutable();
             assistUntil = level.getGameTime() + ASSIST_TICKS;
+        }
+
+        /**
+         * Gives every crew goblin a fresh diamond pickaxe, shovel and axe carrying the enchantments of the ring's books:
+         * each enchantment onto every tool it fits, the higher level where both books have it. Called when the crew
+         * comes out and whenever the book slots change. Efficiency speeds up the digging, Fortune and Silk Touch change
+         * the drops (both are read from the tool in Mining).
+         */
+        public void refreshTools() {
+            ItemStack ring = RingInventory.find(owner, ringId);
+            List<ItemStack> books = ring == null ? List.of()
+                    : ring.getOrDefault(GoblinLabour.RING_BOOKS, ItemContainerContents.EMPTY).nonEmptyItemCopyStream().toList();
+            for (GoblinEntity goblin : goblins) {
+                ItemStack[] tools = {new ItemStack(Items.DIAMOND_PICKAXE), new ItemStack(Items.DIAMOND_SHOVEL), new ItemStack(Items.DIAMOND_AXE)};
+                for (ItemStack tool : tools) {
+                    for (ItemStack book : books) {
+                        ItemEnchantments stored = EnchantmentHelper.getEnchantmentsForCrafting(book);
+                        EnchantmentHelper.updateEnchantments(tool, mutable -> {
+                            for (Object2IntMap.Entry<Holder<Enchantment>> entry : stored.entrySet()) {
+                                if (entry.getKey().value().canEnchant(tool)) mutable.upgrade(entry.getKey(), entry.getIntValue());
+                            }
+                        });
+                    }
+                }
+                for (int i = 0; i < tools.length; i++) goblin.getInventory().setItem(i, tools[i]);
+            }
         }
 
         /** Where the crew helps the player dig right now, or null once the player has stopped for a while. */
@@ -308,6 +341,7 @@ public final class RingCrew {
             return;
         }
         SESSIONS.put(ringId, session);
+        session.refreshTools();
         session.scanOres();
         level.playSound(null, player.getX(), player.getY(), player.getZ(), GoblinSounds.YES, SoundSource.NEUTRAL, 1.0f, 1.0f);
         player.sendOverlayMessage(Component.translatable("goblinlabour.ring.summoned", session.goblins.size(), DURATION_TICKS / 1200));

@@ -91,6 +91,9 @@
   "gui.goblinlabour.dir.west": "west",
   "gui.goblinlabour.tool_slot": "Tool slot",
   "gui.goblinlabour.tool_slot.hint": "Pickaxe, axe, shovel, hoe or sword; saplings for a lumberjack to plant. Tools never wear out here.",
+  "gui.goblinlabour.ring_books": "Books",
+  "gui.goblinlabour.ring_book_slot": "Book slot",
+  "gui.goblinlabour.ring_book_slot.hint": "Enchanted books: their enchantments go onto the crew's tools, e.g. Efficiency and Fortune.",
   "gui.goblinlabour.backpack_slot": "Backpack",
   "gui.goblinlabour.backpack_slot.hint": "Collectors carry twice as much loot.",
   "gui.goblinlabour.backpack_slot.closed": "Only collectors fill the backpack. Take out what is left.",
@@ -121,5 +124,5 @@
   "goblinlabour.book.page.10": "§lGood to know§r\n\nGoblins place free torches and plug lava and water with cobblestone.\n\nScaffold takes them up to logs and out of pits. It falls without its foot, or vanishes after two minutes.",
   "goblinlabour.book.page.11": "§lDeath§r\n\nA dead goblin respawns at its bed after a few seconds and keeps its tools.\n\nThe loot it carried drops where it died. The goblin walks back to collect it.",
   "goblinlabour.book.page.12": "§lThe Goblin Ring§r\nGold, diamond, 3 blanks\n\nRight-click: three goblins mine ores within 8 blocks for 5 min and pick up items, yours after 3 s.\n\nSneak + right-click opens it. A staff order takes them off the leash until done.",
-  "goblinlabour.book.page.13": "§lThe crew at work§r\n\nAn ore vein goes all out, hidden ores too.\n\nDig stone or earth: they help, never below your feet.\n\nPicked with the staff, they follow you; the order waits."
+  "goblinlabour.book.page.13": "§lThe crew at work§r\n\nA vein goes all out, hidden ores too.\nDig stone or earth: they help, never below your feet.\nPicked with the staff, they follow; the order waits.\n\nBooks in the ring enchant their tools."
 }

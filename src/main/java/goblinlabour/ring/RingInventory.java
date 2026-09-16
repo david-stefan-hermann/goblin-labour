@@ -45,6 +45,14 @@ public final class RingInventory {
         return isRing(carried, id) ? carried : null;
     }
 
+    /** Like {@link #open} for the ring's two book slots. */
+    @Nullable
+    public static RingBooks books(Player player, UUID id) {
+        if (player.containerMenu instanceof RingMenu menu && menu.ringId().equals(id) && menu.books() != null) return menu.books();
+        ItemStack ring = find(player, id);
+        return ring == null ? null : new RingBooks(player, id, ring);
+    }
+
     /**
      * The ring's loot for this player: the container of the ring screen if the player has it open (so goblins and
      * player see the same stacks), otherwise a fresh view that writes every change back into the item. Null when the

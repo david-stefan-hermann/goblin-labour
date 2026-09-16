@@ -165,7 +165,15 @@ public class CrewGoal extends Goal {
                 + (chest != null ? " chest=" + chest.toShortString().replace(" ", "") + (lidOpen ? "(open)" : "") : "")
                 + String.format(Locale.ROOT, " progress=%.2f away=%.1f dy=%.1f", progress,
                 horizontalDistance(goblin.position(), owner.position()), goblin.getY() - owner.getY())
-                + " way=" + inWay(owner, goblin.position()) + " stuck=" + stuckTicks + " skipped=" + skippedBlocks.size();
+                + " way=" + inWay(owner, goblin.position()) + " stuck=" + stuckTicks + " skipped=" + skippedBlocks.size()
+                + " pick=" + enchantments(goblin.getInventory().getItem(0));
+    }
+
+    /** "[fortune 3, efficiency 5]" for the status line. */
+    private static String enchantments(ItemStack tool) {
+        return tool.getEnchantments().entrySet().stream()
+                .map(entry -> entry.getKey().getRegisteredName().replaceFirst("^minecraft:", "") + " " + entry.getIntValue())
+                .toList().toString();
     }
 
     @Override

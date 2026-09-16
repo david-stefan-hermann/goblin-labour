@@ -1,20 +1,12 @@
 package goblinlabour.command;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.FloatArgumentType;
-import goblinlabour.GoblinLabour;
-import goblinlabour.ring.RingContainer;
-import goblinlabour.ring.RingCrew;
-import goblinlabour.ring.RingInventory;
-import net.fabricmc.fabric.api.entity.FakePlayer;
-import net.minecraft.commands.arguments.coordinates.Vec3Argument;
-import net.minecraft.world.phys.Vec3;
-import java.util.Locale;
-import java.util.UUID;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import goblinlabour.GoblinLabour;
 import goblinlabour.GoblinNames;
 import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
@@ -22,23 +14,39 @@ import goblinlabour.item.GoblinData;
 import goblinlabour.job.Assignment;
 import goblinlabour.job.Job;
 import goblinlabour.job.JobConfig;
+import goblinlabour.ring.RingBooks;
+import goblinlabour.ring.RingContainer;
+import goblinlabour.ring.RingCrew;
+import goblinlabour.ring.RingInventory;
 import goblinlabour.staff.StaffSelection;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.ResourceArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.commands.arguments.coordinates.Vec3Argument;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.permissions.Permission.HasCommandLevel;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.Locale;
+import java.util.UUID;
 
 /**
  * /goblinlabour spawn <bed> [name]                          spawns a fresh goblin on the bed (no blank needed)
@@ -140,6 +148,11 @@ public final class GoblinCommand {
                         .then(Commands.literal("status").executes(ctx -> ringStatus(ctx.getSource())))
                         .then(Commands.literal("select").executes(ctx -> ringSelect(ctx.getSource())))
                         .then(Commands.literal("deselect").executes(ctx -> ringDeselect(ctx.getSource())))
+                        .then(Commands.literal("book")
+                                .then(Commands.argument("enchantment", ResourceArgument.resource(context, Registries.ENCHANTMENT))
+                                        .then(Commands.argument("level", IntegerArgumentType.integer(1, 255))
+                                                .executes(ctx -> ringBook(ctx.getSource(), ResourceArgument.getEnchantment(ctx, "enchantment"),
+                                                        IntegerArgumentType.getInteger(ctx, "level"))))))
                         .then(Commands.literal("assist")
                                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
                                         .executes(ctx -> ringAssist(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos")))))
@@ -368,6 +381,23 @@ public final class GoblinCommand {
     }
 
     /** The stand-in picks every goblin of its crew with the staff (as its left-clicks would). */
+    /** Puts an enchanted book into the first free book slot of the stand-in's ring (its crew gets the enchantment). */
+    private static int ringBook(CommandSourceStack source, Holder.Reference<Enchantment> enchantment, int level) {
+        FakePlayer tester = ringTester(source.getLevel());
+        RingBooks books = RingInventory.books(tester, ringId(tester));
+        if (books == null) return 0;
+        for (int i = 0; i < RingBooks.SIZE; i++) {
+            if (!books.getItem(i).isEmpty()) continue;
+            books.setItem(i, EnchantmentHelper.createBook(new EnchantmentInstance(enchantment, level)));
+            books.setChanged();
+            int slot = i;
+            source.sendSuccess(() -> Component.literal("Ring book slot " + slot + ": " + enchantment.getRegisteredName() + " " + level), false);
+            return 1;
+        }
+        source.sendFailure(Component.literal("Both book slots are full"));
+        return 0;
+    }
+
     /** Stands in for the ring's player breaking a natural block (setblock does not fire the break event). */
     private static int ringAssist(CommandSourceStack source, BlockPos pos) {
         RingCrew.Session session = RingCrew.of(ringId(ringTester(source.getLevel())));

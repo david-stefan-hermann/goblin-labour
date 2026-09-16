@@ -2,19 +2,11 @@ package goblinlabour.client;
 
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.menu.GoblinInventoryMenu;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +49,7 @@ public class GoblinInventoryScreen extends AbstractContainerScreen<GoblinInvento
             goblin = g;
         }
         if (goblin != null) {
-            extractPortrait(graphics, px0, py0, px1, py1, 26, 0.0625f, mouseX, mouseY, goblin);
+            GoblinUi.extractPortrait(graphics, px0, py0, px1, py1, 26, 0.0625f, mouseX, mouseY, goblin);
         }
 
         List<Component> tooltip = null;
@@ -76,36 +68,6 @@ public class GoblinInventoryScreen extends AbstractContainerScreen<GoblinInvento
         if (tooltip != null) {
             graphics.setTooltipForNextFrame(font, tooltip, Optional.empty(), mouseX, mouseY);
         }
-    }
-
-    /**
-     * {@code InventoryScreen.extractEntityInInventoryFollowsMouse} without the name tag: the name is already the
-     * screen's title.
-     */
-    private static void extractPortrait(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, int scale, float yOffset,
-                                        float mouseX, float mouseY, LivingEntity entity) {
-        float centerX = (x0 + x1) / 2.0f;
-        float centerY = (y0 + y1) / 2.0f;
-        float xAngle = (float) Math.atan((centerX - mouseX) / 40.0f);
-        float yAngle = (float) Math.atan((centerY - mouseY) / 40.0f);
-        Quaternionf rotation = new Quaternionf().rotateZ(Mth.PI);
-        Quaternionf xRotation = new Quaternionf().rotateX(yAngle * 20.0f * Mth.DEG_TO_RAD);
-        rotation.mul(xRotation);
-        EntityRenderState state = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(entity).createRenderState(entity, 1.0f);
-        state.shadowPieces.clear();
-        state.outlineColor = 0;
-        state.nameTag = null;
-        state.scoreText = null;
-        if (state instanceof LivingEntityRenderState living) {
-            living.bodyRot = 180.0f + xAngle * 20.0f;
-            living.yRot = xAngle * 20.0f;
-            living.xRot = living.pose != Pose.FALL_FLYING ? -yAngle * 20.0f : 0.0f;
-            living.boundingBoxWidth /= living.scale;
-            living.boundingBoxHeight /= living.scale;
-            living.scale = 1.0f;
-        }
-        Vector3f translation = new Vector3f(0.0f, state.boundingBoxHeight / 2.0f + yOffset, 0.0f);
-        graphics.entity(state, scale, translation, rotation, xRotation, x0, y0, x1, y1);
     }
 
     @Override

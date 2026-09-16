@@ -139,6 +139,14 @@ public final class DevHooks {
             loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COBBLED_DEEPSLATE, 40));
             loot.setChanged();
         }
+        goblinlabour.ring.RingBooks books = goblinlabour.ring.RingInventory.books(player, id);
+        if (books != null) { // one book slot filled, one empty
+            var fortune = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                    .getOrThrow(net.minecraft.world.item.enchantment.Enchantments.FORTUNE);
+            books.setItem(0, net.minecraft.world.item.enchantment.EnchantmentHelper.createBook(
+                    new net.minecraft.world.item.enchantment.EnchantmentInstance(fortune, 3)));
+            books.setChanged();
+        }
         net.minecraft.world.item.ItemStack held = player.getMainHandItem();
         if (openMenu) goblinlabour.item.GoblinRingItem.openMenu(player, held);
         else goblinlabour.ring.RingCrew.toggle(level, player, held);

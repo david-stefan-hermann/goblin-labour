@@ -91,6 +91,9 @@
   "gui.goblinlabour.dir.west": "Westen",
   "gui.goblinlabour.tool_slot": "Werkzeugplatz",
   "gui.goblinlabour.tool_slot.hint": "Spitzhacke, Axt, Schaufel, Hacke oder Schwert; Setzlinge zum Pflanzen für Holzfäller. Werkzeug nutzt sich hier nie ab.",
+  "gui.goblinlabour.ring_books": "Bücher",
+  "gui.goblinlabour.ring_book_slot": "Buchplatz",
+  "gui.goblinlabour.ring_book_slot.hint": "Verzauberte Bücher: ihre Verzauberungen kommen auf die Werkzeuge der Crew, z. B. Effizienz und Glück.",
   "gui.goblinlabour.backpack_slot": "Rucksack",
   "gui.goblinlabour.backpack_slot.hint": "Sammler tragen doppelt so viel Beute.",
   "gui.goblinlabour.backpack_slot.closed": "Nur Sammler füllen den Rucksack. Nimm heraus, was noch drin ist.",
@@ -121,5 +124,5 @@
   "goblinlabour.book.page.10": "§lGut zu wissen§r\n\nGoblins setzen gratis Fackeln und stopfen Lava und Wasser mit Bruchstein.\n\nAuf Gerüst geht es zu Stämmen und aus Löchern. Ohne Fuß stürzt es ein, sonst vergeht es nach zwei Minuten.",
   "goblinlabour.book.page.11": "§lTod§r\n\nEin toter Goblin erscheint nach ein paar Sekunden wieder am Bett und behält sein Werkzeug.\n\nGetragene Beute fällt dort zu Boden, wo er starb. Er läuft zurück und sammelt sie ein.",
   "goblinlabour.book.page.12": "§lDer Goblin-Ring§r\nGold, Diamant, 3 Rohlinge\n\nRechtsklick: drei Goblins bauen 5 Min. Erze im Umkreis von 8 Blöcken ab, Items auch, deine nach 3 s.\n\nSchleichen + Rechtsklick öffnet ihn. Ein Stab-Auftrag hebt die Leine auf.",
-  "goblinlabour.book.page.13": "§lDie Crew bei der Arbeit§r\n\nEine Erzader kommt ganz raus, verdeckte Erze auch.\n\nGräbst du Stein oder Erde: sie helfen, nie unter dir.\n\nMit dem Stab gewählt folgen sie dir; der Auftrag wartet."
+  "goblinlabour.book.page.13": "§lDie Crew bei der Arbeit§r\n\nErzadern kommen ganz raus.\nGräbst du Stein: sie helfen, nie unter dir.\nVom Stab gewählt folgen sie; der Auftrag wartet.\n\nBücher im Ring verzaubern ihr Werkzeug."
 }
