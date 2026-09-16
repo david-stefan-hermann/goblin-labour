@@ -97,7 +97,7 @@ public class StaffScreen extends AbstractContainerScreen<StaffMenu> {
     }
 
     private void changeHeight(int delta) {
-        height_ = Mth.clamp(height_ + delta, 2, 5);
+        height_ = Mth.clamp(height_ + delta, 1, 5);
         refresh();
     }
 
@@ -113,7 +113,7 @@ public class StaffScreen extends AbstractContainerScreen<StaffMenu> {
             stairsButton.setMessage(Component.translatable(stairs ? "gui.goblinlabour.stairs.on" : "gui.goblinlabour.stairs.off"));
         }
         if (heightDown != null) {
-            heightDown.active = height_ > 2;
+            heightDown.active = height_ > 1;
             heightUp.active = height_ < 5;
             lengthDown.active = length_ > 4;
             lengthUp.active = length_ < 96;

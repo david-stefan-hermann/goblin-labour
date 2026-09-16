@@ -1,26 +1,28 @@
 package goblinlabour.job;
 
-import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.home.HomeRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.NetherWartBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Set;
 
 /**
- * Harvests ripe crops, nether wart, pumpkins and melons within {@code length} blocks of the bed and replants from
- * the goblin's storage (the seed item whose block is the harvested crop). Wart blocks are harvested like Minions
- * Remastered's hoe job. Endless. Homes are excluded like everywhere else, so the field must lie outside the home.
+ * Harvests ripe crops, nether wart, pumpkins and melons within {@code length} blocks of the bed and replants with the
+ * seed item whose block is the harvested crop, taken from the fresh drops or the goblin's storage. Wart blocks are
+ * harvested like Minions Remastered's hoe job. Endless. Homes are excluded like everywhere else, so the field must
+ * lie outside the home.
  */
 public final class FarmJob implements JobTask {
     public static final FarmJob INSTANCE = new FarmJob();
@@ -35,7 +37,7 @@ public final class FarmJob implements JobTask {
     }
 
     @Override
-    public BlockPos entryPoint(GoblinBedBlockEntity bedEntity, JobConfig config) {
+    public BlockPos entryPoint(JobHost bedEntity, JobConfig config) {
         return bedEntity.getBlockPos().relative(config.direction(), 6);
     }
 
@@ -47,7 +49,7 @@ public final class FarmJob implements JobTask {
     }
 
     @Override
-    public Pick pick(ServerLevel level, GoblinEntity goblin, GoblinBedBlockEntity bedEntity, JobConfig config, Set<BlockPos> skipped) {
+    public Pick pick(ServerLevel level, GoblinEntity goblin, JobHost bedEntity, JobConfig config, Set<BlockPos> skipped) {
         BlockPos bed = bedEntity.getBlockPos();
         int r = config.length();
         Vec3 me = goblin.position();
@@ -75,16 +77,28 @@ public final class FarmJob implements JobTask {
 
     /** Remembered by the runner between pick and afterBreak: which crop stood there. */
     @Override
-    public void afterBreak(ServerLevel level, GoblinEntity goblin, GoblinBedBlockEntity bedEntity, JobConfig config, BlockPos broken) {
+    public void afterBreak(ServerLevel level, GoblinEntity goblin, JobHost bedEntity, JobConfig config, BlockPos broken) {
         Block crop = goblin.runner().lastBrokenBlock();
         if (crop == null || !(crop instanceof CropBlock || crop instanceof NetherWartBlock)) return;
         if (!level.getBlockState(broken).isAir() || HomeRegistry.isProtected(level, broken)) return;
+        BlockState state = crop.defaultBlockState();
+        if (!state.canSurvive(level, broken)) return;
+        // the seeds just popped out of the crop; a seed from the storage does as well
+        for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, new AABB(broken).inflate(1.0), ItemEntity::isAlive)) {
+            ItemStack stack = item.getItem();
+            if (Block.byItem(stack.getItem()) != crop) continue;
+            level.setBlock(broken, state, 3);
+            if (stack.getCount() <= 1) {
+                item.discard();
+            } else {
+                item.setItem(stack.copyWithCount(stack.getCount() - 1));
+            }
+            return;
+        }
         SimpleContainer inv = goblin.getInventory();
         for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) {
             ItemStack stack = inv.getItem(i);
             if (stack.isEmpty() || Block.byItem(stack.getItem()) != crop) continue;
-            BlockState state = crop.defaultBlockState();
-            if (!state.canSurvive(level, broken)) return;
             level.setBlock(broken, state, 3);
             stack.shrink(1);
             inv.setChanged();

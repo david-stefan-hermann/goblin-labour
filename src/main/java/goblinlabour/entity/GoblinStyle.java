@@ -7,14 +7,16 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * The goblin's skin tint, chosen by its job: lumberjacks are green, farmers yellowish, miners greyish, collectors
- * bluish. Each style has {@link #LOOKS} textures with different clothes and trinkets; which one a goblin wears is
- * derived from its name.
+ * bluish. Ring crews keep the miner skin but wear blue-grey clothes, so they are easy to tell from bed goblins.
+ * Each style has {@link #LOOKS} textures with different clothes and trinkets; which one a goblin wears is
+ * derived from its name. New values are appended: the ordinal is what the client receives.
  */
 public enum GoblinStyle implements StringRepresentable {
     LUMBERJACK("lumberjack"),
     FARMER("farmer"),
     MINER("miner"),
-    COLLECTOR("collector");
+    COLLECTOR("collector"),
+    CREW("crew");
 
     public static final Codec<GoblinStyle> CODEC = StringRepresentable.fromEnum(GoblinStyle::values);
     public static final int LOOKS = 4;

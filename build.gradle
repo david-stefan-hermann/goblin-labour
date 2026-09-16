@@ -32,6 +32,7 @@ if (project.hasProperty('devScreenshot')) {
                 vmArg "-Dgoblinlabour.dev.screenshot=${shot}"
                 if (project.hasProperty('devBook')) vmArg "-Dgoblinlabour.dev.book=${project.devBook}"
                 if (project.hasProperty('devStaffClick')) vmArg "-Dgoblinlabour.dev.staffclick=1"
+                if (project.hasProperty('devStaffPick')) vmArg "-Dgoblinlabour.dev.staffpick=1"
                 programArgs "--quickPlayMultiplayer", "localhost:25598", "--width", "1280", "--height", "720"
             }
             server {

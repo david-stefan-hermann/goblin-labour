@@ -31,6 +31,7 @@ public enum BedProps implements StringRepresentable {
             case FARMER -> FARMER;
             case MINER -> MINER;
             case COLLECTOR -> COLLECTOR;
+            case CREW -> MINER; // ring crews have no bed; this keeps the switch exhaustive
         };
     }
 }

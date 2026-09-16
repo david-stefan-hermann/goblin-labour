@@ -8,9 +8,10 @@ import net.minecraft.util.Mth;
 /**
  * Job settings stored on the bed. {@code width} is the shaft/tunnel width, {@code length} the tunnel length or
  * the chop/farm radius, {@code stairs} whether a mine-down shaft gets a cobblestone stair, {@code direction} where
- * the job area lies relative to the bed (defaults to the bed's facing).
+ * the job area lies relative to the bed (defaults to the bed's facing), {@code replant} whether lumberjacks plant
+ * saplings where a felled tree stood.
  */
-public record JobConfig(Job job, int width, int length, boolean stairs, Direction direction) {
+public record JobConfig(Job job, int width, int length, boolean stairs, Direction direction, boolean replant) {
     public static final int MIN_WIDTH = 1;
     public static final int MAX_WIDTH = 5;
     public static final int MIN_LENGTH = 4;
@@ -21,7 +22,8 @@ public record JobConfig(Job job, int width, int length, boolean stairs, Directio
             Codec.INT.optionalFieldOf("width", 3).forGetter(JobConfig::width),
             Codec.INT.optionalFieldOf("length", 16).forGetter(JobConfig::length),
             Codec.BOOL.optionalFieldOf("stairs", true).forGetter(JobConfig::stairs),
-            Direction.CODEC.optionalFieldOf("direction", Direction.NORTH).forGetter(JobConfig::direction)
+            Direction.CODEC.optionalFieldOf("direction", Direction.NORTH).forGetter(JobConfig::direction),
+            Codec.BOOL.optionalFieldOf("replant", true).forGetter(JobConfig::replant)
     ).apply(instance, JobConfig::new));
 
     public JobConfig {
@@ -32,26 +34,30 @@ public record JobConfig(Job job, int width, int length, boolean stairs, Directio
     }
 
     public static JobConfig rest(Direction facing) {
-        return new JobConfig(Job.REST, 3, 16, true, facing);
+        return new JobConfig(Job.REST, 3, 16, true, facing, true);
     }
 
     public JobConfig withJob(Job job) {
-        return new JobConfig(job, width, length, stairs, direction);
+        return new JobConfig(job, width, length, stairs, direction, replant);
     }
 
     public JobConfig withWidth(int width) {
-        return new JobConfig(job, width, length, stairs, direction);
+        return new JobConfig(job, width, length, stairs, direction, replant);
     }
 
     public JobConfig withLength(int length) {
-        return new JobConfig(job, width, length, stairs, direction);
+        return new JobConfig(job, width, length, stairs, direction, replant);
     }
 
     public JobConfig withStairs(boolean stairs) {
-        return new JobConfig(job, width, length, stairs, direction);
+        return new JobConfig(job, width, length, stairs, direction, replant);
     }
 
     public JobConfig withDirection(Direction direction) {
-        return new JobConfig(job, width, length, stairs, direction);
+        return new JobConfig(job, width, length, stairs, direction, replant);
+    }
+
+    public JobConfig withReplant(boolean replant) {
+        return new JobConfig(job, width, length, stairs, direction, replant);
     }
 }

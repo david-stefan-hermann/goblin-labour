@@ -6,7 +6,13 @@ import goblinlabour.block.GoblinChestBlock;
 import goblinlabour.block.GoblinChestBlockEntity;
 import goblinlabour.block.GoblinScaffoldBlock;
 import goblinlabour.block.HomeMarkerBlock;
+import goblinlabour.item.GoblinRingItem;
 import goblinlabour.item.GoblinStaffItem;
+import goblinlabour.ring.RingCrew;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.item.Rarity;
+import java.util.UUID;
 import goblinlabour.menu.StaffMenu;
 import goblinlabour.menu.StaffMenuData;
 import goblinlabour.staff.StaffSelection;
@@ -23,6 +29,7 @@ import goblinlabour.menu.GoblinInventoryMenu;
 import goblinlabour.menu.GoblinMenuData;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -66,6 +73,14 @@ public final class GoblinLabour implements ModInitializer {
                     .cacheEncoding()
                     .build());
 
+    /** Which Goblin Ring an item is; its crew and open screen find the ring by this id (see RingInventory). */
+    public static final DataComponentType<UUID> RING_ID = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE, id("ring_id"),
+            DataComponentType.<UUID>builder()
+                    .persistent(UUIDUtil.CODEC)
+                    .networkSynchronized(UUIDUtil.STREAM_CODEC)
+                    .build());
+
     public static final Block GOBLIN_STRAW_BED = registerBlock("goblin_straw_bed", props -> new GoblinBedBlock(
             props.mapColor(MapColor.COLOR_YELLOW).strength(0.4f).sound(SoundType.GRASS).noOcclusion()));
     public static final BlockEntityType<GoblinBedBlockEntity> GOBLIN_BED_BLOCK_ENTITY = Registry.register(
@@ -95,6 +110,7 @@ public final class GoblinLabour implements ModInitializer {
     public static final Item GOBLIN_HEAD = registerItem("goblin_head", props -> new GoblinHeadItem(props.stacksTo(1)));
     public static final Item GOBLIN_STAFF = registerItem("goblin_staff", props -> new GoblinStaffItem(props.stacksTo(1)));
     public static final Item GOBLIN_HANDBOOK = registerItem("goblin_handbook", props -> new GoblinHandbookItem(props.stacksTo(1)));
+    public static final Item GOBLIN_RING = registerItem("goblin_ring", props -> new GoblinRingItem(props.stacksTo(1).rarity(Rarity.UNCOMMON)));
 
     public static final EntityType<GoblinEntity> GOBLIN = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, id("goblin"),
@@ -129,6 +145,7 @@ public final class GoblinLabour implements ModInitializer {
                         out.accept(GOBLIN_CHEST_ITEM);
                         out.accept(GOBLIN_HEAD);
                         out.accept(GOBLIN_STAFF);
+                        out.accept(GOBLIN_RING);
                         out.accept(GOBLIN_SCAFFOLD_ITEM);
                     })
                     .build());
@@ -140,6 +157,9 @@ public final class GoblinLabour implements ModInitializer {
         GoblinCommand.init();
         StaffSelection.init();
         ServerTickEvents.END_LEVEL_TICK.register(GoblinScaffoldBlock::sweep);
+        ServerTickEvents.END_SERVER_TICK.register(RingCrew::tick);
+        PlayerBlockBreakEvents.AFTER.register(RingCrew::afterBlockBreak);
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> RingCrew.endAll());
         DevHooks.initServer();
         LOGGER.info("Goblin Labour loaded");
     }

@@ -4,6 +4,7 @@ import goblinlabour.GoblinLabour;
 import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.home.HomeRegistry;
+import goblinlabour.job.Climber;
 import goblinlabour.job.Job;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -152,6 +153,12 @@ public class RestGoal extends Goal {
         PathNavigation navigation = goblin.getNavigation();
         BoundingBox flat = HomeRegistry.flatBox(level, bed.getBlockPos());
 
+        if (Climber.isUp(level, goblin)) {
+            // left up on a scaffold column when the job ended: sneak down first, a path home starts at the bottom
+            goblin.climber().descend(level);
+            walking = false;
+            return;
+        }
         if (!flat.isInside(goblin.blockPosition())) {
             // away from home: no dawdling, walk back
             if (goblin.tickCount % 20 == 0 || navigation.isDone()) {

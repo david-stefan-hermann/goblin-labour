@@ -1,6 +1,5 @@
 package goblinlabour.job;
 
-import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -28,19 +27,19 @@ public final class CollectJob implements JobTask {
     }
 
     @Override
-    public BlockPos entryPoint(GoblinBedBlockEntity bed, JobConfig config) {
+    public BlockPos entryPoint(JobHost bed, JobConfig config) {
         return bed.getBlockPos().relative(config.direction(), 6);
     }
 
     /** Collecting has no blocks to break. */
     @Override
-    public Pick pick(ServerLevel level, GoblinEntity goblin, GoblinBedBlockEntity bed, JobConfig config, Set<BlockPos> skipped) {
+    public Pick pick(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, Set<BlockPos> skipped) {
         return Pick.DONE;
     }
 
     /** The nearest item in the radius that can be picked up now and fits into the storage, or null. */
     @Nullable
-    public ItemEntity findItem(ServerLevel level, GoblinEntity goblin, GoblinBedBlockEntity bed, JobConfig config, Set<Integer> skipped) {
+    public ItemEntity findItem(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, Set<Integer> skipped) {
         int r = config.length();
         AABB area = new AABB(bed.getBlockPos()).inflate(r, VERTICAL, r);
         ItemEntity best = null;

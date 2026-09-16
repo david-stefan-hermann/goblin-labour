@@ -1,6 +1,7 @@
 package goblinlabour.entity.ai;
 
 import goblinlabour.entity.GoblinEntity;
+import goblinlabour.ring.RingCrew;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -29,6 +30,8 @@ public class FollowStaffGoal extends Goal {
         UUID id = goblin.following();
         if (id == null || goblin.isNoAi()) return false;
         Player player = goblin.level().getPlayerByUUID(id);
+        RingCrew.Session crew = goblin.crew();
+        if (player == null && crew != null && crew.owner().getUUID().equals(id)) player = crew.owner(); // a crew knows its player
         if (player == null || !player.isAlive() || goblin.distanceToSqr(player) > LOSE_SQ) {
             goblin.setFollowing(null);
             return false;

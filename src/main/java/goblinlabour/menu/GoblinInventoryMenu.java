@@ -69,7 +69,7 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
     }
 
     public int playerY() {
-        return toolsY() + 26;
+        return toolsY() + 32;
     }
 
     public int playerHotbarY() {

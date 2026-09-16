@@ -9,6 +9,10 @@ import goblinlabour.block.GoblinBedBlock;
 import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.block.GoblinScaffoldBlock;
 import goblinlabour.entity.ai.ClimbOutGoal;
+import goblinlabour.entity.ai.CrewGoal;
+import goblinlabour.ring.RingCrew;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.Items;
 import goblinlabour.entity.ai.FollowStaffGoal;
 import goblinlabour.job.Climber;
 import goblinlabour.entity.ai.RecoverItemsGoal;
@@ -20,7 +24,7 @@ import goblinlabour.menu.GoblinMenuProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -68,6 +72,9 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     /** {@link GoblinStyle} ordinal; the bed decides it, clients pick the texture from it. */
     private static final EntityDataAccessor<Byte> DATA_STYLE =
             SynchedEntityData.defineId(GoblinEntity.class, EntityDataSerializers.BYTE);
+    /** A ring crew goblin (see {@link RingCrew}); clients need it to let the player's clicks pass through. */
+    private static final EntityDataAccessor<Boolean> DATA_CREW =
+            SynchedEntityData.defineId(GoblinEntity.class, EntityDataSerializers.BOOLEAN);
 
     public static final int HOTBAR_SIZE = GoblinData.HOTBAR_SIZE;
     /** Storage slots every goblin has, and the extra row a collector carries in its backpack. */
@@ -88,6 +95,14 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     @Nullable private java.util.UUID following;
     /** The chest the goblin holds open while unloading; chests count it as an opener (lid up) until it lets go. */
     @Nullable private BlockPos openChest;
+    /** The ring crew this goblin belongs to (server side), or null for a goblin with a bed. */
+    @Nullable private RingCrew.Session crew;
+    /** Climbing out of a hole: not to be pushed off the column (not saved, the goal starts over after loading). */
+    private boolean climbing;
+    @Nullable private goblinlabour.ring.CrewOrder crewOrder;
+    private CrewGoal crewGoal;
+    /** Client: whether the local player holds the staff (set by the client entry point). */
+    private static java.util.function.Predicate<GoblinEntity> clientStaffCheck = goblin -> false;
 
     public GoblinEntity(EntityType<? extends GoblinEntity> type, Level level) {
         super(type, level);
@@ -101,7 +116,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, GoblinData.MAX_HEALTH)
-                .add(Attributes.MOVEMENT_SPEED, 0.3)
+                .add(Attributes.MOVEMENT_SPEED, 0.24) // between a zombie (0.23) and a pig (0.25)
                 .add(Attributes.STEP_HEIGHT, 1.0)
                 .add(Attributes.FOLLOW_RANGE, 48.0);
     }
@@ -111,6 +126,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
         super.defineSynchedData(builder);
         builder.define(DATA_BED, Optional.empty());
         builder.define(DATA_STYLE, (byte) GoblinStyle.LUMBERJACK.ordinal());
+        builder.define(DATA_CREW, false);
     }
 
     @Override
@@ -119,6 +135,8 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
         goalSelector.addGoal(1, new ClimbOutGoal(this));
         goalSelector.addGoal(1, new RecoverItemsGoal(this));
         goalSelector.addGoal(1, new FollowStaffGoal(this));
+        crewGoal = new CrewGoal(this);
+        goalSelector.addGoal(1, crewGoal);
         goalSelector.addGoal(2, new WorkGoal(this));
         restGoal = new RestGoal(this);
         goalSelector.addGoal(3, restGoal);
@@ -129,7 +147,13 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
 
     @Override
     protected PathNavigation createNavigation(Level level) {
-        GroundPathNavigation navigation = new GroundPathNavigation(this, level);
+        GroundPathNavigation navigation = new GroundPathNavigation(this, level) {
+            @Override
+            protected net.minecraft.world.level.pathfinder.PathFinder createPathFinder(int maxVisitedNodes) {
+                nodeEvaluator = new GoblinNodeEvaluator(); // otherwise exactly GroundPathNavigation's
+                return new net.minecraft.world.level.pathfinder.PathFinder(nodeEvaluator, maxVisitedNodes);
+            }
+        };
         navigation.setCanOpenDoors(true);
         navigation.setCanFloat(true);
         return navigation;
@@ -220,7 +244,8 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     public String goalDebug() {
         StringBuilder sb = new StringBuilder("goals:");
         goalSelector.getAvailableGoals().stream().filter(net.minecraft.world.entity.ai.goal.WrappedGoal::isRunning)
-                .forEach(goal -> sb.append(' ').append(goal.getGoal().getClass().getSimpleName()));
+                .forEach(goal -> sb.append(' ').append(goal.getGoal().getClass().getSimpleName())
+                        .append(goal.getGoal() instanceof ClimbOutGoal climb ? "/" + climb.stageName() : ""));
         return sb.toString();
     }
 
@@ -290,10 +315,103 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
             if (spot != null) break;
         }
         if (spot == null) return;
-        level.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.5, getZ(), 8, 0.2, 0.3, 0.2, 0.02);
+        poof(level, getX(), getY(), getZ());
         snapTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, getYRot(), getXRot());
         getNavigation().stop();
-        level.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.5, getZ(), 8, 0.2, 0.3, 0.2, 0.02);
+        poof(level, getX(), getY(), getZ());
+    }
+
+    /** Goblin green, for the puff a goblin leaves behind when it blinks and when a crew comes or goes. */
+    private static final DustParticleOptions POOF = new DustParticleOptions(0x5DC24A, 1.0f);
+
+    /** The puff at a goblin's feet. Dust ignores the speed argument, so the spread is what scatters it. */
+    public static void poof(ServerLevel level, double x, double y, double z) {
+        level.sendParticles(POOF, x, y + 0.5, z, 12, 0.25, 0.4, 0.25, 0.0);
+    }
+
+    // ---- ring crew -----------------------------------------------------------------------------------------------
+
+    /** Turns a fresh goblin into a member of a ring crew: a miner in blue-grey with diamond tools, no bed, never saved. */
+    public void joinCrew(RingCrew.Session session, String name) {
+        crew = session;
+        crewOrder = new goblinlabour.ring.CrewOrder(this);
+        entityData.set(DATA_CREW, true);
+        setPathfindingMalus(GoblinNodeEvaluator.IN_WAY, GoblinNodeEvaluator.IN_WAY_MALUS);
+        setCustomName(Component.literal(name));
+        setCustomNameVisible(true);
+        setStyle(GoblinStyle.CREW);
+        inventory.setItem(0, new ItemStack(Items.DIAMOND_PICKAXE));
+        inventory.setItem(1, new ItemStack(Items.DIAMOND_SHOVEL));
+        inventory.setItem(2, new ItemStack(Items.DIAMOND_AXE));
+    }
+
+    @Nullable
+    public RingCrew.Session crew() {
+        return crew;
+    }
+
+    /** The staff order of a ring crew goblin (server side), or null for a goblin with a bed. */
+    @Nullable
+    public goblinlabour.ring.CrewOrder crewOrder() {
+        return crewOrder;
+    }
+
+    /** A crew goblin keeps out of the lane the player looks along, except while carrying out a staff order there. */
+    public boolean crewAvoidsLook() {
+        return crewOrder == null || !crewOrder.active();
+    }
+
+    public static void setClientStaffCheck(java.util.function.Predicate<GoblinEntity> check) {
+        clientStaffCheck = check;
+    }
+
+    /** Client and server: true for a ring crew goblin. */
+    public boolean isCrewMember() {
+        return entityData.get(DATA_CREW);
+    }
+
+    public String crewDebug(Player owner) {
+        return crewGoal == null ? "-" : crewGoal.debug(owner);
+    }
+
+    @Override
+    public boolean shouldBeSaved() {
+        return !isCrewMember() && super.shouldBeSaved();
+    }
+
+    /**
+     * The player's clicks and arrows pass through a crew goblin, so it never stands between the player and a block;
+     * only while its player holds the Goblin Staff it can be clicked (picked for an order).
+     */
+    @Override
+    public boolean isPickable() {
+        if (!isCrewMember()) return super.isPickable();
+        boolean staff = level().isClientSide() ? clientStaffCheck.test(this)
+                : crew != null && crew.owner().getMainHandItem().is(GoblinLabour.GOBLIN_STAFF);
+        return staff && super.isPickable();
+    }
+
+    @Override
+    public boolean isPushable() {
+        // crew goblins never shove the player; a climbing goblin is not pushed off its scaffold column
+        return !isCrewMember() && !climbing && !Climber.isUp(level(), this) && super.isPushable();
+    }
+
+    /** Set while this goblin climbs out of a hole (ClimbOutGoal). */
+    public void setClimbing(boolean climbing) {
+        this.climbing = climbing;
+    }
+
+    @Override
+    protected void doPush(Entity entity) {
+        if (isCrewMember() && entity instanceof Player) return; // no shoving the player around
+        super.doPush(entity);
+    }
+
+    @Override
+    public boolean isInvulnerableTo(ServerLevel level, DamageSource source) {
+        if (crew != null && source.getEntity() == crew.owner()) return true; // a sweep attack at a zombie next to it
+        return super.isInvulnerableTo(level, source);
     }
 
     // ---- inventory -----------------------------------------------------------------------------------------------
@@ -352,6 +470,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     }
 
     public boolean isStorageFull() {
+        if (crew != null) return RingCrew.isFull(this); // a crew goblin's storage is its player's ring
         for (int i = HOTBAR_SIZE, end = storageEnd(); i < end; i++) {
             if (inventory.getItem(i).isEmpty()) return false;
         }
@@ -380,6 +499,14 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
 
     /** Items lying within reach go into the storage (a broken chest spills its contents, for example). */
     private void collectNearbyItems(ServerLevel level) {
+        if (crew != null) {
+            // a crew goblin has no storage: the items go into its player's ring
+            for (net.minecraft.world.entity.item.ItemEntity item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                    getBoundingBox().inflate(2.0, 1.0, 2.0), net.minecraft.world.entity.item.ItemEntity::isAlive)) {
+                if (!item.hasPickUpDelay() && !goblinlabour.home.HomeRegistry.isProtected(level, item.blockPosition())) RingCrew.store(this, item);
+            }
+            return;
+        }
         if (isStorageFull()) return;
         for (net.minecraft.world.entity.item.ItemEntity item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
                 getBoundingBox().inflate(2.0, 1.0, 2.0), net.minecraft.world.entity.item.ItemEntity::isAlive)) {
@@ -391,6 +518,10 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
 
     /** Takes as much of the item as fits into the storage, with the vanilla pick-up animation. */
     public void pickUp(net.minecraft.world.entity.item.ItemEntity item) {
+        if (crew != null) {
+            RingCrew.store(this, item);
+            return;
+        }
         ItemStack stack = item.getItem();
         int before = stack.getCount();
         ItemStack rest = storeInStorage(stack);
@@ -403,6 +534,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
 
     /** True if at least part of the stack fits into the storage rows. */
     public boolean canStore(ItemStack stack) {
+        if (crew != null) return RingCrew.canStore(this, stack);
         for (int i = HOTBAR_SIZE, end = storageEnd(); i < end; i++) {
             ItemStack slot = inventory.getItem(i);
             if (slot.isEmpty()) return true;
@@ -472,6 +604,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
 
     @Override
     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+        if (isCrewMember()) return InteractionResult.PASS; // a ring crew has no inventory to show
         if (!level().isClientSide()) {
             player.openMenu(new GoblinMenuProvider(this));
         }

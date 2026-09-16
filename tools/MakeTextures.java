@@ -112,7 +112,30 @@ public class MakeTextures {
     static final Map<Character, Integer> BOOK_COLORS = Map.of(
             'S', 0x1F4A26, 'D', 0x2F6B38, 'C', 0x3E8E4B, 'Y', 0x8CC63F, 'B', 0x1C1C1C, 'P', 0xEDE6D2, 'p', 0xC9BFA3);
 
+    /** Gold ring with a goblin-eye gem; drawn with its own outline (the automatic one would darken the thin band). */
+    static final String[] RING = {
+            "................",
+            "......OOOO......",
+            ".....OGGGGO.....",
+            ".....OYYBYO.....",
+            ".....OGGGGO.....",
+            "......OAAO......",
+            "....OOAAAAOO....",
+            "...OAAaOOaAAO...",
+            "..OAAO....OAAO..",
+            "..OAO......OAO..",
+            "..OAO......OAO..",
+            "..OAaO....OaAO..",
+            "...OAAaOOaAAO...",
+            "....OOAAAAOO....",
+            "......OOOO......",
+            "................",
+    };
+    static final Map<Character, Integer> RING_COLORS = Map.of(
+            'O', 0x5A3F0E, 'A', 0xF2C443, 'a', 0xB8861C, 'G', 0x4E9A3A, 'Y', 0xF2D14B, 'B', 0x1C1C1C);
+
     public static void main(String[] args) throws Exception {
+        save(render(RING, RING_COLORS, false), ASSETS + "textures/item/goblin_ring.png");
         save(render(BOOK, BOOK_COLORS), ASSETS + "textures/item/goblin_handbook.png");
         save(render(STAFF, STAFF_COLORS), ASSETS + "textures/item/goblin_staff.png");
         BufferedImage head = render(HEAD, HEAD_COLORS);
@@ -124,6 +147,10 @@ public class MakeTextures {
     }
 
     static BufferedImage render(String[] rows, Map<Character, Integer> colors) {
+        return render(rows, colors, true);
+    }
+
+    static BufferedImage render(String[] rows, Map<Character, Integer> colors, boolean outline) {
         int size = rows.length;
         BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < size; y++) {
@@ -135,6 +162,7 @@ public class MakeTextures {
                 img.setRGB(x, y, 0xFF000000 | rgb);
             }
         }
+        if (!outline) return img;
         // darken opaque pixels that touch a transparent one: a cheap outline
         BufferedImage out = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < size; y++) {

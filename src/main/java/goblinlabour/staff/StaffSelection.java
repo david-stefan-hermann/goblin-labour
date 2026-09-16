@@ -41,6 +41,8 @@ public final class StaffSelection {
             // Client: SUCCESS makes Fabric send the attack packet (anything else swallows the click and the server
             // never hears about it). Server: FAIL cancels the damage after the selection has been toggled.
             if (!(level instanceof ServerLevel serverLevel)) return InteractionResult.SUCCESS;
+            // a ring crew listens to the player whose ring called it
+            if (goblin.crew() != null && !goblin.crew().owner().getUUID().equals(player.getUUID())) return InteractionResult.FAIL;
             toggle(serverLevel, player, goblin);
             return InteractionResult.FAIL;
         });
@@ -83,7 +85,8 @@ public final class StaffSelection {
      * Gives the order to every selected goblin (its bed stores it) and clears the selection. Returns a message for
      * the player.
      */
-    public static Component assign(ServerLevel level, Player player, Assignment assignment) {
+    public static Component assign(ServerLevel level, Player player, Assignment order) {
+        Assignment assignment = order.withFloorFrom(level); // before the collision check: the floor belongs to the shaft
         List<GoblinEntity> goblins = selected(level, player);
         if (goblins.isEmpty()) return Component.translatable("goblinlabour.staff.select_first");
         Set<BlockPos> ownBeds = new LinkedHashSet<>();
@@ -102,6 +105,11 @@ public final class StaffSelection {
         }
         int started = 0;
         for (GoblinEntity goblin : goblins) {
+            if (goblin.crew() != null) {
+                goblin.crewOrder().give(assignment); // a ring crew goblin keeps its order itself
+                started++;
+                continue;
+            }
             GoblinBedBlockEntity bed = goblin.bed();
             if (bed == null) continue;
             applyTo(bed, assignment);
@@ -116,6 +124,7 @@ public final class StaffSelection {
     }
 
     public static void applyTo(GoblinBedBlockEntity bed, Assignment assignment) {
+        bed.rememberJobBefore(bed.getJob()); // so the goblin goes back to chopping or farming when the order is done
         bed.setAssignment(assignment);
         bed.setJob(bed.getJob().withJob(assignment.kind().job()));
     }

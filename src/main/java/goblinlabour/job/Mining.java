@@ -8,27 +8,36 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * The rules a goblin follows when it breaks blocks: which tool from its hotbar to use, whether a block can be
- * broken at all (vanilla tool requirements, no fluids, never inside a home), how fast (player formula), where the
- * drops go (its own inventory), plus free torches and cobblestone against water and lava.
+ * broken at all (vanilla tool requirements, no fluids, never inside a home, only in plain sight), how fast (player
+ * formula), where the drops go (onto the ground, for the goblin to pick up), plus free torches and cobblestone against
+ * water and lava.
  */
 public final class Mining {
     public static final int TORCH_LIGHT = 8;
@@ -106,16 +115,58 @@ public final class Mining {
         return level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(key);
     }
 
-    /** Breaks the block: drops into the goblin's storage (overflow on the ground), break effect, then seals fluids. */
-    public static void harvest(ServerLevel level, BlockPos pos, BlockState state, GoblinEntity goblin, ItemStack tool) {
+    /**
+     * Breaks the block like a player: break effect, the drops pop out onto the ground (the goblin walks over and picks
+     * them up, see JobRunner), then fluids are sealed. Returns the dropped item entities.
+     */
+    public static List<ItemEntity> harvest(ServerLevel level, BlockPos pos, BlockState state, GoblinEntity goblin, ItemStack tool) {
         List<ItemStack> drops = Block.getDrops(state, level, pos, level.getBlockEntity(pos), goblin, tool);
         level.levelEvent(2001, pos, Block.getId(state));
         level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-        for (ItemStack drop : drops) {
-            ItemStack rest = goblin.storeInStorage(drop);
-            if (!rest.isEmpty()) Block.popResource(level, pos, rest);
+        List<ItemEntity> items = new ArrayList<>();
+        if (level.getGameRules().get(GameRules.BLOCK_DROPS)) {
+            double half = 0.125; // half the item entity's height, as in Block.popResource
+            for (ItemStack drop : drops) {
+                if (drop.isEmpty()) continue;
+                // Block.popResource, keeping the entity
+                ItemEntity item = new ItemEntity(level, pos.getX() + 0.5 + Mth.nextDouble(level.getRandom(), -0.25, 0.25),
+                        pos.getY() + 0.5 + Mth.nextDouble(level.getRandom(), -0.25, 0.25) - half,
+                        pos.getZ() + 0.5 + Mth.nextDouble(level.getRandom(), -0.25, 0.25), drop);
+                item.setDefaultPickUpDelay();
+                level.addFreshEntity(item);
+                items.add(item);
+            }
         }
         sealFluids(level, pos);
+        return items;
+    }
+
+    /**
+     * True if the goblin, with its eyes at {@code eyes}, sees {@code target} unblocked: a ray to the block's middle
+     * or to the middle of one of its faces turned towards the eyes meets nothing solid on the way. Leaves (a tree
+     * crown) and goblin scaffold do not block the view; stairs, walls and every other solid block do.
+     */
+    public static boolean canSee(ServerLevel level, Vec3 eyes, BlockPos target) {
+        Vec3 center = Vec3.atCenterOf(target);
+        if (rayReaches(level, eyes, center, target)) return true;
+        for (Direction face : Direction.values()) {
+            Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
+            if (eyes.subtract(center).dot(normal) <= 0.5) continue; // face turned away (or seen edge-on)
+            if (rayReaches(level, eyes, center.add(normal.scale(0.45)), target)) return true;
+        }
+        return false;
+    }
+
+    private static boolean rayReaches(ServerLevel level, Vec3 from, Vec3 to, BlockPos target) {
+        Boolean reached = BlockGetter.traverseBlocks(from, to, level, (lvl, pos) -> {
+            if (pos.equals(target)) return Boolean.TRUE;
+            BlockState state = lvl.getBlockState(pos);
+            if (state.is(BlockTags.LEAVES) || state.is(GoblinLabour.GOBLIN_SCAFFOLD)) return null;
+            VoxelShape shape = state.getCollisionShape(lvl, pos);
+            if (shape.isEmpty() || shape.clip(from, to, pos) == null) return null;
+            return Boolean.FALSE;
+        }, lvl -> Boolean.TRUE);
+        return reached;
     }
 
     /** Cobblestone (free) into every neighbouring fluid block that could run into the freshly opened hole. */

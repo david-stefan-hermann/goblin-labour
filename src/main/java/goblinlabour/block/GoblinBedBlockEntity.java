@@ -40,7 +40,7 @@ import java.util.UUID;
  * Owns exactly one goblin and its job. Keeps a copy of the goblin's name, hotbar and health so the goblin can be
  * respawned after death (or restored into a blank when the bed is broken).
  */
-public class GoblinBedBlockEntity extends BlockEntity {
+public class GoblinBedBlockEntity extends BlockEntity implements goblinlabour.job.JobHost {
     public static final int RESPAWN_TICKS = 100;
     /** A living goblin that has not been seen for this long is considered lost and gets respawned. */
     public static final int LOST_TICKS = 600;
@@ -59,6 +59,8 @@ public class GoblinBedBlockEntity extends BlockEntity {
     private int tickCounter;
     private Status status = Status.EMPTY;
     @Nullable private JobConfig job;
+    /** The job a staff order interrupted; the goblin goes back to it when the order is done. */
+    @Nullable private JobConfig jobBefore;
     @Nullable private Assignment assignment;
     @Nullable private BlockPos deathPos;
     /** Set by the last job that was not REST; the goblin (also after respawning) takes its texture tint from it. */
@@ -222,6 +224,33 @@ public class GoblinBedBlockEntity extends BlockEntity {
         updateProps();
     }
 
+    /**
+     * Remembers the job a staff order is about to interrupt. A second order while one is running does not
+     * overwrite it, so the goblin still finds its way back to chopping or farming.
+     */
+    public void rememberJobBefore(JobConfig config) {
+        if (!config.job().needsAssignment()) {
+            jobBefore = config;
+            setChanged();
+        }
+    }
+
+    /** Forgets the remembered job, e.g. when the player picks a new job in the bed menu. */
+    public void forgetJobBefore() {
+        if (jobBefore != null) {
+            jobBefore = null;
+            setChanged();
+        }
+    }
+
+    @Override
+    public JobConfig afterOrder(JobConfig current) {
+        JobConfig back = jobBefore;
+        jobBefore = null;
+        // keep whatever the player set meanwhile (radius, replant) and only take the job back
+        return back == null ? current.withJob(Job.REST) : current.withJob(back.job());
+    }
+
     /** Tools and loot under the bed show the goblin's trade; a resting goblin (or an empty bed) has nothing there. */
     private void updateProps() {
         if (level == null || level.isClientSide()) return;
@@ -301,6 +330,7 @@ public class GoblinBedBlockEntity extends BlockEntity {
         out.putLong("respawnAt", respawnAt);
         out.putString("status", status.name());
         out.storeNullable("job", JobConfig.CODEC, job);
+        out.storeNullable("job_before", JobConfig.CODEC, jobBefore);
         out.storeNullable("order", Assignment.CODEC, assignment);
         out.storeNullable("deathPos", BlockPos.CODEC, deathPos);
         out.store("style", GoblinStyle.CODEC, style);
@@ -322,6 +352,7 @@ public class GoblinBedBlockEntity extends BlockEntity {
             status = Status.EMPTY;
         }
         job = in.read("job", JobConfig.CODEC).orElse(null);
+        jobBefore = in.read("job_before", JobConfig.CODEC).orElse(null);
         assignment = in.read("order", Assignment.CODEC).orElse(null);
         deathPos = in.read("deathPos", BlockPos.CODEC).orElse(null);
         style = in.read("style", GoblinStyle.CODEC).orElse(GoblinStyle.LUMBERJACK);

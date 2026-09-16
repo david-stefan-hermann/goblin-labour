@@ -1,6 +1,5 @@
 package goblinlabour.job;
 
-import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -21,18 +20,20 @@ public final class MineUpJob implements JobTask {
 
     @Override
     @Nullable
-    public BlockPos entryPoint(GoblinBedBlockEntity bed, JobConfig config) {
+    public BlockPos entryPoint(JobHost bed, JobConfig config) {
         Assignment a = bed.getAssignment();
-        return a == null ? null : a.origin().below();
+        if (a == null) return null;
+        // on the floor below the ceiling; an order without a floor (saved before floors existed) right under it
+        return a.floorY() == Assignment.NO_FLOOR ? a.origin().below() : new BlockPos(a.origin().getX(), a.bottomY(), a.origin().getZ());
     }
 
     @Override
-    public void onDone(ServerLevel level, GoblinBedBlockEntity bed) {
+    public void onDone(ServerLevel level, JobHost bed) {
         bed.setAssignment(null);
     }
 
     @Override
-    public Pick pick(ServerLevel level, GoblinEntity goblin, GoblinBedBlockEntity bed, JobConfig config, Set<BlockPos> skipped) {
+    public Pick pick(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, Set<BlockPos> skipped) {
         Assignment a = bed.getAssignment();
         if (a == null || a.kind() != Assignment.Kind.DIG_UP) return Pick.DONE;
         int topY = Math.min(a.topY(), level.getMaxY());

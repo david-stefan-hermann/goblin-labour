@@ -67,9 +67,20 @@ public class GoblinStaffItem extends Item {
             case DIG_DOWN -> new Assignment(Assignment.Kind.DIG_DOWN, data.pos(), Direction.NORTH, DEFAULT_SHAFT_WIDTH, 0, 0, data.minY(), true);
             case DIG_UP -> new Assignment(Assignment.Kind.DIG_UP, data.pos(), Direction.NORTH, DEFAULT_SHAFT_WIDTH, 0, 0,
                     Math.max(data.surfaceY(), data.pos().getY()), true);
-            case TUNNEL -> new Assignment(Assignment.Kind.TUNNEL, data.pos(), data.face().getOpposite(), DEFAULT_TUNNEL_WIDTH,
-                    DEFAULT_TUNNEL_HEIGHT, DEFAULT_TUNNEL_LENGTH, data.pos().getY(), false);
+            case TUNNEL -> {
+                BlockPos origin = tunnelOrigin(data.pos(), DEFAULT_TUNNEL_HEIGHT);
+                yield new Assignment(Assignment.Kind.TUNNEL, origin, data.face().getOpposite(), DEFAULT_TUNNEL_WIDTH,
+                        DEFAULT_TUNNEL_HEIGHT, DEFAULT_TUNNEL_LENGTH, origin.getY(), false);
+            }
         };
+    }
+
+    /**
+     * Where a tunnel starts: the clicked block itself at height 1, one block below from height 2 on. That way
+     * looking straight ahead at a wall and clicking gives a tunnel whose floor is the ground you stand on.
+     */
+    public static BlockPos tunnelOrigin(BlockPos clicked, int height) {
+        return height >= 2 ? clicked.below() : clicked;
     }
 
     @Override

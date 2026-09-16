@@ -10,8 +10,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 /**
- * Bed screen: goblin name and status, Rest / Chop / Farm / Collect in two rows, and the radius for the working
- * jobs. Dig orders are given with the Goblin Staff. Buttons go through the vanilla "menu button" packet.
+ * Bed screen: goblin name and status, Rest / Chop / Farm / Collect in two rows, the radius for the working jobs and,
+ * for lumberjacks, replanting on or off. Dig orders are given with the Goblin Staff. Buttons go through the vanilla "menu button" packet.
  */
 public class GoblinBedScreen extends AbstractContainerScreen<GoblinBedMenu> {
     private static final int JOB_Y = 30;
@@ -19,7 +19,9 @@ public class GoblinBedScreen extends AbstractContainerScreen<GoblinBedMenu> {
     private static final int JOB_BUTTON_WIDTH = 78;
     private static final int RADIUS_Y = 80;
 
-    private Button restButton, chopButton, farmButton, collectButton, radiusDown, radiusUp;
+    private static final int REPLANT_Y = RADIUS_Y + 18;
+
+    private Button restButton, chopButton, farmButton, collectButton, radiusDown, radiusUp, replantButton;
 
     public GoblinBedScreen(GoblinBedMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title, GoblinBedMenu.WIDTH, GoblinBedMenu.HEIGHT);
@@ -42,6 +44,8 @@ public class GoblinBedScreen extends AbstractContainerScreen<GoblinBedMenu> {
                 x + 70, topPos + RADIUS_Y, 14, 14, radiusTip));
         radiusUp = addRenderableWidget(GoblinUi.button(Component.literal("+"), b -> send(GoblinBedMenu.BUTTON_RADIUS_UP),
                 x + 86, topPos + RADIUS_Y, 14, 14, radiusTip));
+        replantButton = addRenderableWidget(GoblinUi.button(Component.empty(), b -> send(GoblinBedMenu.BUTTON_REPLANT),
+                x, topPos + REPLANT_Y, 160, 14, Component.translatable("gui.goblinlabour.replant.tooltip")));
         refresh();
     }
 
@@ -70,6 +74,8 @@ public class GoblinBedScreen extends AbstractContainerScreen<GoblinBedMenu> {
         collectButton.active = current != Job.COLLECT;
         radiusDown.active = menu.radius() > 4;
         radiusUp.active = menu.radius() < 64;
+        replantButton.visible = current == Job.CHOP;
+        replantButton.setMessage(Component.translatable(menu.replant() ? "gui.goblinlabour.replant.on" : "gui.goblinlabour.replant.off"));
     }
 
     @Override

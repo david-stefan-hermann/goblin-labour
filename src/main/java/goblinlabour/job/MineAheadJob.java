@@ -1,6 +1,5 @@
 package goblinlabour.job;
 
-import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -23,18 +22,18 @@ public final class MineAheadJob implements JobTask {
 
     @Override
     @Nullable
-    public BlockPos entryPoint(GoblinBedBlockEntity bed, JobConfig config) {
+    public BlockPos entryPoint(JobHost bed, JobConfig config) {
         Assignment a = bed.getAssignment();
         return a == null ? null : a.origin().relative(a.direction().getOpposite());
     }
 
     @Override
-    public void onDone(ServerLevel level, GoblinBedBlockEntity bed) {
+    public void onDone(ServerLevel level, JobHost bed) {
         bed.setAssignment(null);
     }
 
     @Override
-    public Pick pick(ServerLevel level, GoblinEntity goblin, GoblinBedBlockEntity bed, JobConfig config, Set<BlockPos> skipped) {
+    public Pick pick(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, Set<BlockPos> skipped) {
         Assignment a = bed.getAssignment();
         if (a == null || a.kind() != Assignment.Kind.TUNNEL) return Pick.DONE;
         Direction dir = a.direction();
@@ -69,7 +68,7 @@ public final class MineAheadJob implements JobTask {
                         sawSkipped = true;
                         continue;
                     }
-                    double dist = me.distanceToSqr(Vec3.atCenterOf(cursor));
+                    double dist = me.distanceToSqr(Vec3.atCenterOf(cursor)) + (Mining.canSee(level, goblin.getEyePosition(), cursor) ? 0.0 : 10_000.0);
                     if (dist < bestDist) {
                         bestDist = dist;
                         best = cursor.immutable();

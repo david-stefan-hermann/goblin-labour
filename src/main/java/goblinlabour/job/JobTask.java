@@ -1,10 +1,11 @@
 package goblinlabour.job;
 
-import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
@@ -35,15 +36,37 @@ public interface JobTask {
     }
 
     /** The next block to break or place, or DONE / NEEDS_TOOL. {@code skipped} are blocks the goblin could not reach. */
-    Pick pick(ServerLevel level, GoblinEntity goblin, GoblinBedBlockEntity bed, JobConfig config, Set<BlockPos> skipped);
+    Pick pick(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, Set<BlockPos> skipped);
 
     /** Called after a block was broken; replant, ... */
-    default void afterBreak(ServerLevel level, GoblinEntity goblin, GoblinBedBlockEntity bed, JobConfig config, BlockPos broken) {
+    default void afterBreak(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, BlockPos broken) {
+    }
+
+    /** Called after a {@link Pick#place} went through, e.g. to take the planted sapling out of the storage. */
+    default void afterPlace(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, BlockPos pos, BlockState placed) {
+    }
+
+    /**
+     * Where the goblin also picks up loose items it did not drop itself (only those {@link #wantsLoot} accepts), or
+     * null. Its own drops are always picked up.
+     */
+    @Nullable
+    default AABB lootArea(JobHost bed, JobConfig config) {
+        return null;
+    }
+
+    default boolean wantsLoot(ItemStack stack) {
+        return false;
+    }
+
+    /** How many of this stack's items the goblin keeps when it unloads into a chest (saplings for replanting). */
+    default int keepOnUnload(JobConfig config, ItemStack stack) {
+        return 0;
     }
 
     /** A point outside the home the job starts at, or null when unknown (no "no exit" check then). */
     @Nullable
-    BlockPos entryPoint(GoblinBedBlockEntity bed, JobConfig config);
+    BlockPos entryPoint(JobHost bed, JobConfig config);
 
     /** Jobs that never finish by themselves (chop, farm) keep the goblin on duty when nothing is ripe right now. */
     default boolean endless() {
@@ -51,7 +74,7 @@ public interface JobTask {
     }
 
     /** Called once when the job reports DONE. */
-    default void onDone(ServerLevel level, GoblinBedBlockEntity bed) {
+    default void onDone(ServerLevel level, JobHost bed) {
     }
 
     @Nullable

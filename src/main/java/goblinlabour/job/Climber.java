@@ -9,10 +9,13 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Goblin scaffold climbing, shared by the work loop (high logs, shafts up) and the climb out of pits. Goblins climb
@@ -26,9 +29,16 @@ public final class Climber {
     private static final int PLACE_COOLDOWN = 4;
     /** Horizontal distance (squared) from the block centre that counts as standing in the middle of a column. */
     private static final double CENTRED_SQ = 0.15 * 0.15;
+    /** Sneaking down that gets no lower for this long (caught on a neighbouring column) ends at the column's foot. */
+    private static final int DESCEND_STUCK_TICKS = 60;
+    /** How far below its feet a goblin in the air looks for the column it jumped off (a jump rises 1.25 blocks). */
+    private static final int AIRBORNE_LOOK_DOWN = 3;
 
     private final GoblinEntity goblin;
     private int cooldown;
+    private int lastDescendTick = -1000;
+    private double descendLowest;
+    private int descendStuck;
 
     public Climber(GoblinEntity goblin) {
         this.goblin = goblin;
@@ -40,7 +50,41 @@ public final class Climber {
 
     /** True while the goblin is up on a column: inside it with more scaffold below, or standing on its top. */
     public static boolean isUp(Level level, GoblinEntity goblin) {
-        return isScaffold(level.getBlockState(goblin.blockPosition().below()));
+        return columnUnder(level, goblin) != null;
+    }
+
+    /**
+     * The block (at feet height) of the scaffold column the goblin is up on, or null when it stands on solid ground.
+     * Its own block first; a goblin at the edge of a column top can have its middle over the next block. A goblin in
+     * the air (jumping on the top of its column) looks a few blocks further down: at the top of a jump there is only
+     * air right below its feet, and it is still up there.
+     */
+    @Nullable
+    public static BlockPos columnUnder(Level level, GoblinEntity goblin) {
+        BlockPos feet = goblin.blockPosition();
+        if (isScaffold(level.getBlockState(feet.below()))) return feet;
+        // shrunk a little: pressed against a wall the box edge sits a hair inside the wall's block column
+        AABB box = goblin.getBoundingBox().deflate(0.01, 0.0, 0.01);
+        int depth = goblin.onGround() ? 1 : AIRBORNE_LOOK_DOWN;
+        for (int drop = 1; drop <= depth; drop++) {
+            BlockPos column = null;
+            boolean open = true;
+            int y = feet.getY() - drop;
+            for (int x = Mth.floor(box.minX); x <= Mth.floor(box.maxX); x++) {
+                for (int z = Mth.floor(box.minZ); z <= Mth.floor(box.maxZ); z++) {
+                    BlockPos below = new BlockPos(x, y, z);
+                    BlockState state = level.getBlockState(below);
+                    if (isScaffold(state)) {
+                        if (column == null) column = below.above(drop);
+                        open = false;
+                    } else if (!state.getCollisionShape(level, below).isEmpty()) {
+                        return null; // partly on solid ground
+                    }
+                }
+            }
+            if (!open) return column;
+        }
+        return null;
     }
 
     /**
@@ -87,24 +131,40 @@ public final class Climber {
         return true;
     }
 
-    /** Sneaks down through the column, centred on it. Returns true while the goblin is still on the way down. */
+    /**
+     * Sneaks down through the column, centred on it. Returns true while the goblin is still on the way down. A goblin
+     * that gets no lower for a few seconds (its hitbox caught on a neighbouring column) is set down at the foot.
+     */
     public boolean descend(ServerLevel level) {
         goblin.getNavigation().stop();
-        if (!isUp(level, goblin)) {
+        BlockPos column = columnUnder(level, goblin);
+        if (column == null) {
             goblin.setShiftKeyDown(false);
             return false;
         }
+        if (goblin.tickCount - lastDescendTick > 5) {
+            descendLowest = goblin.getY();
+            descendStuck = 0;
+        }
+        lastDescendTick = goblin.tickCount;
         goblin.setShiftKeyDown(true);
-        BlockPos feet = goblin.blockPosition();
-        goblin.getMoveControl().setWantedPosition(feet.getX() + 0.5, goblin.getY(), feet.getZ() + 0.5, 0.5);
+        goblin.getMoveControl().setWantedPosition(column.getX() + 0.5, goblin.getY(), column.getZ() + 0.5, 0.5);
+        if (goblin.getY() < descendLowest - 0.5) {
+            descendLowest = goblin.getY();
+            descendStuck = 0;
+        } else if (++descendStuck > DESCEND_STUCK_TICKS) {
+            settle(level);
+            lastDescendTick = -1000;
+        }
         return true;
     }
 
     /** When a job ends mid-climb: stop sneaking and set the goblin down at the foot of its column. */
     public void settle(ServerLevel level) {
         goblin.setShiftKeyDown(false);
-        if (!isUp(level, goblin)) return;
-        BlockPos.MutableBlockPos cursor = goblin.blockPosition().mutable();
+        BlockPos column = columnUnder(level, goblin);
+        if (column == null) return;
+        BlockPos.MutableBlockPos cursor = column.mutable();
         for (int i = 0; i < MAX_HEIGHT && isScaffold(level.getBlockState(cursor.below())); i++) {
             cursor.move(0, -1, 0);
         }

@@ -29,6 +29,7 @@ public final class DevClientHooks {
         ticksInWorld++;
         if (ticksInWorld == 60) openBook(minecraft, 0);
         if (ticksInWorld == 80) staffClick(minecraft);
+        if (ticksInWorld == 80) staffPick(minecraft);
         if (ticksInWorld == 200) openBook(minecraft, 1);
         if (ticksInWorld == 100) grab(minecraft, name + ".png");
         if (ticksInWorld == 260) grab(minecraft, name + "-b.png");
@@ -66,6 +67,18 @@ public final class DevClientHooks {
         if (nearest != null) {
             minecraft.gameMode.attack(minecraft.player, nearest);
             GoblinLabour.LOGGER.info("Dev: staff-clicked {}", nearest.goblinName());
+        }
+    }
+
+    /** -Dgoblinlabour.dev.staffpick: left-clicks the goblin under the crosshair, if any (whether it can be picked at all). */
+    private static void staffPick(Minecraft minecraft) {
+        if (System.getProperty("goblinlabour.dev.staffpick") == null || minecraft.gameMode == null) return;
+        if (minecraft.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
+                && hit.getEntity() instanceof goblinlabour.entity.GoblinEntity goblin) {
+            minecraft.gameMode.attack(minecraft.player, goblin);
+            GoblinLabour.LOGGER.info("Dev: crosshair picked {}", goblin.goblinName());
+        } else {
+            GoblinLabour.LOGGER.info("Dev: crosshair on {}", minecraft.hitResult == null ? "nothing" : minecraft.hitResult.getType());
         }
     }
 

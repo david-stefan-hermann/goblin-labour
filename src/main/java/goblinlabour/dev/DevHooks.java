@@ -43,6 +43,14 @@ public final class DevHooks {
                 player.teleportTo(server.overworld(), view[0], view[1], view[2], Set.<Relative>of(),
                         (float) view[3], (float) view[4], false);
                 GoblinLabour.LOGGER.info("Dev view: teleported {}", player.getName().getString());
+                if (menuEndsWith(",ringstaff")) {
+                    devRingStaff(server.overworld(), player);
+                    continue;
+                }
+                if (menuEndsWith(",ring") || menuEndsWith(",ringmenu")) {
+                    devRing(server.overworld(), player, menuEndsWith(",ringmenu"));
+                    continue;
+                }
                 if (menuBed != null && server.overworld().getBlockEntity(menuBed) instanceof GoblinBedBlockEntity bed) {
                     if (menuIsHoldStaff()) {
                         player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new net.minecraft.world.item.ItemStack(GoblinLabour.GOBLIN_STAFF));
@@ -82,6 +90,59 @@ public final class DevHooks {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private static boolean menuEndsWith(String suffix) {
+        String raw = System.getProperty(MENU_PROPERTY);
+        return raw != null && raw.endsWith(suffix);
+    }
+
+    /**
+     * -Dgoblinlabour.dev.menu=x,y,z,ringstaff: a ring in the last hotbar slot, the staff in hand, the crew called and
+     * lined up (frozen) three blocks ahead of the player, so the client can click one through the crosshair.
+     */
+    private static void devRingStaff(net.minecraft.server.level.ServerLevel level, ServerPlayer player) {
+        net.minecraft.world.item.ItemStack ring = new net.minecraft.world.item.ItemStack(GoblinLabour.GOBLIN_RING);
+        java.util.UUID id = goblinlabour.ring.RingInventory.ensureId(ring);
+        player.getInventory().setItem(8, ring);
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new net.minecraft.world.item.ItemStack(GoblinLabour.GOBLIN_STAFF));
+        goblinlabour.ring.RingCrew.toggle(level, player, player.getInventory().getItem(8));
+        goblinlabour.ring.RingCrew.Session session = goblinlabour.ring.RingCrew.of(id);
+        if (session == null) return;
+        double yaw = Math.toRadians(player.getYRot());
+        double lx = -Math.sin(yaw), lz = Math.cos(yaw);
+        int i = 0;
+        for (GoblinEntity goblin : session.goblins()) {
+            double side = (i++ - 1) * 1.6;
+            goblin.setNoAi(true);
+            goblin.snapTo(player.getX() + lx * 3.0 - lz * side, player.getY(), player.getZ() + lz * 3.0 + lx * side,
+                    player.getYRot() + 180.0f, 0.0f);
+        }
+        GoblinLabour.LOGGER.info("Dev view: ring crew lined up for the staff");
+    }
+
+    /** -Dgoblinlabour.dev.menu=x,y,z,ring hands over a ring with some loot and calls its crew; ...,ringmenu opens the ring. */
+    private static void devRing(net.minecraft.server.level.ServerLevel level, ServerPlayer player, boolean openMenu) {
+        net.minecraft.world.item.ItemStack ring = new net.minecraft.world.item.ItemStack(GoblinLabour.GOBLIN_RING);
+        java.util.UUID id = goblinlabour.ring.RingInventory.ensureId(ring);
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ring);
+        goblinlabour.ring.RingContainer loot = goblinlabour.ring.RingInventory.open(player, id);
+        if (loot != null) {
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.RAW_IRON, 37));
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COAL, 64));
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COAL, 21));
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.RAW_COPPER, 52));
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE, 18));
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.LAPIS_LAZULI, 11));
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.RAW_GOLD, 6));
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND, 3));
+            loot.addItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COBBLED_DEEPSLATE, 40));
+            loot.setChanged();
+        }
+        net.minecraft.world.item.ItemStack held = player.getMainHandItem();
+        if (openMenu) goblinlabour.item.GoblinRingItem.openMenu(player, held);
+        else goblinlabour.ring.RingCrew.toggle(level, player, held);
+        GoblinLabour.LOGGER.info("Dev view: ring handed over ({})", openMenu ? "screen open" : "crew called");
     }
 
     /** -Dgoblinlabour.dev.menu=x,y,z,bed opens the bed screen instead of the goblin inventory. */

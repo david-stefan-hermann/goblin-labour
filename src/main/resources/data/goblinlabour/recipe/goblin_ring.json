@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "GDG",
+    "B B",
+    "GBG"
+  ],
+  "key": { "G": "minecraft:gold_ingot", "D": "minecraft:diamond", "B": "goblinlabour:goblin_blank" },
+  "result": { "id": "goblinlabour:goblin_ring" }
+}

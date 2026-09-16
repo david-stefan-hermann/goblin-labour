@@ -8,7 +8,8 @@ import java.util.Random;
 
 /**
  * Generates the 64x64 goblin entity textures goblin_<style>_<look>.png: one skin tint per job style (lumberjack
- * green, farmer yellowish, miner greyish, collector bluish) times four looks
+ * green, farmer yellowish, miner greyish, collector bluish, ring crew miner grey in blue-grey clothes) times
+ * four looks
  * (0 plain leather vest; 1 patched dark vest, gold earrings, scar; 2 sackcloth tunic, rope belt, bandage, nose ring;
  * 3 fur collar, bone necklace, one fang, topknot). Box positions and sizes must match GoblinModel.createBodyLayer,
  * file names GoblinRenderer. Also writes build/goblin-texture-preview.png (rows = styles, columns = looks).
@@ -16,19 +17,42 @@ import java.util.Random;
  */
 public class MakeGoblinTexture {
     static final String DIR = "src/main/resources/assets/goblinlabour/textures/entity/";
-    static final String[] STYLES = {"lumberjack", "farmer", "miner", "collector"};
-    static final int[] STYLE_SKIN = {0x6BB04E, 0x8FAE4C, 0x88967F, 0x5FA590};
+    static final String[] STYLES = {"lumberjack", "farmer", "miner", "collector", "crew"};
+    static final int[] STYLE_SKIN = {0x6BB04E, 0x8FAE4C, 0x88967F, 0x5FA590, 0x88967F};
     static final int LOOKS = 4;
 
     static final int EYE = 0xF2D14B, PUPIL = 0x1C1C1C, MOUTH = 0x2B1B12, FANG = 0xEDE6D2, EAR_INNER = 0xA7715F;
+    // skin details and trinkets: the same in every style
+    static final int BUCKLE = 0xB8A060, CLAW = 0xD9D2B0, GOLD = 0xE0B83A, GOLD_DARK = 0x9C7A22;
+    static final int SCAR = 0xC79A86, HAIR = 0x2E3024, BONE = 0xE3DAC0;
+
     // clothing colours go through rich(): the same hues, more saturated
     static final float CLOTHING_SATURATION = 1.3f;
-    static final int LEATHER = rich(0x6B4A2B), LEATHER_DARK = rich(0x4E3520), STITCH = rich(0x8C6A45), PATCH = rich(0x8A6A45);
-    static final int BELT = rich(0x3A2A1C), BUCKLE = 0xB8A060, CLOTH = rich(0x8A6F4A), CLOTH_DARK = rich(0x6E5638), CLAW = 0xD9D2B0;
-    static final int GOLD = 0xE0B83A, GOLD_DARK = 0x9C7A22, SCAR = 0xC79A86, HAIR = 0x2E3024;
-    static final int BURLAP = rich(0x9C8560), BURLAP_DARK = rich(0x7A6545), ROPE = rich(0xB89B63), BANDAGE = rich(0xD8CFB8);
-    static final int FUR = rich(0x8A7B66), FUR_DARK = rich(0x6A5C4A), BONE = 0xE3DAC0, PAINT = rich(0x8E3A2F);
-    static final int PATCHED_VEST = rich(0x553A22);
+    static final int BANDAGE = rich(0xD8CFB8), PAINT = rich(0x8E3A2F);
+    // the ring crew wears the same cut in blue-grey: one hue, little colour, a little darker
+    static final float CREW_HUE = 215f / 360f, CREW_SATURATION = 0.30f, CREW_BRIGHTNESS = 0.80f;
+    // set per style by palette(), so the four looks keep their cut and only the cloth changes colour
+    static int LEATHER, LEATHER_DARK, STITCH, PATCH, BELT, CLOTH, CLOTH_DARK, PATCHED_VEST;
+    static int BURLAP, BURLAP_DARK, ROPE, FUR, FUR_DARK, PACK, STRAP;
+
+    /** Fills the clothing palette for one style: leather and cloth for bed goblins, blue-grey for the ring crew. */
+    static void palette(boolean crew) {
+        LEATHER = cloth(0x6B4A2B, crew);
+        LEATHER_DARK = cloth(0x4E3520, crew);
+        STITCH = cloth(0x8C6A45, crew);
+        PATCH = cloth(0x8A6A45, crew);
+        BELT = cloth(0x3A2A1C, crew);
+        CLOTH = cloth(0x8A6F4A, crew);
+        CLOTH_DARK = cloth(0x6E5638, crew);
+        PATCHED_VEST = cloth(0x553A22, crew);
+        BURLAP = cloth(0x9C8560, crew);
+        BURLAP_DARK = cloth(0x7A6545, crew);
+        ROPE = cloth(0xB89B63, crew);
+        FUR = cloth(0x8A7B66, crew);
+        FUR_DARK = cloth(0x6A5C4A, crew);
+        PACK = cloth(0x7A5230, crew);
+        STRAP = cloth(0x3A2A1C, crew);
+    }
 
     static final String[][] FACES = {
             {
@@ -69,7 +93,6 @@ public class MakeGoblinTexture {
     static int skin, skinDark, skinDeep, skinLight, brow, vest;
     static int look;
     static String style;
-    static final int PACK = rich(0x7A5230), STRAP = rich(0x3A2A1C);
     static BufferedImage img;
     static Random rng;
 
@@ -93,6 +116,7 @@ public class MakeGoblinTexture {
         for (int s = 0; s < STYLES.length; s++) {
             skin = STYLE_SKIN[s];
             style = STYLES[s];
+            palette(style.equals("crew"));
             skinDark = shade(skin, 0.82f);
             skinDeep = shade(skin, 0.66f);
             skinLight = shade(skin, 1.13f);
@@ -487,6 +511,17 @@ public class MakeGoblinTexture {
     }
 
     /** Raises the saturation by {@link #CLOTHING_SATURATION}, keeping hue and brightness. */
+    /** One clothing colour, either in its own hue or pulled onto the crew's blue-grey. */
+    static int cloth(int rgb, boolean crew) {
+        return crew ? blueGrey(rgb) : rich(rgb);
+    }
+
+    /** Keeps the brightness of a colour (so light and dark cloth stay apart) but makes it a desaturated blue-grey. */
+    static int blueGrey(int rgb) {
+        float[] hsb = java.awt.Color.RGBtoHSB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, null);
+        return java.awt.Color.HSBtoRGB(CREW_HUE, CREW_SATURATION, Math.min(1.0f, hsb[2] * CREW_BRIGHTNESS)) & 0xFFFFFF;
+    }
+
     static int rich(int rgb) {
         float[] hsb = java.awt.Color.RGBtoHSB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, null);
         return java.awt.Color.HSBtoRGB(hsb[0], Math.min(1.0f, hsb[1] * CLOTHING_SATURATION), hsb[2]) & 0xFFFFFF;

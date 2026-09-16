@@ -18,7 +18,7 @@ B="1002 -60 1002"
 rcon "forceload add 995 995 1035 1035" "time set day" "weather clear" "setblock $B air" > /dev/null
 sleep 2
 rcon "kill @e[type=goblinlabour:goblin,x=995,y=-64,z=995,dx=40,dy=40,dz=40]" "kill @e[type=item,x=995,y=-64,z=995,dx=40,dy=40,dz=40]" \
-     "fill 995 -60 995 1035 -40 1035 air" "fill 995 -61 995 1035 -61 1035 grass_block" > /dev/null
+     "fill 995 -60 995 1035 -50 1035 air" "fill 995 -49 995 1035 -40 1035 air" "fill 995 -61 995 1035 -61 1035 grass_block" > /dev/null
 rcon "place feature minecraft:birch 1012 -60 1010" "place feature minecraft:birch 1018 -60 1016" "place feature minecraft:birch 1010 -60 1020" | grep -v '^>'
 rcon "setblock $B goblinlabour:goblin_straw_bed[facing=south]" > /dev/null
 sleep 1

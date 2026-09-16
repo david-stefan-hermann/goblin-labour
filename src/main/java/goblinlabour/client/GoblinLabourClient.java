@@ -29,6 +29,8 @@ public final class GoblinLabourClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(HomeZoneParticles::tick);
         GoblinHandbookItem.setOpener(player -> Minecraft.getInstance().gui.setScreen(
                 new BookViewScreen(new BookViewScreen.BookAccess(GoblinHandbookItem.pages()))));
+        goblinlabour.entity.GoblinEntity.setClientStaffCheck(goblin -> Minecraft.getInstance().player != null
+                && Minecraft.getInstance().player.getMainHandItem().is(GoblinLabour.GOBLIN_STAFF));
         DevClientHooks.init();
     }
 }

@@ -1,0 +1,16 @@
+forceload add 1290 1290 1340 1340
+time set day
+weather clear
+kill @e[type=goblinlabour:goblin,x=1290,y=-64,z=1290,dx=50,dy=30,dz=50]
+kill @e[type=item,x=1290,y=-64,z=1290,dx=50,dy=30,dz=50]
+fill 1290 -60 1290 1340 -53 1340 air
+fill 1290 -52 1290 1340 -45 1340 air
+fill 1290 -61 1290 1340 -61 1340 grass_block
+fill 1318 -60 1294 1321 -54 1318 stone
+setblock 1318 -59 1299 iron_ore
+setblock 1318 -58 1302 coal_ore
+setblock 1318 -60 1311 diamond_ore
+setblock 1318 -57 1313 copper_ore
+setblock 1318 -59 1316 gold_ore
+setblock 1318 -56 1297 lapis_ore
+setblock 1318 -60 1304 redstone_ore

@@ -23,8 +23,8 @@ rcon "forceload add 480 480 645 645" "time set day" "weather clear" > /dev/null
 rcon "setblock 495 -60 495 air" "setblock 492 -60 505 air" "setblock 600 -50 600 air" > /dev/null
 sleep 2
 rcon "kill @e[type=goblinlabour:goblin,x=480,y=-64,z=480,dx=165,dy=80,dz=165]" "kill @e[type=item,x=480,y=-64,z=480,dx=165,dy=80,dz=165]" > /dev/null
-rcon "fill 485 -60 485 507 -36 535 air" "fill 508 -60 485 535 -36 535 air" "fill 485 -61 485 535 -61 535 grass_block" \
-     "fill 580 -61 580 630 -40 610 air" "fill 580 -61 611 630 -40 640 air" > /dev/null
+rcon "fill 485 -60 485 507 -36 535 air" "fill 508 -60 485 535 -49 535 air" "fill 508 -48 485 535 -36 535 air" "fill 485 -61 485 535 -61 535 grass_block" \
+     "fill 580 -61 580 630 -51 610 air" "fill 580 -50 580 630 -40 610 air" "fill 580 -61 611 630 -51 640 air" "fill 580 -50 611 630 -40 640 air" > /dev/null
 sleep 2
 
 # ---- F: forest (beds 495,-60,495 and 492,-60,505; trees east and south of them) ----

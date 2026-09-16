@@ -1,0 +1,18 @@
+forceload add 1595 1585 1625 1625
+time set day
+weather clear
+kill @e[type=goblinlabour:goblin,x=1593,y=-64,z=1583,dx=40,dy=30,dz=45]
+kill @e[type=item,x=1593,y=-64,z=1583,dx=40,dy=30,dz=45]
+kill @e[type=minecraft:slime]
+fill 1595 -60 1586 1620 -50 1620 air
+fill 1595 -61 1586 1620 -61 1620 grass_block
+setblock 1596 -60 1590 goblinlabour:goblin_straw_bed[facing=north]
+setblock 1598 -60 1590 goblinlabour:goblin_straw_bed[facing=north]
+data merge block 1596 -60 1590 {style:"miner"}
+data merge block 1598 -60 1590 {style:"miner"}
+goblinlabour spawn 1596 -60 1590 Grubnak
+goblinlabour spawn 1598 -60 1590 Snikkit
+data merge entity @e[type=goblinlabour:goblin,name=Grubnak,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Snikkit,limit=1] {NoAI:1b}
+tp @e[type=goblinlabour:goblin,name=Grubnak] 1602.5 -60 1601.5 180 0
+tp @e[type=goblinlabour:goblin,name=Snikkit] 1604.0 -60 1601.5 180 0

@@ -1,8 +1,10 @@
 package goblinlabour.menu;
 
 import goblinlabour.GoblinLabour;
+import goblinlabour.item.GoblinStaffItem;
 import goblinlabour.job.Assignment;
 import goblinlabour.staff.StaffSelection;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
@@ -45,9 +47,15 @@ public class StaffMenu extends AbstractContainerMenu {
                     Mth.clamp(targetY, data.minY(), data.pos().getY()), stairs);
             case DIG_UP -> new Assignment(Assignment.Kind.DIG_UP, data.pos(), Direction.NORTH, oddWidth(width), 0, 0,
                     Mth.clamp(targetY, data.pos().getY(), data.maxY()), stairs);
-            case TUNNEL -> new Assignment(Assignment.Kind.TUNNEL, data.pos(), data.face().getOpposite(),
-                    Mth.clamp(width, 1, 5), Mth.clamp(height, 2, 5), Mth.clamp(length, 4, 96), data.pos().getY(), false);
+            case TUNNEL -> tunnel(Mth.clamp(width, 1, 5), Mth.clamp(height, 1, 5), Mth.clamp(length, 4, 96));
         };
+    }
+
+    /** A tunnel order; the origin is the bottom middle of the cross-section (see GoblinStaffItem.tunnelOrigin). */
+    private Assignment tunnel(int width, int height, int length) {
+        BlockPos origin = GoblinStaffItem.tunnelOrigin(data.pos(), height);
+        return new Assignment(Assignment.Kind.TUNNEL, origin, data.face().getOpposite(), width, height, length,
+                origin.getY(), false);
     }
 
     private static int oddWidth(int width) {

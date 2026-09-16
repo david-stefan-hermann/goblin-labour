@@ -21,7 +21,7 @@ import java.util.function.Consumer;
  * screen opener; on the server the item does nothing.
  */
 public class GoblinHandbookItem extends Item {
-    public static final int PAGE_COUNT = 11;
+    public static final int PAGE_COUNT = 13;
     private static Consumer<Player> opener = player -> { };
 
     public GoblinHandbookItem(Properties properties) {

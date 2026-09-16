@@ -32,24 +32,32 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Per-goblin work loop (Minions Remastered's goalTick, one goblin at a time): pick a block, walk there, swing until
- * it breaks (or until the stair step is placed), collect, repeat. Extras: scaffold climbing for high targets (see
+ * Per-goblin work loop (Minions Remastered's goalTick, one goblin at a time): pick a block, walk to where it is in
+ * reach and in sight, swing until it breaks (or until the stair step is placed), pick up the drops, repeat. Extras:
+ * scaffold climbing for high targets (see
  * {@link Climber}), unloading into the flat's goblin chests when the storage is full (waiting in bed when nothing
  * fits), picking up loose items for the collect job, and a "no exit" check. Tool choice and the rules live in
  * {@link Mining}; what comes next is the job's business.
  */
 public final class JobRunner {
     /** Distance (squared) from the eyes at which the goblin swings instead of walking. */
-    private static final double REACH_SQ = 4.5 * 4.5;
-    private static final double COMFORT_REACH_SQ = 3.5 * 3.5;
+    private static final double REACH_SQ = 3.5 * 3.5;
+    private static final double COMFORT_REACH_SQ = 2.75 * 2.75;
     private static final double CHEST_REACH_SQ = 2.5 * 2.5;
     private static final int CHEST_OPEN_TICKS = 16;
     private static final double PICKUP_SQ = 1.5 * 1.5;
+    /** Own drops further away than this are left for later (e.g. while unloading at home). */
+    private static final double LOOT_RANGE_SQ = 32.0 * 32.0;
+    private static final int BREAK_HISTORY = 16;
+    /** A job is not done while own drops younger than this are still on their way down. */
+    private static final int FRESH_DROP_TICKS = 100;
     /** Targets more than this far above the eyes are reached by stacking scaffold. */
     private static final double CLIMB_MIN_DY = 1.5;
     /** How far beside a high target a scaffold column may stand, and how many of those spots get a path check. */
@@ -86,6 +94,10 @@ public final class JobRunner {
     @Nullable private BlockPos openChest;
     private long chestCloseAt;
     @Nullable private ItemEntity itemTarget;
+    /** What the goblin's own breaking dropped; it picks these up between two blocks. */
+    private final List<ItemEntity> drops = new ArrayList<>();
+    /** Debug: the last broken blocks and where the goblin stood ("block@feet"). */
+    private final ArrayDeque<String> breaks = new ArrayDeque<>();
     /** The scaffold column chosen for {@link #climbFor}, the high target the goblin is climbing towards. */
     @Nullable private BlockPos climbFor;
     @Nullable private BlockPos climbColumn;
@@ -120,6 +132,12 @@ public final class JobRunner {
         return lastBrokenBlock;
     }
 
+    /** The block the goblin is working on (breaking or placing), or null. */
+    @Nullable
+    public BlockPos target() {
+        return target;
+    }
+
     /** Debug summary for the status command. */
     public String debug() {
         return "phase=" + phase + " target=" + (target == null ? "-" : target.toShortString()) + (placeState != null ? "(place)" : "")
@@ -127,9 +145,12 @@ public final class JobRunner {
                 + " progress=" + String.format(java.util.Locale.ROOT, "%.2f", progress) + " stuck=" + stuckTicks + "/" + stuckStrikes
                 + " up=" + Climber.isUp(goblin.level(), goblin) + " skipped=" + skipped.size() + " retryIn=" + retryIn
                 + " ticks=" + ticks + " branch=" + branch
+                + " sneak=" + goblin.isShiftKeyDown() + String.format(java.util.Locale.ROOT, " y=%.2f vy=%.2f", goblin.getY(), goblin.getDeltaMovement().y)
                 + " stand=" + (standSpot == null ? "-" : standSpot.toShortString())
                 + " column=" + (climbColumn == null ? "-" : climbColumn.toShortString())
-                + (goblin.level() instanceof ServerLevel level ? " " + ChopJob.debug(level, goblin) : "");
+                + " drops=" + drops.stream().filter(ItemEntity::isAlive).count()
+                + (goblin.level() instanceof ServerLevel level ? " " + ChopJob.debug(level, goblin) : "")
+                + " breaks=" + String.join(";", breaks);
     }
 
     public boolean hasPendingDeposit() {
@@ -182,7 +203,7 @@ public final class JobRunner {
     }
 
     /** One tick. {@code task} may be null when only a deposit run is pending. */
-    public void tick(ServerLevel level, GoblinBedBlockEntity bed, JobConfig config, @Nullable JobTask task) {
+    public void tick(ServerLevel level, JobHost bed, JobConfig config, @Nullable JobTask task) {
         ticks++;
         switch (phase) {
             case DEPOSIT -> tickDeposit(level, bed);
@@ -191,11 +212,11 @@ public final class JobRunner {
                 if (task == null) return;
                 if (config.job().needsAssignment() && bed.getAssignment() == null) {
                     bed.setStatus(GoblinBedBlockEntity.Status.IDLE);
-                    bed.setJob(config.withJob(Job.REST));
+                    bed.setJob(bed.afterOrder(config));
                     return;
                 }
                 if (goblin.isStorageFull()) {
-                    startDeposit(level);
+                    if (bed.hasHome()) startDeposit(level); // a ring crew goblin waits for room in its ring instead
                     return;
                 }
                 if (task instanceof CollectJob collect) tickCollect(level, bed, config, collect);
@@ -206,13 +227,14 @@ public final class JobRunner {
 
     // ---- work ----------------------------------------------------------------------------------------------------
 
-    private void tickWork(ServerLevel level, GoblinBedBlockEntity bed, JobConfig config, JobTask task) {
+    private void tickWork(ServerLevel level, JobHost bed, JobConfig config, JobTask task) {
         long now = level.getGameTime();
         skipped.values().removeIf(until -> until < now);
 
         if (target == null) {
+            if (tickLoot(level, bed, config, task, now)) return;
             if (retryIn-- > 0) return;
-            if (!exitChecked && !checkExit(level, bed, config, task)) return;
+            if (!exitChecked && bed.hasHome() && !checkExit(level, bed, config, task)) return;
             JobTask.Pick pick = task.pick(level, goblin, bed, config, skipped.keySet());
             if (pick.target() == null) {
                 boolean up = Climber.isUp(level, goblin);
@@ -237,11 +259,15 @@ public final class JobRunner {
                     if (goblin.hasStorageItems()) startDeposit(level);
                 } else if (up) {
                     goblin.climber().descend(level); // come down before calling it a day
+                } else if (!goblin.onGround() || dropsStillFalling(now)) {
+                    // mid-jump or falling: decide once it has landed (it may land on its column); the last block's
+                    // drops are picked up once they have landed, before calling it a day
+                    return;
                 } else {
                     bed.setStatus(GoblinBedBlockEntity.Status.IDLE);
                     GoblinSpeech.say(level, goblin, GoblinSpeech.random(goblin.getRandom(), GoblinSpeech.DONE), GoblinSounds.YES);
                     task.onDone(level, bed);
-                    bed.setJob(config.withJob(Job.REST));
+                    bed.setJob(bed.afterOrder(config));
                     if (goblin.hasStorageItems()) startDeposit(level);
                 }
                 return;
@@ -255,7 +281,7 @@ public final class JobRunner {
         }
 
         if (placeState != null) {
-            tickPlace(level, now);
+            tickPlace(level, bed, config, task, now);
             return;
         }
 
@@ -271,11 +297,13 @@ public final class JobRunner {
         Vec3 center = Vec3.atCenterOf(target);
         goblin.getLookControl().setLookAt(center);
         double besideX = center.x - goblin.getX(), besideZ = center.z - goblin.getZ();
+        BlockPos feetPos = goblin.blockPosition();
         if (center.y - goblin.getEyeY() > 0.5 && besideX * besideX + besideZ * besideZ <= CLIMB_BESIDE_SQ
-                && level.getBlockState(goblin.blockPosition()).is(GoblinLabour.GOBLIN_SCAFFOLD)) {
-            // half-way up a scaffold block beside the target: finish the climb onto it before swinging, or the goblin
-            // bobs at the edge of its reach (rise, in reach, stop jumping, fall, out of reach, ...). On a column
-            // further away it has to come down instead (moveTowards).
+                && climbColumn != null && feetPos.getX() == climbColumn.getX() && feetPos.getZ() == climbColumn.getZ()
+                && level.getBlockState(feetPos).is(GoblinLabour.GOBLIN_SCAFFOLD)) {
+            // half-way up a scaffold block of its column beside the target: finish the climb onto it before swinging,
+            // or the goblin bobs at the edge of its reach (rise, in reach, stop jumping, fall, out of reach, ...). On
+            // any other column it has to come down instead (moveTowards), or it climbs one it is being sent down.
             progress = 0.0f;
             level.destroyBlockProgress(goblin.getId(), target, -1);
             goblin.getNavigation().stop();
@@ -283,7 +311,8 @@ public final class JobRunner {
             goblin.getJumpControl().jump();
             return;
         }
-        if (goblin.getEyePosition().distanceToSqr(center) > REACH_SQ) {
+        // in reach is not enough: the goblin has to see the block (no reaching through stairs or round corners)
+        if (goblin.getEyePosition().distanceToSqr(center) > REACH_SQ || !Mining.canSee(level, goblin.getEyePosition(), target)) {
             progress = 0.0f;
             level.destroyBlockProgress(goblin.getId(), target, -1);
             if (!moveTowards(level, target, center, now)) clearTarget(level);
@@ -301,7 +330,9 @@ public final class JobRunner {
         level.destroyBlockProgress(goblin.getId(), target, -1);
         BlockPos broken = target;
         lastBrokenBlock = state.getBlock();
-        Mining.harvest(level, broken, state, goblin, tool);
+        drops.addAll(Mining.harvest(level, broken, state, goblin, tool));
+        if (breaks.size() >= BREAK_HISTORY) breaks.removeFirst();
+        breaks.addLast(broken.toShortString().replace(" ", "") + "@" + goblin.blockPosition().toShortString().replace(" ", ""));
         chatter(level, config.job());
         task.afterBreak(level, goblin, bed, config, broken);
         if (!Climber.isUp(level, goblin)) Mining.placeTorchIfDark(level, goblin);
@@ -310,7 +341,7 @@ public final class JobRunner {
     }
 
     /** Walks to a stair position, swings a few times, then sets the block (unless something got in the way). */
-    private void tickPlace(ServerLevel level, long now) {
+    private void tickPlace(ServerLevel level, JobHost bed, JobConfig config, JobTask task, long now) {
         BlockState current = level.getBlockState(target);
         if (!current.canBeReplaced() || placeState == null) {
             clearTarget(level);
@@ -319,13 +350,14 @@ public final class JobRunner {
         Vec3 center = Vec3.atCenterOf(target);
         goblin.getLookControl().setLookAt(center);
         AABB blockBox = new AABB(target);
-        if (goblin.getBoundingBox().intersects(blockBox)) {
-            // standing in the spot: step aside first
-            Vec3 away = goblin.position().subtract(center).multiply(1, 0, 1);
-            if (away.lengthSqr() < 0.01) away = new Vec3(1, 0, 0);
-            Vec3 aside = center.add(away.normalize().scale(1.6));
-            if (goblin.tickCount % 10 == 0) goblin.getNavigation().moveTo(aside.x, aside.y, aside.z, 0.8);
+        if (!placeState.getCollisionShape(level, target).isEmpty() && goblin.getBoundingBox().intersects(blockBox)) {
+            // standing in the spot (e.g. after picking up a drop there): step into the middle of a free block beside it
             progress = 0.0f;
+            BlockPos aside = asideSpot(level, target);
+            if (aside == null || !approachSpot(level, aside)) {
+                giveUp(target, now);
+                clearTarget(level);
+            }
             return;
         }
         if (goblin.getEyePosition().distanceToSqr(center) > REACH_SQ) {
@@ -340,6 +372,7 @@ public final class JobRunner {
         if (progress < 1.0f) return;
         level.setBlock(target, placeState, 3);
         level.playSound(null, target, placeState.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0f, 0.8f);
+        task.afterPlace(level, goblin, bed, config, target, placeState);
         target = null;
         placeState = null;
         progress = 0.0f;
@@ -396,6 +429,28 @@ public final class JobRunner {
         return headway(level, point);
     }
 
+    /** The free block around {@code pos} (its own block included, one up or down) nearest to the goblin, or null. */
+    @Nullable
+    private BlockPos asideSpot(ServerLevel level, BlockPos pos) {
+        BlockPos best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (dx == 0 && dz == 0) continue;
+                    BlockPos spot = pos.offset(dx, dy, dz);
+                    if (!standable(level, spot)) continue;
+                    double d = goblin.position().distanceToSqr(Vec3.atBottomCenterOf(spot));
+                    if (d < bestDist) {
+                        bestDist = d;
+                        best = spot;
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
     private boolean giveUp(BlockPos targetPos, long now) {
         skipped.put(targetPos, now + SKIP_TICKS);
         climbFor = null;
@@ -406,8 +461,9 @@ public final class JobRunner {
     }
 
     /**
-     * Where to stand to work on a block that is out of reach: the nearest spot around it with solid ground (not
-     * leaves or scaffold) from which the block is in reach, or null (then the goblin climbs, or walks at the block).
+     * Where to stand to work on a block that is out of reach or out of sight: the nearest spot around it with solid
+     * ground (not leaves or scaffold) from which the block is in reach and in plain sight, or null (then the goblin
+     * climbs, or walks at the block).
      * Walking at a solid block itself does not work: GroundPathNavigation lifts a solid target up to the first open
      * block above it, which sent tunnel diggers up the stairs and across the surface above their tunnel.
      */
@@ -426,7 +482,7 @@ public final class JobRunner {
                     if (!standableOnGround(level, spot)) continue;
                     Vec3 eyes = new Vec3(spot.getX() + 0.5, spot.getY() + goblin.getEyeHeight(), spot.getZ() + 0.5);
                     double reach = eyes.distanceToSqr(center);
-                    if (reach > REACH_SQ) continue;
+                    if (reach > REACH_SQ || !Mining.canSee(level, eyes, targetPos)) continue;
                     // spots well inside the reach first: at the very edge a goblin half a block off is out of reach
                     double cost = goblin.position().distanceToSqr(Vec3.atBottomCenterOf(spot)) + (reach > COMFORT_REACH_SQ ? 1000.0 : 0.0);
                     candidates.add(new Candidate(spot.immutable(), cost));
@@ -491,6 +547,9 @@ public final class JobRunner {
                 if (foot == null) continue;
                 boolean existing = Climber.isScaffold(level.getBlockState(foot));
                 double cost = (existing ? -10.0 : 0.0) + dx * dx + dz * dz + 0.05 * Math.sqrt(foot.distSqr(feet));
+                // at the top of the column the target has to be in sight (another log of a thick trunk may hide it)
+                Vec3 topEyes = new Vec3(foot.getX() + 0.5, target.getY() + 0.3, foot.getZ() + 0.5);
+                if (!Mining.canSee(level, topEyes, target)) cost += 20.0;
                 if (foot.getX() == feet.getX() && foot.getZ() == feet.getZ()) {
                     cost -= up ? 30.0 : 1.0; // already standing there, or even climbing that column
                 }
@@ -539,10 +598,30 @@ public final class JobRunner {
      * goblin gave up on this point.
      */
     private boolean approach(ServerLevel level, Vec3 point) {
+        return approach(level, point, true);
+    }
+
+    private boolean approach(ServerLevel level, Vec3 point, boolean blink) {
         PathNavigation navigation = goblin.getNavigation();
         goblin.setShiftKeyDown(false);
         if (goblin.tickCount % 10 == 0 || (navigation.isDone() && goblin.tickCount % 5 == 0)) navigation.moveTo(point.x, point.y, point.z, 1.0);
-        return headway(level, point);
+        return blink ? headway(level, point) : headwayNoBlink(point);
+    }
+
+    /** Like {@link #headway} without blinking: false as soon as the goblin made no headway for a while. */
+    private boolean headwayNoBlink(Vec3 point) {
+        double distance = goblin.position().distanceTo(point);
+        if (headwayPoint == null || headwayPoint.distanceToSqr(point) > 0.25) {
+            headwayPoint = point;
+            headwayBest = distance;
+            stuckTicks = 0;
+        }
+        if (distance < headwayBest - 0.3) {
+            headwayBest = distance;
+            stuckTicks = 0;
+            return true;
+        }
+        return ++stuckTicks <= STUCK_TICKS;
     }
 
     /**
@@ -569,10 +648,80 @@ public final class JobRunner {
         return true;
     }
 
+    // ---- loot ----------------------------------------------------------------------------------------------------
+
+    /**
+     * Between two blocks, while on the ground: walk over to the nearest drop of its own (or loose item the job wants,
+     * see {@link JobTask#lootArea}) and pick it up. Returns true while busy with that. Up on a column the goblin goes
+     * on working; the drops wait until it comes down.
+     */
+    private boolean tickLoot(ServerLevel level, JobHost bed, JobConfig config, JobTask task, long now) {
+        skippedItems.values().removeIf(until -> until < now);
+        if (itemTarget != null && (!itemTarget.isAlive() || !goblin.canStore(itemTarget.getItem()))) itemTarget = null;
+        if (itemTarget == null) {
+            if (goblin.isStorageFull() || Climber.isUp(level, goblin)) return false;
+            itemTarget = nextLoot(level, bed, config, task, now);
+            if (itemTarget == null) return false;
+            stuckTicks = 0;
+            headwayPoint = null;
+        }
+        branch = "loot";
+        Vec3 point = itemTarget.position();
+        goblin.getLookControl().setLookAt(point);
+        if (goblin.distanceToSqr(point) <= PICKUP_SQ) {
+            goblin.getNavigation().stop();
+            if (itemTarget.hasPickUpDelay()) return true; // still popping out of the block
+            goblin.pickUp(itemTarget);
+            itemTarget = null;
+            return true;
+        }
+        if (!approach(level, point, false)) {
+            skippedItems.put(itemTarget.getId(), now + SKIP_TICKS);
+            itemTarget = null;
+        }
+        return true;
+    }
+
+    /** Own fresh drops (up to five seconds old) that the goblin could still fetch once they land. */
+    private boolean dropsStillFalling(long now) {
+        drops.removeIf(item -> !item.isAlive());
+        for (ItemEntity item : drops) {
+            if (item.getAge() < FRESH_DROP_TICKS && !skippedItems.containsKey(item.getId()) && goblin.canStore(item.getItem())
+                    && goblin.distanceToSqr(item) < LOOT_RANGE_SQ) return true;
+        }
+        return false;
+    }
+
+    @Nullable
+    private ItemEntity nextLoot(ServerLevel level, JobHost bed, JobConfig config, JobTask task, long now) {
+        drops.removeIf(item -> !item.isAlive());
+        List<ItemEntity> candidates = new ArrayList<>(drops);
+        AABB area = task.lootArea(bed, config);
+        if (area != null) candidates.addAll(level.getEntitiesOfClass(ItemEntity.class, area, item -> item.isAlive() && task.wantsLoot(item.getItem())));
+        ItemEntity best = null;
+        double bestDist = LOOT_RANGE_SQ;
+        for (ItemEntity item : candidates) {
+            if (skippedItems.containsKey(item.getId()) || !goblin.canStore(item.getItem())) continue;
+            if (!item.onGround()) continue; // still falling: fetched once it has landed
+            if (HomeRegistry.isProtected(level, item.blockPosition())) continue; // loot inside a home belongs to the collectors
+            double d = goblin.distanceToSqr(item);
+            if (d < bestDist) {
+                bestDist = d;
+                best = item;
+            }
+        }
+        // drops on top of a scaffold column or on leaves cannot be walked to: leave them (and ask again next tick)
+        if (best != null && goblin.distanceToSqr(best) > PICKUP_SQ && !reachable(goblin.getNavigation(), best.blockPosition())) {
+            skippedItems.put(best.getId(), now + SKIP_TICKS);
+            return null;
+        }
+        return best;
+    }
+
     // ---- collect -------------------------------------------------------------------------------------------------
 
     /** Walks to the nearest loose item in the radius and picks it up; unloads when there is nothing left to fetch. */
-    private void tickCollect(ServerLevel level, GoblinBedBlockEntity bed, JobConfig config, CollectJob job) {
+    private void tickCollect(ServerLevel level, JobHost bed, JobConfig config, CollectJob job) {
         long now = level.getGameTime();
         skippedItems.values().removeIf(until -> until < now);
         if (itemTarget != null && (!itemTarget.isAlive() || !goblin.canStore(itemTarget.getItem()))) itemTarget = null;
@@ -621,7 +770,7 @@ public final class JobRunner {
      * Before the first block of a job: can the goblin get out of its home at all? Samples standable spots just
      * outside the flat in eight directions and a few heights; one reachable spot is enough.
      */
-    private boolean checkExit(ServerLevel level, GoblinBedBlockEntity bed, JobConfig config, JobTask task) {
+    private boolean checkExit(ServerLevel level, JobHost bed, JobConfig config, JobTask task) {
         BoundingBox flat = HomeRegistry.flatBox(level, bed.getBlockPos());
         if (!flat.isInside(goblin.blockPosition())) {
             exitChecked = true;
@@ -680,7 +829,7 @@ public final class JobRunner {
         chestTarget = null;
     }
 
-    private void tickDeposit(ServerLevel level, GoblinBedBlockEntity bed) {
+    private void tickDeposit(ServerLevel level, JobHost bed) {
         if (chestTarget == null) {
             chestTarget = findChest(level, bed);
             if (chestTarget == null) {
@@ -716,7 +865,7 @@ public final class JobRunner {
         }
         if (level.getGameTime() < chestCloseAt) return;
         goblin.swing(InteractionHand.MAIN_HAND);
-        unloadInto(level, chestTarget);
+        unloadInto(level, chestTarget, bed);
         closeChest(level);
         chestTarget = null;
     }
@@ -738,14 +887,14 @@ public final class JobRunner {
 
     /** Nearest goblin chest of the flat that accepts at least one of the carried stacks. */
     @Nullable
-    private BlockPos findChest(ServerLevel level, GoblinBedBlockEntity bed) {
+    private BlockPos findChest(ServerLevel level, JobHost bed) {
         List<BlockPos> chests = HomeRegistry.goblinChests(level, bed.getBlockPos());
         BlockPos best = null;
         double bestDist = Double.MAX_VALUE;
         for (BlockPos chest : chests) {
             if (skipped.containsKey(chest)) continue;
             Storage<ItemVariant> storage = ItemStorage.SIDED.find(level, chest, Direction.UP);
-            if (storage == null || !acceptsAnything(storage)) continue;
+            if (storage == null || !acceptsAnything(storage, bed)) continue;
             double d = goblin.distanceToSqr(Vec3.atCenterOf(chest));
             if (d < bestDist) {
                 bestDist = d;
@@ -755,25 +904,44 @@ public final class JobRunner {
         return best;
     }
 
-    private boolean acceptsAnything(Storage<ItemVariant> storage) {
+    private boolean acceptsAnything(Storage<ItemVariant> storage, JobHost bed) {
         SimpleContainer inv = goblin.getInventory();
+        int[] unload = unloadCounts(bed);
         for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) {
             ItemStack stack = inv.getItem(i);
-            if (stack.isEmpty()) continue;
-            if (StorageUtil.simulateInsert(storage, ItemVariant.of(stack), stack.getCount(), null) > 0) return true;
+            if (stack.isEmpty() || unload[i] <= 0) continue;
+            if (StorageUtil.simulateInsert(storage, ItemVariant.of(stack), unload[i], null) > 0) return true;
         }
         return false;
     }
 
-    private void unloadInto(ServerLevel level, BlockPos chest) {
+    /** Per slot, how many items go into the chest: all, minus what the job keeps (a lumberjack's saplings). */
+    private int[] unloadCounts(JobHost bed) {
+        SimpleContainer inv = goblin.getInventory();
+        int[] counts = new int[GoblinEntity.INVENTORY_SIZE];
+        JobTask task = JobTask.of(bed.getJob().job());
+        Map<net.minecraft.world.item.Item, Integer> kept = new HashMap<>();
+        for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) {
+            ItemStack stack = inv.getItem(i);
+            if (stack.isEmpty()) continue;
+            int keep = task == null ? 0 : Math.max(0, task.keepOnUnload(bed.getJob(), stack) - kept.getOrDefault(stack.getItem(), 0));
+            keep = Math.min(keep, stack.getCount());
+            kept.merge(stack.getItem(), keep, Integer::sum);
+            counts[i] = stack.getCount() - keep;
+        }
+        return counts;
+    }
+
+    private void unloadInto(ServerLevel level, BlockPos chest, JobHost bed) {
         Storage<ItemVariant> storage = ItemStorage.SIDED.find(level, chest, Direction.UP);
         if (storage == null) return;
         SimpleContainer inv = goblin.getInventory();
+        int[] unload = unloadCounts(bed);
         try (Transaction tx = Transaction.openOuter()) {
             for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.isEmpty()) continue;
-                long inserted = storage.insert(ItemVariant.of(stack), stack.getCount(), tx);
+                if (stack.isEmpty() || unload[i] <= 0) continue;
+                long inserted = storage.insert(ItemVariant.of(stack), unload[i], tx);
                 if (inserted > 0) {
                     stack.shrink((int) inserted);
                     if (stack.isEmpty()) inv.setItem(i, ItemStack.EMPTY);

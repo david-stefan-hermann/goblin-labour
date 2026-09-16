@@ -14,7 +14,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Bed settings: rest, chop, farm or collect and the radius for the working jobs. Dig orders come from the Goblin
+ * Bed settings: rest, chop, farm or collect, the radius for the working jobs and replanting for lumberjacks. Dig orders come from the Goblin
  * Staff. No slots; the state travels as ContainerData and the buttons arrive as {@link #clickMenuButton} ids.
  */
 public class GoblinBedMenu extends AbstractContainerMenu {
@@ -25,7 +25,8 @@ public class GoblinBedMenu extends AbstractContainerMenu {
     public static final int DATA_RADIUS = 1;
     public static final int DATA_STATUS = 2;
     public static final int DATA_HAS_GOBLIN = 3;
-    public static final int DATA_COUNT = 4;
+    public static final int DATA_REPLANT = 4;
+    public static final int DATA_COUNT = 5;
 
     public static final int BUTTON_REST = 0;
     public static final int BUTTON_CHOP = 1;
@@ -33,6 +34,7 @@ public class GoblinBedMenu extends AbstractContainerMenu {
     public static final int BUTTON_COLLECT = 3;
     public static final int BUTTON_RADIUS_DOWN = 10;
     public static final int BUTTON_RADIUS_UP = 11;
+    public static final int BUTTON_REPLANT = 12;
 
     public final GoblinBedMenuData data;
     @Nullable private final GoblinBedBlockEntity bed;
@@ -71,6 +73,10 @@ public class GoblinBedMenu extends AbstractContainerMenu {
         return values.get(DATA_HAS_GOBLIN) != 0;
     }
 
+    public boolean replant() {
+        return values.get(DATA_REPLANT) != 0;
+    }
+
     @Override
     public boolean clickMenuButton(Player player, int id) {
         if (bed == null) return false;
@@ -82,11 +88,15 @@ public class GoblinBedMenu extends AbstractContainerMenu {
             case BUTTON_COLLECT -> config = config.withJob(Job.COLLECT);
             case BUTTON_RADIUS_DOWN -> config = config.withLength(config.length() - 4);
             case BUTTON_RADIUS_UP -> config = config.withLength(config.length() + 4);
+            case BUTTON_REPLANT -> config = config.withReplant(!config.replant());
             default -> {
                 return false;
             }
         }
-        if (config.job() != bed.getJob().job() && !config.job().needsAssignment()) bed.setAssignment(null);
+        if (config.job() != bed.getJob().job() && !config.job().needsAssignment()) {
+            bed.setAssignment(null);
+            bed.forgetJobBefore(); // the player picked a job by hand, so there is nothing to go back to
+        }
         bed.setJob(config);
         return true;
     }
@@ -112,6 +122,7 @@ public class GoblinBedMenu extends AbstractContainerMenu {
                     case DATA_RADIUS -> job.length();
                     case DATA_STATUS -> bed.getStatus().ordinal();
                     case DATA_HAS_GOBLIN -> bed.hasGoblin() ? 1 : 0;
+                    case DATA_REPLANT -> job.replant() ? 1 : 0;
                     default -> 0;
                 };
             }
