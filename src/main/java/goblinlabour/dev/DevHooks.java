@@ -47,6 +47,12 @@ public final class DevHooks {
                     devRingStaff(server.overworld(), player);
                     continue;
                 }
+                if (menuEndsWith(",churn") && menuBed != null
+                        && server.overworld().getBlockEntity(menuBed) instanceof goblinlabour.block.MilkChurnBlockEntity churn) {
+                    player.openMenu(churn); // -Dgoblinlabour.dev.menu=x,y,z,churn: the Milk Churn screen at x,y,z
+                    GoblinLabour.LOGGER.info("Dev view: opened the Milk Churn at {}", menuBed);
+                    continue;
+                }
                 if (menuEndsWith(",ring") || menuEndsWith(",ringmenu")) {
                     devRing(server.overworld(), player, menuEndsWith(",ringmenu"));
                     continue;

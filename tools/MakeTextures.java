@@ -31,6 +31,66 @@ public class MakeTextures {
     static final Map<Character, Integer> HEAD_COLORS = Map.of(
             'G', 0x6BB04E, 'E', 0x55913D, 'Y', 0xF2D14B, 'B', 0x1C1C1C, 'N', 0x3E6E2C, 'D', 0x2B1B12, 'W', 0xEDE6D2);
 
+    /** Milk Churn: a grey metal tank with dark bands, rivets and a glass window (half transparent). */
+    static final String[] CHURN_SIDE = {
+            "DDDDDDDDDDDDDDDD",
+            "dRdddddddddddRdd",
+            "MMMMMMMMMMMMMMMM",
+            "MmMMMMFFFFMMMMmM",
+            "MmMMMMFgGFMMMMmM",
+            "MmMMMMFGGFMMMMmM",
+            "MmMMMMFgGFMMMMmM",
+            "DDDDDDFGGFDDDDDD",
+            "dRddddFGGFdddRdd",
+            "MmMMMMFGgFMMMMmM",
+            "MmMMMMFGGFMMMMmM",
+            "MmMMMMFgGFMMMMmM",
+            "MmMMMMFFFFMMMMmM",
+            "MMMMMMMMMMMMMMMM",
+            "DDDDDDDDDDDDDDDD",
+            "dRdddddddddddRdd",
+    };
+    static final String[] CHURN_TOP = {
+            "DDDDDDDDDDDDDDDD",
+            "DMMMMMMMMMMMMMMD",
+            "DMmmmmmmmmmmmmMD",
+            "DMmMMMMMMMMMMmMD",
+            "DMmMMMMddMMMMmMD",
+            "DMmMMMdHHdMMMmMD",
+            "DMmMMdHhhHdMMmMD",
+            "DMmMdHhFFhHdMmMD",
+            "DMmMdHhFFhHdMmMD",
+            "DMmMMdHhhHdMMmMD",
+            "DMmMMMdHHdMMMmMD",
+            "DMmMMMMddMMMMmMD",
+            "DMmMMMMMMMMMMmMD",
+            "DMmmmmmmmmmmmmMD",
+            "DMMMMMMMMMMMMMMD",
+            "DDDDDDDDDDDDDDDD",
+    };
+    static final String[] CHURN_BOTTOM = {
+            "DDDDDDDDDDDDDDDD",
+            "DddddddddddddddD",
+            "DdMMMMMMMMMMMMdD",
+            "DdMddddddddddMdD",
+            "DdMdMMMMMMMMdMdD",
+            "DdMdMddddddMdMdD",
+            "DdMdMdMMMMdMdMdD",
+            "DdMdMdMddMdMdMdD",
+            "DdMdMdMddMdMdMdD",
+            "DdMdMdMMMMdMdMdD",
+            "DdMdMddddddMdMdD",
+            "DdMdMMMMMMMMdMdD",
+            "DdMddddddddddMdD",
+            "DdMMMMMMMMMMMMdD",
+            "DddddddddddddddD",
+            "DDDDDDDDDDDDDDDD",
+    };
+    /** ARGB: the glass is half transparent. */
+    static final Map<Character, Integer> CHURN_COLORS = Map.of(
+            'M', 0xFF9AA0A6, 'm', 0xFFB7BCC1, 'D', 0xFF5C6166, 'd', 0xFF484C50, 'R', 0xFFD0D4D8,
+            'F', 0xFF3E4246, 'G', 0x78C4CCD4, 'g', 0x9CE6ECF0, 'H', 0xFF6E7378, 'h', 0xFF83898E);
+
     static final String[] MEAT = {
             "................",
             "................",
@@ -143,7 +203,26 @@ public class MakeTextures {
         // the mod icon (icon.png) comes from tools/MakeLogo.java
         save(render(MEAT, MEAT_COLORS), ASSETS + "textures/item/goblin_meat_pack.png");
         save(render(BLANK, BLANK_COLORS), ASSETS + "textures/item/goblin_blank.png");
+        save(renderArgb(CHURN_SIDE, CHURN_COLORS), ASSETS + "textures/block/milk_churn_side.png");
+        save(renderArgb(CHURN_TOP, CHURN_COLORS), ASSETS + "textures/block/milk_churn_top.png");
+        save(renderArgb(CHURN_BOTTOM, CHURN_COLORS), ASSETS + "textures/block/milk_churn_bottom.png");
         System.out.println("Textures written");
+    }
+
+    /** Like {@link #render}, but the colours carry their own alpha and there is no outline. */
+    static BufferedImage renderArgb(String[] rows, Map<Character, Integer> colors) {
+        int size = rows.length;
+        BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                char c = rows[y].charAt(x);
+                if (c == '.') continue;
+                Integer argb = colors.get(c);
+                if (argb == null) throw new IllegalArgumentException("No colour for '" + c + "'");
+                img.setRGB(x, y, argb);
+            }
+        }
+        return img;
     }
 
     static BufferedImage render(String[] rows, Map<Character, Integer> colors) {

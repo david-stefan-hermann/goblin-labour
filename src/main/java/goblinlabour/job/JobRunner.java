@@ -4,6 +4,7 @@ import goblinlabour.GoblinLabour;
 import goblinlabour.GoblinSounds;
 import goblinlabour.GoblinSpeech;
 import goblinlabour.block.GoblinBedBlockEntity;
+import goblinlabour.block.MilkChurnBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.home.HomeRegistry;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
@@ -15,6 +16,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
@@ -24,6 +26,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -73,6 +76,9 @@ public final class JobRunner {
     /** The exit check must fail this often in a row (100 ticks apart) before the goblin complains. */
     private static final int EXIT_FAILURES_TO_REPORT = 2;
     private static final float PLACE_PROGRESS_PER_TICK = 0.1f;
+    /** A use (milking, shearing, picking) takes a second of swinging, from this close (eyes to the point). */
+    private static final float USE_PROGRESS_PER_TICK = 0.05f;
+    private static final double USE_REACH_SQ = 2.75 * 2.75;
     private static final int PICK_RETRY_TICKS = 20;
     private static final int ENDLESS_RETRY_TICKS = 100;
     private static final int COLLECT_RETRY_TICKS = 40;
@@ -91,6 +97,8 @@ public final class JobRunner {
     private Phase phase = Phase.WORK;
     @Nullable private BlockPos target;
     @Nullable private BlockState placeState;
+    /** Set instead of a block to break: something to do in reach (see {@link JobTask.Use}). */
+    @Nullable private JobTask.Use use;
     @Nullable private BlockPos chestTarget;
     /** The chest the goblin holds open while unloading, and when it lets go. */
     @Nullable private BlockPos openChest;
@@ -122,6 +130,7 @@ public final class JobRunner {
     @Nullable private Vec3 headwayPoint;
     private double headwayBest;
     @Nullable private Block lastBrokenBlock;
+    @Nullable private BlockState lastBrokenState;
     private final Map<BlockPos, Long> skipped = new HashMap<>();
     private final Map<Integer, Long> skippedItems = new HashMap<>();
     private final Map<String, Long> lastSaid = new HashMap<>();
@@ -136,6 +145,12 @@ public final class JobRunner {
         return lastBrokenBlock;
     }
 
+    /** The state of the block broken last (a cocoa pod's facing, for replanting it). */
+    @Nullable
+    public BlockState lastBrokenState() {
+        return lastBrokenState;
+    }
+
     /** The block the goblin is working on (breaking or placing), or null. */
     @Nullable
     public BlockPos target() {
@@ -144,7 +159,7 @@ public final class JobRunner {
 
     /** Debug summary for the status command. */
     public String debug() {
-        return "phase=" + phase + " target=" + (target == null ? "-" : target.toShortString()) + (placeState != null ? "(place)" : "")
+        return "phase=" + phase + " target=" + (target == null ? "-" : target.toShortString()) + (placeState != null ? "(place)" : "") + (use != null ? "(use)" : "")
                 + (itemTarget != null ? " item=" + itemTarget.getItem().getItem() : "")
                 + " progress=" + String.format(java.util.Locale.ROOT, "%.2f", progress) + " stuck=" + stuckTicks + "/" + stuckStrikes
                 + " up=" + Climber.isUp(goblin.level(), goblin) + " skipped=" + skipped.size() + " retryIn=" + retryIn
@@ -196,9 +211,10 @@ public final class JobRunner {
     }
 
     private void clearTarget(ServerLevel level) {
-        if (target != null && placeState == null) level.destroyBlockProgress(goblin.getId(), target, -1);
+        if (target != null && placeState == null && use == null) level.destroyBlockProgress(goblin.getId(), target, -1);
         target = null;
         placeState = null;
+        use = null;
         progress = 0.0f;
         climbFor = null;
         climbColumn = null;
@@ -273,7 +289,7 @@ public final class JobRunner {
                 if (pick.verdict() == Mining.Verdict.NEEDS_TOOL) {
                     retryIn = PICK_RETRY_TICKS;
                     bed.setStatus(GoblinBedBlockEntity.Status.BLOCKED);
-                    say(level, GoblinSpeech.NO_TOOL);
+                    say(level, pick == JobTask.Pick.NEEDS_HOE ? GoblinSpeech.NO_HOE : GoblinSpeech.NO_TOOL);
                 } else if (pick == JobTask.Pick.RETRY) {
                     // only blocks the goblin could not get to are left for now; they come back after the skip time
                     if (up) {
@@ -306,6 +322,7 @@ public final class JobRunner {
             }
             target = pick.target();
             placeState = pick.place();
+            use = pick.use();
             progress = 0.0f;
             stuckTicks = 0;
             stuckStrikes = 0;
@@ -314,6 +331,10 @@ public final class JobRunner {
 
         if (placeState != null) {
             tickPlace(level, bed, config, task, now);
+            return;
+        }
+        if (use != null) {
+            tickUse(level, config, now);
             return;
         }
 
@@ -363,6 +384,7 @@ public final class JobRunner {
         level.destroyBlockProgress(goblin.getId(), target, -1);
         BlockPos broken = target;
         lastBrokenBlock = state.getBlock();
+        lastBrokenState = state;
         drops.addAll(Mining.harvest(level, broken, state, goblin, tool));
         if (breaks.size() >= BREAK_HISTORY) breaks.removeFirst();
         breaks.addLast(broken.toShortString().replace(" ", "") + "@" + goblin.blockPosition().toShortString().replace(" ", ""));
@@ -408,6 +430,44 @@ public final class JobRunner {
         task.afterPlace(level, goblin, bed, config, target, placeState);
         target = null;
         placeState = null;
+        progress = 0.0f;
+    }
+
+    /**
+     * Walks up to an animal or a block, swings its tool for a second and does the use (milk, shear, pick berries).
+     * An animal that walks off is followed; one the goblin cannot get to is left alone for a while.
+     */
+    private void tickUse(ServerLevel level, JobConfig config, long now) {
+        Vec3 point = use.point(level);
+        if (point == null) {
+            clearTarget(level);
+            return;
+        }
+        goblin.getLookControl().setLookAt(point);
+        goblin.setItemSlot(EquipmentSlot.MAINHAND, use.tool().copy());
+        if (goblin.getEyePosition().distanceToSqr(point) > USE_REACH_SQ) {
+            progress = 0.0f;
+            branch = "use";
+            if (Climber.isUp(level, goblin)) {
+                goblin.climber().descend(level);
+                return;
+            }
+            if (!approach(level, point)) {
+                use.giveUp(level, now);
+                giveUp(target, now);
+                clearTarget(level);
+            }
+            return;
+        }
+        goblin.getNavigation().stop();
+        goblin.setShiftKeyDown(false);
+        if (progress == 0.0f || progress >= 0.5f && progress - USE_PROGRESS_PER_TICK < 0.5f) goblin.swing(InteractionHand.MAIN_HAND);
+        progress += USE_PROGRESS_PER_TICK;
+        if (progress < 1.0f) return;
+        use.apply(level, goblin);
+        chatter(level, config.job());
+        target = null;
+        use = null;
         progress = 0.0f;
     }
 
@@ -946,7 +1006,8 @@ public final class JobRunner {
 
     private void tickDeposit(ServerLevel level, JobHost bed) {
         if (chestTarget == null) {
-            chestTarget = findChest(level, bed);
+            chestTarget = findChurn(level, bed); // milk first, the rest into the chests
+            if (chestTarget == null) chestTarget = findChest(level, bed);
             if (chestTarget == null) {
                 if (goblin.isStorageFull()) {
                     phase = Phase.WAIT_ROOM;
@@ -971,6 +1032,11 @@ public final class JobRunner {
             return;
         }
         goblin.getNavigation().stop();
+        if (level.getBlockEntity(chestTarget) instanceof MilkChurnBlockEntity churn) {
+            pourMilk(level, churn);
+            chestTarget = null;
+            return;
+        }
         if (openChest == null) {
             // lift the lid (the jaw opens), rummage for a moment, then unload
             openChest(level, chestTarget);
@@ -998,6 +1064,51 @@ public final class JobRunner {
         if (level.getBlockEntity(openChest) instanceof ChestBlockEntity chest) chest.stopOpen(goblin);
         goblin.setOpenChest(null);
         openChest = null;
+    }
+
+    /** Nearest Milk Churn of the flat with room for a bucket, when the goblin carries milk; null otherwise. */
+    @Nullable
+    private BlockPos findChurn(ServerLevel level, JobHost bed) {
+        if (countStored(Items.MILK_BUCKET) == 0) return null;
+        BlockPos best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (BlockPos pos : HomeRegistry.milkChurns(level, bed.getBlockPos())) {
+            if (skipped.containsKey(pos) || !(level.getBlockEntity(pos) instanceof MilkChurnBlockEntity churn) || churn.room() == 0) continue;
+            double d = goblin.distanceToSqr(Vec3.atCenterOf(pos));
+            if (d < bestDist) {
+                bestDist = d;
+                best = pos;
+            }
+        }
+        return best;
+    }
+
+    /** Pours the carried milk buckets into the churn; the buckets are used up, what does not fit goes to the chests. */
+    private void pourMilk(ServerLevel level, MilkChurnBlockEntity churn) {
+        int poured = churn.pour(countStored(Items.MILK_BUCKET));
+        if (poured == 0) return;
+        SimpleContainer inv = goblin.getInventory();
+        int left = poured;
+        for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE && left > 0; i++) {
+            ItemStack stack = inv.getItem(i);
+            if (!stack.is(Items.MILK_BUCKET)) continue;
+            int taken = Math.min(left, stack.getCount());
+            stack.shrink(taken);
+            left -= taken;
+        }
+        inv.setChanged();
+        goblin.swing(InteractionHand.MAIN_HAND);
+        level.playSound(null, churn.getBlockPos(), SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 1.0f, 1.0f);
+    }
+
+    /** How many of an item the goblin has in its storage (not the tool row). */
+    private int countStored(net.minecraft.world.item.Item item) {
+        SimpleContainer inv = goblin.getInventory();
+        int count = 0;
+        for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) {
+            if (inv.getItem(i).is(item)) count += inv.getItem(i).getCount();
+        }
+        return count;
     }
 
     /** Nearest goblin chest of the flat that accepts at least one of the carried stacks. */

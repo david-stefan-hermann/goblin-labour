@@ -14,24 +14,52 @@ import java.util.Set;
 public interface JobTask {
     /**
      * Result of looking for the next thing to do: a block to break, a block to place ({@code place} != null,
-     * e.g. a stair step), or nothing (DONE / NEEDS_TOOL).
+     * e.g. a stair step), something to do in reach ({@code use} != null: milk a cow, pick berries), or nothing
+     * (DONE / NEEDS_TOOL).
      */
-    record Pick(@Nullable BlockPos target, Mining.Verdict verdict, @Nullable BlockState place) {
-        public static final Pick DONE = new Pick(null, Mining.Verdict.NOTHING, null);
-        public static final Pick NEEDS_TOOL = new Pick(null, Mining.Verdict.NEEDS_TOOL, null);
+    record Pick(@Nullable BlockPos target, Mining.Verdict verdict, @Nullable BlockState place, @Nullable Use use) {
+        public static final Pick DONE = new Pick(null, Mining.Verdict.NOTHING, null, null);
+        public static final Pick NEEDS_TOOL = new Pick(null, Mining.Verdict.NEEDS_TOOL, null, null);
+        /** Like NEEDS_TOOL, for a farmer with ripe crops around and no hoe. */
+        public static final Pick NEEDS_HOE = new Pick(null, Mining.Verdict.NEEDS_TOOL, null, null);
         /** Not done: the only work left is on blocks the goblin could not reach (skipped for a while). */
-        public static final Pick RETRY = new Pick(null, Mining.Verdict.NOTHING, null);
+        public static final Pick RETRY = new Pick(null, Mining.Verdict.NOTHING, null, null);
 
         public static Pick of(BlockPos pos) {
-            return new Pick(pos, Mining.Verdict.OK, null);
+            return new Pick(pos, Mining.Verdict.OK, null, null);
         }
 
         public static Pick place(BlockPos pos, BlockState state) {
-            return new Pick(pos, Mining.Verdict.OK, state);
+            return new Pick(pos, Mining.Verdict.OK, state, null);
+        }
+
+        /** {@code pos} is where the use happens now; a goblin that cannot get there skips that block for a while. */
+        public static Pick use(BlockPos pos, Use use) {
+            return new Pick(pos, Mining.Verdict.OK, null, use);
         }
 
         public boolean isPlacement() {
             return place != null;
+        }
+    }
+
+    /**
+     * Something the goblin does to a block or an animal once it is in reach and has swung its tool a few times,
+     * without breaking anything: milk a cow, shear a sheep, pick berries, tap sap.
+     */
+    interface Use {
+        /** Where to walk to and look at (an animal moves); null when the use is no longer possible. */
+        @Nullable
+        net.minecraft.world.phys.Vec3 point(ServerLevel level);
+
+        /** The tool the goblin holds while doing it. */
+        ItemStack tool();
+
+        /** Does it. */
+        void apply(ServerLevel level, GoblinEntity goblin);
+
+        /** The goblin could not get there: leave this one alone for a while (an animal is not a fixed block). */
+        default void giveUp(ServerLevel level, long now) {
         }
     }
 

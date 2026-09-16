@@ -17,6 +17,7 @@ public final class GoblinSpeech {
     public static final String INVENTORY_FULL = "No room left for my loot. Empty the chests!";
     public static final String NO_EXIT = "There's no way out of our home. Open a door for me!";
     public static final String NO_TOOL = "I can't dig through this with my bare hands. Give me a pickaxe!";
+    public static final String NO_HOE = "The crops are ripe, but I have no hoe. Give me one!";
     public static final String TOOL_BROKEN = "My tool broke. Got a spare?";
     public static final String BED_GONE = "My bed! Where's my bed?!";
     public static final String STAY = "Staying here.";
@@ -47,6 +48,7 @@ public final class GoblinSpeech {
     };
     public static final String[] WORKING_FARM = {
             "Crops grow, goblin harvest.", "Fresh veggies for master!", "Me like farming. Quiet.", "Snip snip, pluck pluck!",
+            "Moo moo, milk for master!", "Fluffy sheep, cold sheep now.", "Berries! One for me... no, all for master.",
     };
 
     public static final String[] WORKING_COLLECT = {

@@ -27,6 +27,7 @@ public final class GoblinLabourClient implements ClientModInitializer {
         MenuScreens.register(GoblinLabour.BED_MENU, GoblinBedScreen::new);
         MenuScreens.register(GoblinLabour.STAFF_MENU, StaffScreen::new);
         MenuScreens.register(GoblinLabour.RING_MENU, RingScreen::new);
+        MenuScreens.register(GoblinLabour.MILK_CHURN_MENU, MilkChurnScreen::new);
         ClientTickEvents.END_CLIENT_TICK.register(HomeZoneParticles::tick);
         GoblinHandbookItem.setOpener(player -> Minecraft.getInstance().gui.setScreen(
                 new BookViewScreen(new BookViewScreen.BookAccess(GoblinHandbookItem.pages()))));

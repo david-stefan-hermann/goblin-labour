@@ -15,7 +15,8 @@ import org.joml.Vector3f;
 
 /**
  * The goblin look shared by all screens: a moss-green panel in vanilla's panel pixel layout, darker slots, and a
- * flat green button. Everything is drawn with rectangles, no textures.
+ * flat green button. Everything is drawn with rectangles, no textures. The Milk Churn is the one screen in vanilla
+ * grey ({@link Palette#GREY}).
  */
 public final class GoblinUi {
     public static final int PANEL = 0xFF6FA35F;
@@ -37,38 +38,65 @@ public final class GoblinUi {
     public static final int BUTTON_TEXT = 0xFFFFFFFF;
     public static final int BUTTON_TEXT_OFF = 0xFFC9D6C6;
 
+    /** The colours of a panel and its slots. */
+    public record Palette(int panel, int border, int light, int shadow, int slot, int slotDark, int label) {
+        public static final Palette GREEN = new Palette(PANEL, BORDER, LIGHT, SHADOW, SLOT, SLOT_DARK, LABEL);
+        /** Vanilla's container grey. */
+        public static final Palette GREY = new Palette(0xFFC6C6C6, 0xFF000000, 0xFFFFFFFF, 0xFF555555, 0xFF8B8B8B, 0xFF373737, 0xFF404040);
+    }
+
     private GoblinUi() {
     }
 
     /** Vanilla container panel: transparent corner pixels, 1 px black border, 2 px highlight, 2 px shadow. */
     public static void drawPanel(GuiGraphicsExtractor graphics, int x0, int y0, int w, int h) {
+        drawPanel(graphics, x0, y0, w, h, Palette.GREEN, null);
+    }
+
+    /**
+     * A panel in the given colours with an optional {@code hole} (absolute x0, y0, x1, y1) left unpainted, through
+     * which the dimmed world shows (a tank gauge).
+     */
+    public static void drawPanel(GuiGraphicsExtractor graphics, int x0, int y0, int w, int h, Palette colours, int[] hole) {
         int x1 = x0 + w;
         int y1 = y0 + h;
-        graphics.fill(x0 + 1, y0 + 1, x1 - 1, y1 - 1, PANEL);
-        graphics.fill(x0 + 2, y0, x1 - 2, y0 + 1, BORDER);
-        graphics.fill(x0 + 2, y1 - 1, x1 - 2, y1, BORDER);
-        graphics.fill(x0, y0 + 2, x0 + 1, y1 - 2, BORDER);
-        graphics.fill(x1 - 1, y0 + 2, x1, y1 - 2, BORDER);
-        graphics.fill(x0 + 1, y0 + 1, x0 + 2, y0 + 2, BORDER);
-        graphics.fill(x1 - 2, y0 + 1, x1 - 1, y0 + 2, BORDER);
-        graphics.fill(x0 + 1, y1 - 2, x0 + 2, y1 - 1, BORDER);
-        graphics.fill(x1 - 2, y1 - 2, x1 - 1, y1 - 1, BORDER);
-        graphics.fill(x0 + 2, y0 + 1, x1 - 3, y0 + 2, LIGHT);
-        graphics.fill(x0 + 1, y0 + 2, x1 - 3, y0 + 3, LIGHT);
-        graphics.fill(x0 + 1, y0 + 3, x0 + 3, y1 - 3, LIGHT);
-        graphics.fill(x0 + 3, y0 + 3, x0 + 4, y0 + 4, LIGHT);
-        graphics.fill(x0 + 3, y1 - 2, x1 - 2, y1 - 1, SHADOW);
-        graphics.fill(x0 + 3, y1 - 3, x1 - 1, y1 - 2, SHADOW);
-        graphics.fill(x1 - 3, y0 + 3, x1 - 1, y1 - 3, SHADOW);
-        graphics.fill(x1 - 4, y1 - 4, x1 - 3, y1 - 3, SHADOW);
+        if (hole == null) {
+            graphics.fill(x0 + 1, y0 + 1, x1 - 1, y1 - 1, colours.panel());
+        } else {
+            graphics.fill(x0 + 1, y0 + 1, x1 - 1, hole[1], colours.panel());
+            graphics.fill(x0 + 1, hole[3], x1 - 1, y1 - 1, colours.panel());
+            graphics.fill(x0 + 1, hole[1], hole[0], hole[3], colours.panel());
+            graphics.fill(hole[2], hole[1], x1 - 1, hole[3], colours.panel());
+        }
+        int border = colours.border(), light = colours.light(), shadow = colours.shadow();
+        graphics.fill(x0 + 2, y0, x1 - 2, y0 + 1, border);
+        graphics.fill(x0 + 2, y1 - 1, x1 - 2, y1, border);
+        graphics.fill(x0, y0 + 2, x0 + 1, y1 - 2, border);
+        graphics.fill(x1 - 1, y0 + 2, x1, y1 - 2, border);
+        graphics.fill(x0 + 1, y0 + 1, x0 + 2, y0 + 2, border);
+        graphics.fill(x1 - 2, y0 + 1, x1 - 1, y0 + 2, border);
+        graphics.fill(x0 + 1, y1 - 2, x0 + 2, y1 - 1, border);
+        graphics.fill(x1 - 2, y1 - 2, x1 - 1, y1 - 1, border);
+        graphics.fill(x0 + 2, y0 + 1, x1 - 3, y0 + 2, light);
+        graphics.fill(x0 + 1, y0 + 2, x1 - 3, y0 + 3, light);
+        graphics.fill(x0 + 1, y0 + 3, x0 + 3, y1 - 3, light);
+        graphics.fill(x0 + 3, y0 + 3, x0 + 4, y0 + 4, light);
+        graphics.fill(x0 + 3, y1 - 2, x1 - 2, y1 - 1, shadow);
+        graphics.fill(x0 + 3, y1 - 3, x1 - 1, y1 - 2, shadow);
+        graphics.fill(x1 - 3, y0 + 3, x1 - 1, y1 - 3, shadow);
+        graphics.fill(x1 - 4, y1 - 4, x1 - 3, y1 - 3, shadow);
     }
 
     public static void drawSlot(GuiGraphicsExtractor graphics, int x, int y, int fill) {
+        drawSlot(graphics, x, y, fill, Palette.GREEN);
+    }
+
+    public static void drawSlot(GuiGraphicsExtractor graphics, int x, int y, int fill, Palette colours) {
         graphics.fill(x, y, x + 18, y + 18, fill);
-        graphics.fill(x, y, x + 17, y + 1, SLOT_DARK);
-        graphics.fill(x, y, x + 1, y + 17, SLOT_DARK);
-        graphics.fill(x + 1, y + 17, x + 18, y + 18, LIGHT);
-        graphics.fill(x + 17, y + 1, x + 18, y + 18, LIGHT);
+        graphics.fill(x, y, x + 17, y + 1, colours.slotDark());
+        graphics.fill(x, y, x + 1, y + 17, colours.slotDark());
+        graphics.fill(x + 1, y + 17, x + 18, y + 18, colours.light());
+        graphics.fill(x + 17, y + 1, x + 18, y + 18, colours.light());
     }
 
     /** A flat green button with an optional tooltip. */

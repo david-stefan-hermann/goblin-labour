@@ -97,6 +97,12 @@ public final class GoblinCommand {
                                         .then(Commands.argument("radius", IntegerArgumentType.integer(4, 64))
                                                 .executes(ctx -> job(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed"),
                                                         StringArgumentType.getString(ctx, "job"), IntegerArgumentType.getInteger(ctx, "radius")))))))
+                .then(Commands.literal("churn")
+                        .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                .executes(ctx -> churn(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"), -1))
+                                .then(Commands.argument("milk", IntegerArgumentType.integer(0, goblinlabour.block.MilkChurnBlockEntity.CAPACITY))
+                                        .executes(ctx -> churn(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"),
+                                                IntegerArgumentType.getInteger(ctx, "milk"))))))
                 .then(Commands.literal("replant")
                         .then(Commands.argument("bed", BlockPosArgument.blockPos())
                                 .then(Commands.argument("on", BoolArgumentType.bool())
@@ -263,6 +269,24 @@ public final class GoblinCommand {
         JobConfig set = config;
         source.sendSuccess(() -> Component.literal("Job at " + pos.toShortString() + ": " + set), true);
         return 1;
+    }
+
+    /** Dev: shows a Milk Churn's milk and slots, or sets its milk (mB) when {@code milk} is not negative. */
+    private static int churn(CommandSourceStack source, BlockPos pos, int milk) {
+        if (!(source.getLevel().getBlockEntity(pos) instanceof goblinlabour.block.MilkChurnBlockEntity churn)) {
+            source.sendFailure(Component.literal("No Milk Churn at " + pos.toShortString()));
+            return 0;
+        }
+        if (milk >= 0) churn.setMilk(milk);
+        String slots = " input=" + stackText(churn.getItem(goblinlabour.block.MilkChurnBlockEntity.INPUT))
+                + " output=" + stackText(churn.getItem(goblinlabour.block.MilkChurnBlockEntity.OUTPUT));
+        source.sendSuccess(() -> Component.literal("Milk Churn at " + pos.toShortString() + ": milk=" + churn.getMilk()
+                + " / " + goblinlabour.block.MilkChurnBlockEntity.CAPACITY + " mB" + slots), true);
+        return 1;
+    }
+
+    private static String stackText(net.minecraft.world.item.ItemStack stack) {
+        return stack.isEmpty() ? "-" : stack.getCount() + "x" + net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
     }
 
     private static int replant(CommandSourceStack source, BlockPos pos, boolean on) {

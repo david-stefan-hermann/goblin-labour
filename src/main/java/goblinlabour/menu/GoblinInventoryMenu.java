@@ -85,10 +85,11 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
         return goblin;
     }
 
-    /** What the tool row holds: tools, and saplings for a lumberjack to plant. */
+    /** What the tool row holds: tools, saplings for a lumberjack to plant, and a farmer's bucket, shears, treetap and cocoa beans. */
     public static boolean mayCarryInToolRow(ItemStack stack) {
         return stack.is(ItemTags.PICKAXES) || stack.is(ItemTags.AXES) || stack.is(ItemTags.SHOVELS)
-                || stack.is(ItemTags.HOES) || stack.is(ItemTags.SWORDS) || stack.is(ItemTags.SAPLINGS);
+                || stack.is(ItemTags.HOES) || stack.is(ItemTags.SWORDS) || stack.is(ItemTags.SAPLINGS)
+                || goblinlabour.job.FarmJob.isFarmTool(stack);
     }
 
     public boolean isToolSlot(Slot slot) {

@@ -1,10 +1,12 @@
 package goblinlabour.home;
 
 import goblinlabour.block.GoblinChestBlock;
+import goblinlabour.block.MilkChurnBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import java.util.ArrayList;
@@ -13,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 /**
  * Positions of all loaded goblin beds per dimension. Beds register when their block entity is added to a level and
@@ -64,18 +67,27 @@ public final class HomeRegistry {
 
     /** Goblin chests inside the bed's flat (loaded chunks only; both halves of a double chest). */
     public static List<BlockPos> goblinChests(ServerLevel level, BlockPos bed) {
+        return blocksInFlat(level, bed, block -> block instanceof GoblinChestBlock);
+    }
+
+    /** Milk Churns inside the bed's flat (loaded chunks only). */
+    public static List<BlockPos> milkChurns(ServerLevel level, BlockPos bed) {
+        return blocksInFlat(level, bed, block -> block instanceof MilkChurnBlock);
+    }
+
+    private static List<BlockPos> blocksInFlat(ServerLevel level, BlockPos bed, Predicate<Block> wanted) {
         BoundingBox box = flatBox(level, bed);
-        List<BlockPos> chests = new ArrayList<>();
+        List<BlockPos> found = new ArrayList<>();
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         for (int x = box.minX(); x <= box.maxX(); x++) {
             for (int z = box.minZ(); z <= box.maxZ(); z++) {
                 if (!level.isLoaded(cursor.set(x, box.minY(), z))) continue;
                 for (int y = box.minY(); y <= box.maxY(); y++) {
                     cursor.set(x, y, z);
-                    if (level.getBlockState(cursor).getBlock() instanceof GoblinChestBlock) chests.add(cursor.immutable());
+                    if (wanted.test(level.getBlockState(cursor).getBlock())) found.add(cursor.immutable());
                 }
             }
         }
-        return chests;
+        return found;
     }
 }

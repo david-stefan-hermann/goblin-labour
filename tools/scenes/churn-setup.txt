@@ -1,0 +1,19 @@
+forceload add 2395 2395 2425 2425
+time set day
+weather clear
+kill @e[type=goblinlabour:goblin,x=2395,y=-64,z=2395,dx=30,dy=20,dz=30]
+kill @e[type=item,x=2395,y=-64,z=2395,dx=30,dy=20,dz=30]
+kill @e[type=cow,x=2395,y=-64,z=2395,dx=30,dy=20,dz=30]
+fill 2395 -60 2395 2425 -52 2425 air
+fill 2395 -61 2395 2425 -61 2425 grass_block
+setblock 2409 -60 2410 goblinlabour:goblin_straw_bed[facing=north]
+setblock 2412 -60 2410 goblinlabour:milk_churn
+setblock 2413 -60 2410 goblinlabour:milk_churn
+setblock 2407 -60 2410 goblinlabour:goblin_chest[facing=north]
+fill 2411 -60 2412 2414 -58 2412 red_wool
+goblinlabour churn 2412 -60 2410 4000
+goblinlabour churn 2413 -60 2410 9000
+data merge block 2412 -60 2410 {Items:[{Slot:1b,id:"minecraft:bucket",count:1}]}
+goblinlabour spawn 2409 -60 2410 Milker
+goblinlabour tool 2409 -60 2410 0 minecraft:bucket
+summon cow 2416 -60 2408 {NoAI:1b,Rotation:[90f,0f]}

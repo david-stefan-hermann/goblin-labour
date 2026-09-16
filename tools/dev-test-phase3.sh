@@ -10,6 +10,7 @@ rcon() { "$JAVA_HOME/bin/java" tools/Rcon.java 127.0.0.1 25599 gl "$@"; }
 pass=0; fail=0
 check() { if [[ "$3" == *"$2"* ]]; then echo "PASS $1"; pass=$((pass+1)); else echo "FAIL $1: expected '$2' in: $3"; fail=$((fail+1)); fi; }
 status() { rcon "goblinlabour status $1" | grep -v '^>' ; }
+ok() { if [ "$2" = 1 ]; then echo "PASS $1"; pass=$((pass+1)); else echo "FAIL $1${3:+: $3}"; fail=$((fail+1)); fi; }
 wait_status() { # wait_status <bed> <seconds> <substring>
   local end=$(( $(date +%s) + $2 ))
   while [ "$(date +%s)" -lt "$end" ]; do
@@ -79,7 +80,8 @@ out=$(rcon "goblinlabour job $B chop 16"); check "B set job" "CHOP" "$out"
 C="90 -60 90"
 rcon "setblock $C air" "setblock 90 -61 97 farmland" "setblock 90 -60 97 wheat[age=7]" "setblock $C goblinlabour:goblin_straw_bed[facing=south]" > /dev/null
 sleep 1
-rcon "goblinlabour spawn $C Farmer" "goblinlabour tool $C 9 minecraft:wheat_seeds" > /dev/null
+# harvesting needs a hoe (round 7)
+rcon "goblinlabour spawn $C Farmer" "goblinlabour tool $C 0 minecraft:iron_hoe" "goblinlabour tool $C 9 minecraft:wheat_seeds" > /dev/null
 out=$(rcon "goblinlabour job $C farm 16"); check "C set job" "FARM" "$out"
 
 # ---- D: unload into a goblin chest, then wait when it is full (bed 120,-60,120, chest 122,-60,120) ----
@@ -125,8 +127,10 @@ out=$(rcon "goblinlabour tunnel $I 245 -60 246 south 3 3 8"); check "I tunnel or
 for k in 1 2 3 4 5 6 7 8; do sleep 10; echo "  t=$((k*10)) H: $(status "$H" | sed "s/ | order=.*//; s/inventory:.*health=//")"; echo "  t=$((k*10)) I: $(status "$I" | sed "s/ | order=.*//; s/inventory:.*health=//")"; done
 out=$(wait_status "$E" 40 "no way out"); check "E reports no exit" "no way out" "$out"
 
-out=$(wait_block 60 "90 -60 97" "wheat[age=0]"); check "C wheat harvested and replanted" "Test passed" "$out"
-out=$(status "$C"); check "C wheat in inventory" "minecraft:wheat" "$out"
+# replanted: wheat stands there again and is not ripe (checked a minute or two later, it may have grown a stage)
+out=$(wait_block 60 "90 -60 97" "wheat"); out="$out $(rcon "execute if block 90 -60 97 wheat[age=7]")"
+check "C wheat harvested and replanted" "Test passed" "$out"; check "C the replanted wheat is not ripe" "Test failed" "$out"
+out=$(status "$C"); ok "C wheat (not just seeds) in inventory" "$(echo "$out" | grep -qE 'xminecraft:wheat( |$)' && echo 1 || echo 0)" "$out"
 
 out=$(wait_block 150 "60 -53 67" "air"); check "B top log (8 high) felled" "Test passed" "$out"
 out=$(wait_status "$B" 60 "up=false"); check "B came down the scaffold (it stays for two minutes)" "up=false" "$out"

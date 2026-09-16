@@ -74,7 +74,6 @@ public final class GoblinLabour implements ModInitializer {
                     .cacheEncoding()
                     .build());
 
-    /** Which Goblin Ring an item is; its crew and open screen find the ring by this id (see RingInventory). */
     /** A Goblin Ring's two book slots (enchanted books whose enchantments go onto the crew's tools). */
     public static final DataComponentType<ItemContainerContents> RING_BOOKS = Registry.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE, id("ring_books"),
@@ -83,6 +82,7 @@ public final class GoblinLabour implements ModInitializer {
                     .networkSynchronized(ItemContainerContents.STREAM_CODEC)
                     .build());
 
+    /** Which Goblin Ring an item is; its crew and open screen find the ring by this id (see RingInventory). */
     public static final DataComponentType<UUID> RING_ID = Registry.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE, id("ring_id"),
             DataComponentType.<UUID>builder()
@@ -108,6 +108,13 @@ public final class GoblinLabour implements ModInitializer {
             FabricBlockEntityTypeBuilder.create(GoblinChestBlockEntity::new, GOBLIN_CHEST).build());
     public static final Item GOBLIN_CHEST_ITEM = registerItem("goblin_chest",
             props -> new BlockItem(GOBLIN_CHEST, props.useBlockDescriptionPrefix()));
+    public static final Block MILK_CHURN = registerBlock("milk_churn", props -> new goblinlabour.block.MilkChurnBlock(
+            props.mapColor(MapColor.METAL).strength(2.0f).sound(SoundType.COPPER).noOcclusion().requiresCorrectToolForDrops()));
+    public static final BlockEntityType<goblinlabour.block.MilkChurnBlockEntity> MILK_CHURN_BLOCK_ENTITY = Registry.register(
+            BuiltInRegistries.BLOCK_ENTITY_TYPE, id("milk_churn"),
+            FabricBlockEntityTypeBuilder.create(goblinlabour.block.MilkChurnBlockEntity::new, MILK_CHURN).build());
+    public static final Item MILK_CHURN_ITEM = registerItem("milk_churn",
+            props -> new BlockItem(MILK_CHURN, props.useBlockDescriptionPrefix()));
     /** Technical block, never placed: its particle texture (the emerald item) is what the home markers show. */
     public static final Block HOME_MARKER = registerBlock("home_marker", props -> new HomeMarkerBlock(
             props.noCollision().noLootTable().replaceable().air()));
@@ -141,6 +148,10 @@ public final class GoblinLabour implements ModInitializer {
             BuiltInRegistries.MENU, id("ring"),
             new ExtendedMenuType<>(goblinlabour.ring.RingMenu::new, goblinlabour.ring.RingMenuData.STREAM_CODEC));
 
+    public static final ExtendedMenuType<goblinlabour.menu.MilkChurnMenu, net.minecraft.core.BlockPos> MILK_CHURN_MENU = Registry.register(
+            BuiltInRegistries.MENU, id("milk_churn"),
+            new ExtendedMenuType<>(goblinlabour.menu.MilkChurnMenu::new, net.minecraft.core.BlockPos.STREAM_CODEC));
+
     public static final ExtendedMenuType<GoblinBedMenu, GoblinBedMenuData> BED_MENU = Registry.register(
             BuiltInRegistries.MENU, id("bed"),
             new ExtendedMenuType<>(GoblinBedMenu::new, GoblinBedMenuData.STREAM_CODEC));
@@ -156,6 +167,7 @@ public final class GoblinLabour implements ModInitializer {
                         out.accept(GOBLIN_BLANK);
                         out.accept(GOBLIN_STRAW_BED_ITEM);
                         out.accept(GOBLIN_CHEST_ITEM);
+                        out.accept(MILK_CHURN_ITEM);
                         out.accept(GOBLIN_HEAD);
                         out.accept(GOBLIN_STAFF);
                         out.accept(GOBLIN_RING);
