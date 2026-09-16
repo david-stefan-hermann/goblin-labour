@@ -85,9 +85,10 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
         return goblin;
     }
 
-    public static boolean isTool(ItemStack stack) {
+    /** What the tool row holds: tools, and saplings for a lumberjack to plant. */
+    public static boolean mayCarryInToolRow(ItemStack stack) {
         return stack.is(ItemTags.PICKAXES) || stack.is(ItemTags.AXES) || stack.is(ItemTags.SHOVELS)
-                || stack.is(ItemTags.HOES) || stack.is(ItemTags.SWORDS);
+                || stack.is(ItemTags.HOES) || stack.is(ItemTags.SWORDS) || stack.is(ItemTags.SAPLINGS);
     }
 
     public boolean isToolSlot(Slot slot) {
@@ -110,7 +111,7 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
         if (index < toolsEnd) {
             if (!moveItemStackTo(stack, toolsEnd, playerEnd, true)) return ItemStack.EMPTY;
         } else {
-            boolean moved = isTool(stack) && moveItemStackTo(stack, storageEnd, toolsEnd, false);
+            boolean moved = mayCarryInToolRow(stack) && moveItemStackTo(stack, storageEnd, toolsEnd, false);
             if (!moved && !moveItemStackTo(stack, 0, storageEnd, false)) return ItemStack.EMPTY;
         }
         if (stack.isEmpty()) slot.set(ItemStack.EMPTY);
@@ -130,7 +131,7 @@ public class GoblinInventoryMenu extends AbstractContainerMenu {
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            return isTool(stack);
+            return mayCarryInToolRow(stack);
         }
     }
 

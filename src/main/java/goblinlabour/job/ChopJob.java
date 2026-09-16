@@ -14,7 +14,9 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,10 +32,12 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Fells the trees within {@code length} blocks of the bed (outside homes), one tree at a time: the goblin claims the
  * tree nearest to it (all logs connected to each other, diagonals included) and takes that tree down from the lowest
- * log up before it moves on. A tree claimed by one goblin is left alone by the others. The goblin picks up the logs
- * and whatever the crowns drop (saplings, sticks, apples). With {@code replant} on (the default) the stumps of a
- * felled tree are remembered and get a sapling as soon as the goblin carries one, the tree's own kind first. Endless:
- * the goblin stays on duty and checks for new trees.
+ * log up before it moves on. A tree claimed by one goblin is left alone by the others, and the goblin keeps it until
+ * its last log is down, waiting for logs it cannot reach yet rather than leaving them to another goblin. The goblin
+ * picks up the logs and whatever the crowns drop (saplings, sticks, apples) and unloads all of it into the chests.
+ * With {@code replant} on (the default) the stumps of a felled tree get a sapling, the tree's own kind first, from
+ * the fresh drops or else from the tool row; saplings kept in the tool row are also planted out on free ground inside
+ * the radius, 3 to 6 blocks from other trees and saplings. Endless: the goblin stays on duty and checks for new trees.
  */
 public final class ChopJob implements JobTask {
     public static final ChopJob INSTANCE = new ChopJob();
@@ -41,12 +45,14 @@ public final class ChopJob implements JobTask {
     private static final int ABOVE = 24;
     /** Largest tree the flood fill follows (a big jungle tree has a few hundred logs). */
     private static final int MAX_TREE_LOGS = 512;
-    /** A claim nobody worked on for this long (goblin gone, job changed) is dropped. */
-    private static final int CLAIM_TIMEOUT = 2400;
+    /** A claim nobody worked on for this long (goblin gone, job changed) is dropped; long enough to unload a big tree. */
+    private static final int CLAIM_TIMEOUT = 6000;
+    /** A claimed tree that has not lost a log for this long is given up, though logs are left (they cannot be reached). */
+    private static final int TREE_PATIENCE = 6000;
+    /** Free planting: no log, leaf or sapling closer than this (horizontally), ideally this far from the nearest one. */
+    private static final double FREE_GAP = 3.0, FREE_IDEAL = 4.5;
     /** A stump nobody found a sapling for within ten minutes is forgotten. */
     private static final int STUMP_TIMEOUT = 12000;
-    /** Saplings of each kind a lumberjack keeps when it unloads, for the next stumps. */
-    private static final int KEEP_SAPLINGS = 16;
 
     /** The tree a goblin is working on: its logs, the stumps (logs standing on something else) and its wood. */
     private static final class Tree {
@@ -54,12 +60,15 @@ public final class ChopJob implements JobTask {
         final List<BlockPos> stumps;
         final Block wood;
         long lastUsed;
+        /** When the goblin last broke one of the tree's logs. */
+        long lastProgress;
 
         Tree(Set<BlockPos> logs, List<BlockPos> stumps, Block wood, long now) {
             this.logs = logs;
             this.stumps = stumps;
             this.wood = wood;
             this.lastUsed = now;
+            this.lastProgress = now;
         }
     }
 
@@ -114,12 +123,20 @@ public final class ChopJob implements JobTask {
                 mine.lastUsed = now;
                 return pick;
             }
-            claims.remove(goblin.getUUID()); // felled (afterBreak already took it), or only unreachable logs left: next tree
+            // Logs the goblin cannot get to right now keep the tree its own: it waits for them to come back instead of
+            // leaving the rest of the tree to another goblin. Only a tree that has lost no log for a long time is let go.
+            if (hasSkippedLogs(level, goblin, mine, skipped) && now - mine.lastProgress <= TREE_PATIENCE) {
+                mine.lastUsed = now;
+                return Pick.RETRY;
+            }
+            claims.remove(goblin.getUUID()); // felled (afterBreak already took it), or given up: next tree
         }
 
         if (config.replant()) {
             Pick plant = plant(level, goblin, skipped, now);
             if (plant != null) return plant;
+            Pick free = plantFree(level, goblin, bedEntity.getBlockPos(), config.length(), skipped);
+            if (free != null) return free;
         }
 
         Set<BlockPos> taken = new HashSet<>();
@@ -188,6 +205,16 @@ public final class ChopJob implements JobTask {
         return sawToolProblem ? Pick.NEEDS_TOOL : Pick.DONE;
     }
 
+    /** Whether logs of the tree are left that the goblin could break but cannot get to right now (skipped). */
+    private static boolean hasSkippedLogs(ServerLevel level, GoblinEntity goblin, Tree tree, Set<BlockPos> skipped) {
+        for (BlockPos pos : tree.logs) {
+            if (!skipped.contains(pos)) continue;
+            BlockState state = level.getBlockState(pos);
+            if (state.is(BlockTags.LOGS) && Mining.verdict(level, pos, state, goblin) == Mining.Verdict.OK) return true;
+        }
+        return false;
+    }
+
     /** All logs connected to {@code start} (26 neighbours) inside the work area, minus logs of other goblins' trees. */
     private static Tree floodTree(ServerLevel level, BlockPos start, BlockPos bed, int r, Set<BlockPos> taken, long now) {
         Set<BlockPos> logs = new HashSet<>();
@@ -221,6 +248,7 @@ public final class ChopJob implements JobTask {
     public void afterBreak(ServerLevel level, GoblinEntity goblin, JobHost bedEntity, JobConfig config, BlockPos broken) {
         Tree tree = claims(level).get(goblin.getUUID());
         if (tree == null || !tree.logs.contains(broken)) return;
+        tree.lastProgress = level.getGameTime();
         for (BlockPos log : tree.logs) {
             if (level.getBlockState(log).is(BlockTags.LOGS)) return;
         }
@@ -254,13 +282,16 @@ public final class ChopJob implements JobTask {
         return best == null ? null : Pick.place(best.pos(), sapling(level, goblin, best));
     }
 
-    /** The sapling from the storage that grows on the stump: the tree's own kind if there is one, else any. */
+    /**
+     * The sapling that grows on the stump: the tree's own kind if there is one, else any; from the storage (the fresh
+     * drops) first, then from the tool row.
+     */
     @Nullable
     private static BlockState sapling(ServerLevel level, GoblinEntity goblin, Stump stump) {
         String kind = woodKind(stump.wood());
         BlockState any = null;
         SimpleContainer inv = goblin.getInventory();
-        for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) {
+        for (int i : slots(true)) {
             ItemStack stack = inv.getItem(i);
             if (stack.isEmpty() || !stack.is(ItemTags.SAPLINGS)) continue;
             BlockState state = Block.byItem(stack.getItem()).defaultBlockState();
@@ -281,11 +312,86 @@ public final class ChopJob implements JobTask {
         return path;
     }
 
-    /** The planted sapling comes out of the storage; without one in there it is taken back (no free saplings). */
+    /**
+     * Free planting: saplings in the tool row go onto free ground inside the radius (outside homes), where the sapling
+     * survives, with no log, leaf or sapling closer than FREE_GAP and ideally FREE_IDEAL from the nearest one. One
+     * sapling per pick; null when the tool row holds none or there is no room left.
+     */
+    @Nullable
+    private static Pick plantFree(ServerLevel level, GoblinEntity goblin, BlockPos bed, int r, Set<BlockPos> skipped) {
+        BlockState sapling = null;
+        SimpleContainer inv = goblin.getInventory();
+        for (int i = 0; i < GoblinEntity.HOTBAR_SIZE && sapling == null; i++) {
+            ItemStack stack = inv.getItem(i);
+            if (!stack.isEmpty() && stack.is(ItemTags.SAPLINGS)) sapling = Block.byItem(stack.getItem()).defaultBlockState();
+        }
+        if (sapling == null || sapling.isAir()) return null;
+
+        // columns with a tree or a sapling in them, from the radius out to where they still count
+        int reach = r + (int) Math.ceil(FREE_IDEAL) + 2;
+        List<long[]> occupied = new ArrayList<>();
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        for (int x = bed.getX() - reach; x <= bed.getX() + reach; x++) {
+            for (int z = bed.getZ() - reach; z <= bed.getZ() + reach; z++) {
+                if (!level.isLoaded(cursor.set(x, bed.getY(), z))) continue;
+                for (int y = bed.getY() - BELOW; y <= bed.getY() + ABOVE; y++) {
+                    BlockState state = level.getBlockState(cursor.set(x, y, z));
+                    if (state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES) || state.getBlock() instanceof SaplingBlock) {
+                        occupied.add(new long[]{x, z});
+                        break;
+                    }
+                }
+            }
+        }
+
+        BlockPos best = null;
+        double bestCost = Double.MAX_VALUE;
+        for (int x = bed.getX() - r; x <= bed.getX() + r; x++) {
+            for (int z = bed.getZ() - r; z <= bed.getZ() + r; z++) {
+                if (!level.isLoaded(cursor.set(x, bed.getY(), z))) continue;
+                int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+                if (y < bed.getY() - BELOW || y > bed.getY() + ABOVE) continue;
+                BlockPos spot = new BlockPos(x, y, z);
+                if (skipped.contains(spot) || HomeRegistry.isProtected(level, spot)) continue;
+                if (!level.getBlockState(spot).canBeReplaced() || !level.getBlockState(spot.above()).isAir()) continue;
+                if (!level.getFluidState(spot).isEmpty() || !sapling.canSurvive(level, spot)) continue;
+                double nearest = Double.MAX_VALUE;
+                for (long[] column : occupied) {
+                    double dx = column[0] - x, dz = column[1] - z;
+                    nearest = Math.min(nearest, Math.sqrt(dx * dx + dz * dz));
+                }
+                if (nearest < FREE_GAP) continue;
+                double cost = Math.abs(Math.min(nearest, 8.0) - FREE_IDEAL) * 10.0
+                        + Math.sqrt(goblin.distanceToSqr(x + 0.5, y, z + 0.5));
+                if (cost < bestCost) {
+                    bestCost = cost;
+                    best = spot;
+                }
+            }
+        }
+        return best == null ? null : Pick.place(best, sapling);
+    }
+
+    /** Inventory slots in search order: the storage (fresh drops) and the tool row, either one first. */
+    private static int[] slots(boolean storageFirst) {
+        int[] slots = new int[GoblinEntity.INVENTORY_SIZE];
+        int n = 0;
+        if (!storageFirst) for (int i = 0; i < GoblinEntity.HOTBAR_SIZE; i++) slots[n++] = i;
+        for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) slots[n++] = i;
+        if (storageFirst) for (int i = 0; i < GoblinEntity.HOTBAR_SIZE; i++) slots[n++] = i;
+        return slots;
+    }
+
+    /**
+     * The planted sapling is used up: for a stump from the fresh drops first, for free ground from the tool row first.
+     * Without one it is taken back out of the ground (no free saplings).
+     */
     @Override
     public void afterPlace(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, BlockPos pos, BlockState placed) {
         SimpleContainer inv = goblin.getInventory();
-        for (int i = GoblinEntity.HOTBAR_SIZE; i < GoblinEntity.INVENTORY_SIZE; i++) {
+        List<Stump> stumps = stumps(level).get(goblin.getUUID());
+        boolean onStump = stumps != null && stumps.stream().anyMatch(s -> s.pos().equals(pos));
+        for (int i : slots(onStump)) {
             ItemStack stack = inv.getItem(i);
             if (stack.isEmpty() || Block.byItem(stack.getItem()) != placed.getBlock()) continue;
             stack.shrink(1);
@@ -308,10 +414,6 @@ public final class ChopJob implements JobTask {
         return stack.is(ItemTags.SAPLINGS) || stack.is(Items.STICK) || stack.is(Items.APPLE);
     }
 
-    @Override
-    public int keepOnUnload(JobConfig config, ItemStack stack) {
-        return config.replant() && stack.is(ItemTags.SAPLINGS) ? KEEP_SAPLINGS : 0;
-    }
 
     private static Map<UUID, Tree> claims(ServerLevel level) {
         return CLAIMS.computeIfAbsent(level.dimension(), k -> new ConcurrentHashMap<>());

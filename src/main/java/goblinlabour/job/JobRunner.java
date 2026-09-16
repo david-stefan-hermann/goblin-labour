@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
@@ -36,6 +37,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 /**
@@ -107,6 +109,8 @@ public final class JobRunner {
     private float progress;
     private int retryIn;
     private int stuckTicks;
+    /** A lumberjack breaks the leaves in its way instead of giving up on a log it cannot walk to (see {@link LeafPath}). */
+    private boolean clearsLeaves;
     /** Debug: runner ticks so far and the last movement branch taken. */
     private int ticks;
     private String branch = "-";
@@ -229,6 +233,7 @@ public final class JobRunner {
 
     private void tickWork(ServerLevel level, JobHost bed, JobConfig config, JobTask task) {
         long now = level.getGameTime();
+        clearsLeaves = config.job() == Job.CHOP;
         skipped.values().removeIf(until -> until < now);
 
         if (target == null) {
@@ -394,7 +399,7 @@ public final class JobRunner {
                 climbFor = targetPos;
                 climbColumn = chooseColumn(level, targetPos);
             }
-            if (climbColumn == null) return giveUp(targetPos, now);
+            if (climbColumn == null) return clearWayOrGiveUp(level, targetPos, center, now);
             BlockPos feet = goblin.blockPosition();
             if (feet.getX() == climbColumn.getX() && feet.getZ() == climbColumn.getZ()) {
                 if (goblin.climber().climb(level)) return true;
@@ -404,14 +409,14 @@ public final class JobRunner {
                 goblin.climber().descend(level); // on another column: come down, then walk over
                 return true;
             }
-            return approachSpot(level, climbColumn) || giveUp(targetPos, now);
+            return approachSpot(level, climbColumn) || clearWayOrGiveUp(level, targetPos, center, now);
         }
         if (high) {
             goblin.climber().descend(level);
             return true;
         }
-        if (spot != null) return approachSpot(level, spot) || giveUp(targetPos, now);
-        return approach(level, center) || giveUp(targetPos, now);
+        if (spot != null) return approachSpot(level, spot) || clearWayOrGiveUp(level, targetPos, center, now);
+        return approach(level, center) || clearWayOrGiveUp(level, targetPos, center, now);
     }
 
     /**
@@ -451,6 +456,34 @@ public final class JobRunner {
         return best;
     }
 
+    /**
+     * Before giving up on a block it cannot walk to, a lumberjack looks for a way through leaves to a spot it could
+     * work from (a stand spot in reach, or the foot of a scaffold column for a high log). The first leaf block on that
+     * way becomes the target; once it is broken the goblin tries the log again, and clears the next leaf if need be.
+     */
+    private boolean clearWayOrGiveUp(ServerLevel level, BlockPos targetPos, Vec3 center, long now) {
+        if (!clearsLeaves || level.getBlockState(targetPos).is(BlockTags.LEAVES)) return giveUp(targetPos, now);
+        // only from the ground: up in a crown a broken leaf or a step onto the next one is a fall
+        if (Climber.isUp(level, goblin) || fallHeight(level) > 0 || !goblin.onGround()) return giveUp(targetPos, now);
+        Set<BlockPos> goals = new java.util.HashSet<>(standCandidates(level, targetPos, center));
+        if (center.y - goblin.getEyeY() > CLIMB_MIN_DY) goals.addAll(columnFeet(level, targetPos));
+        BlockPos leaf = LeafPath.firstLeaf(level, goblin.blockPosition(), goals, skipped.keySet());
+        if (leaf == null || Mining.verdict(level, leaf, level.getBlockState(leaf), goblin) != Mining.Verdict.OK) {
+            return giveUp(targetPos, now);
+        }
+        target = leaf;
+        placeState = null;
+        progress = 0.0f;
+        climbFor = null;
+        climbColumn = null;
+        standFor = null;
+        standSpot = null;
+        headwayPoint = null;
+        stuckTicks = 0;
+        branch = "clear-leaves";
+        return true;
+    }
+
     private boolean giveUp(BlockPos targetPos, long now) {
         skipped.put(targetPos, now + SKIP_TICKS);
         climbFor = null;
@@ -472,6 +505,25 @@ public final class JobRunner {
         if (targetPos.equals(standFor) && (standSpot == null || standableOnGround(level, standSpot))) return standSpot;
         standFor = targetPos;
         standSpot = null;
+        // only spots the goblin can walk to: the bottom of a shaft without stairs or the ground above a shaft dug
+        // upwards are next to the target but not a way to it (then it climbs, or walks at the block and blinks)
+        int pathChecks = 0;
+        for (BlockPos candidate : standCandidates(level, targetPos, center)) {
+            if (goblin.position().distanceToSqr(Vec3.atBottomCenterOf(candidate)) < 2.0) {
+                standSpot = candidate;
+                break;
+            }
+            if (pathChecks++ >= MAX_STAND_PATH_CHECKS) break;
+            if (reachable(goblin.getNavigation(), candidate)) {
+                standSpot = candidate;
+                break;
+            }
+        }
+        return standSpot;
+    }
+
+    /** Spots around a block on solid ground with the block in reach and in sight, best first (whether reachable or not). */
+    private List<BlockPos> standCandidates(ServerLevel level, BlockPos targetPos, Vec3 center) {
         record Candidate(BlockPos spot, double cost) {
         }
         List<Candidate> candidates = new java.util.ArrayList<>();
@@ -490,21 +542,20 @@ public final class JobRunner {
             }
         }
         candidates.sort((a, b) -> Double.compare(a.cost(), b.cost()));
-        // only spots the goblin can walk to: the bottom of a shaft without stairs or the ground above a shaft dug
-        // upwards are next to the target but not a way to it (then it climbs, or walks at the block and blinks)
-        int pathChecks = 0;
-        for (Candidate candidate : candidates) {
-            if (goblin.position().distanceToSqr(Vec3.atBottomCenterOf(candidate.spot())) < 2.0) {
-                standSpot = candidate.spot();
-                break;
-            }
-            if (pathChecks++ >= MAX_STAND_PATH_CHECKS) break;
-            if (reachable(goblin.getNavigation(), candidate.spot())) {
-                standSpot = candidate.spot();
-                break;
+        return candidates.stream().map(Candidate::spot).toList();
+    }
+
+    /** The feet of every scaffold column {@link #chooseColumn} would consider for a high block, reachable or not. */
+    private static List<BlockPos> columnFeet(ServerLevel level, BlockPos target) {
+        List<BlockPos> feet = new java.util.ArrayList<>();
+        for (int dx = -COLUMN_RANGE; dx <= COLUMN_RANGE; dx++) {
+            for (int dz = -COLUMN_RANGE; dz <= COLUMN_RANGE; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                BlockPos foot = columnFoot(level, target.getX() + dx, target.getY() - 1, target.getZ() + dz);
+                if (foot != null) feet.add(foot);
             }
         }
-        return standSpot;
+        return feet;
     }
 
     /** Room for the goblin at {@code pos} on solid ground; leaves, logs (a tree) and scaffold do not count as ground here. */
@@ -574,22 +625,58 @@ public final class JobRunner {
      */
     @Nullable
     private static BlockPos columnFoot(ServerLevel level, int x, int topY, int z) {
+        return findFoot(level, x, topY, z).pos();
+    }
+
+    /** A column foot, or null and why there is none (the reason is for {@link #columnReport}). */
+    private record Foot(@Nullable BlockPos pos, String why) {
+    }
+
+    private static Foot findFoot(ServerLevel level, int x, int topY, int z) {
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(x, topY, z);
-        if (!level.isLoaded(cursor)) return null;
+        if (!level.isLoaded(cursor)) return new Foot(null, "not loaded");
         for (int i = 0; i < Climber.MAX_HEIGHT; i++, cursor.move(0, -1, 0)) {
             BlockState state = level.getBlockState(cursor);
-            if (HomeRegistry.isProtected(level, cursor)) return null;
+            if (HomeRegistry.isProtected(level, cursor)) return new Foot(null, "home at y" + cursor.getY());
             if (Climber.isScaffold(state) || state.is(BlockTags.LEAVES) || (state.canBeReplaced() && state.getFluidState().isEmpty())) continue;
-            if (!state.getFluidState().isEmpty()) return null;
+            if (!state.getFluidState().isEmpty()) return new Foot(null, "liquid at y" + cursor.getY());
             BlockPos foot = cursor.above();
-            if (foot.getY() > topY) return null; // no room at all below the target
+            String on = " on " + BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath() + " y" + cursor.getY();
+            if (foot.getY() > topY) return new Foot(null, "no room" + on); // no room at all below the target
             BlockState footState = level.getBlockState(foot);
-            if (Climber.isScaffold(footState)) return foot.immutable();
-            if (!footState.canBeReplaced()) return null; // leaves at the foot: the goblin could not stand there
+            if (Climber.isScaffold(footState)) return new Foot(foot.immutable(), "scaffold" + on);
+            if (!footState.canBeReplaced()) {
+                // leaves at the foot: the goblin could not stand there
+                return new Foot(null, BuiltInRegistries.BLOCK.getKey(footState.getBlock()).getPath() + " at the foot" + on);
+            }
             return ((goblinlabour.block.GoblinScaffoldBlock) GoblinLabour.GOBLIN_SCAFFOLD).placementState(level, foot) != null
-                    ? foot.immutable() : null;
+                    ? new Foot(foot.immutable(), "ground" + on) : new Foot(null, "scaffold would not hold" + on);
         }
-        return null;
+        return new Foot(null, "too tall");
+    }
+
+    /**
+     * Dev (the "columns" command): every column {@link #chooseColumn} looks at for a target, with its foot or why it
+     * is out, whether the goblin can walk to the foot and whether the target is in sight from the top.
+     */
+    public String columnReport(ServerLevel level, BlockPos target) {
+        StringBuilder sb = new StringBuilder("columns for " + target.toShortString().replace(" ", "") + ":");
+        for (int dx = -COLUMN_RANGE; dx <= COLUMN_RANGE; dx++) {
+            for (int dz = -COLUMN_RANGE; dz <= COLUMN_RANGE; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                Foot foot = findFoot(level, target.getX() + dx, target.getY() - 1, target.getZ() + dz);
+                sb.append("\n  ").append(dx).append(',').append(dz).append(": ");
+                if (foot.pos() == null) {
+                    sb.append("OUT ").append(foot.why());
+                    continue;
+                }
+                Vec3 topEyes = new Vec3(foot.pos().getX() + 0.5, target.getY() + 0.3, foot.pos().getZ() + 0.5);
+                sb.append("foot y").append(foot.pos().getY()).append(' ').append(foot.why())
+                        .append(reachable(goblin.getNavigation(), foot.pos()) ? ", reachable" : ", NOT reachable")
+                        .append(Mining.canSee(level, topEyes, target) ? "" : ", target hidden from the top");
+            }
+        }
+        return sb.toString();
     }
 
     /**
@@ -630,7 +717,7 @@ public final class JobRunner {
      */
     private boolean headway(ServerLevel level, Vec3 point) {
         double distance = goblin.position().distanceTo(point);
-        branch += "-headway";
+        if (!branch.endsWith("-headway")) branch += "-headway"; // once: it runs every tick, the string must not grow
         if (headwayPoint == null || headwayPoint.distanceToSqr(point) > 0.25) {
             headwayPoint = point;
             headwayBest = distance;

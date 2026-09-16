@@ -73,6 +73,11 @@ public final class GoblinCommand {
                                 .then(Commands.argument("name", StringArgumentType.word())
                                         .executes(ctx -> spawn(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed"),
                                                 StringArgumentType.getString(ctx, "name"))))))
+                .then(Commands.literal("columns")
+                        .then(Commands.argument("bed", BlockPosArgument.blockPos())
+                                .then(Commands.argument("target", BlockPosArgument.blockPos())
+                                        .executes(ctx -> columns(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed"),
+                                                BlockPosArgument.getLoadedBlockPos(ctx, "target"))))))
                 .then(Commands.literal("status")
                         .then(Commands.argument("bed", BlockPosArgument.blockPos())
                                 .executes(ctx -> status(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed")))))
@@ -192,6 +197,20 @@ public final class GoblinCommand {
         String goblinName = name != null ? name : GoblinNames.random(level.getRandom());
         bed.spawnGoblin(level, GoblinData.fresh(goblinName));
         source.sendSuccess(() -> Component.literal("Spawned " + goblinName + " at " + pos.toShortString()), true);
+        return 1;
+    }
+
+    /** Dev: why the bed's goblin can or cannot put a scaffold column next to a high block. */
+    private static int columns(CommandSourceStack source, BlockPos bedPos, BlockPos target) {
+        GoblinBedBlockEntity bed = bed(source, bedPos);
+        if (bed == null) return 0;
+        GoblinEntity goblin = bed.findGoblin(source.getLevel());
+        if (goblin == null) {
+            source.sendFailure(Component.literal("No goblin"));
+            return 0;
+        }
+        String report = goblin.runner().columnReport(source.getLevel(), target);
+        source.sendSuccess(() -> Component.literal(report), false);
         return 1;
     }
 

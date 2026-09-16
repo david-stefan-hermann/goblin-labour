@@ -92,6 +92,7 @@ out=$(rcon "data get block 962 -60 960 Items"); check "C collector unloaded all 
 
 # tunnel and forest run side by side: sample the tunnel goblin, wait for both
 on_top=0; tunnel_done=0; forest_idle=0; forest_done=0
+: > run/round5-breaks-a.txt; : > run/round5-breaks-b.txt
 end=$(( $(date +%s) + 420 ))
 while [ "$(date +%s)" -lt "$end" ]; do
   if [ "$tunnel_done" = 0 ]; then
@@ -102,6 +103,9 @@ while [ "$(date +%s)" -lt "$end" ]; do
   fi
   if [ "$forest_done" = 0 ]; then
     sa=$(status "$FA"); sb=$(status "$FB")
+    # every log each lumberjack broke (the status keeps the last 16): which goblin worked on which tree
+    echo "$sa" | grep -o 'breaks=[^ |]*' | head -1 | sed 's/breaks=//' | tr ';' '\n' | sed 's/@.*//' | grep , >> run/round5-breaks-a.txt
+    echo "$sb" | grep -o 'breaks=[^ |]*' | head -1 | sed 's/breaks=//' | tr ';' '\n' | sed 's/@.*//' | grep , >> run/round5-breaks-b.txt
     if [[ "$sa" == *"target=- "* && "$sa" == *"tree=-"* && "$sa" == *"skipped=0 "* && "$sb" == *"target=- "* && "$sb" == *"tree=-"* && "$sb" == *"skipped=0 "* ]]; then
       forest_idle=$((forest_idle+1)); [ "$forest_idle" -ge 2 ] && forest_done=1
     else
@@ -125,6 +129,18 @@ for y in $(seq -60 -44); do
   rcon "${CMDS[@]:0:350}" | grep -B1 "Test passed" | grep '^>' | sed 's/> execute if block/  F log left at/; s/ #minecraft:logs//'
   rcon "${CMDS[@]:350}" | grep -B1 "Test passed" | grep '^>' | sed 's/> execute if block/  F log left at/; s/ #minecraft:logs//'
 done
+# (round 7) a tree stays with the goblin that started on it until it is down: each broken log belongs to the nearest
+# trunk, and no trunk may have logs broken by both lumberjacks
+shared=$(awk -F, -v trunks="815,815 823,809 818,824 827,822" '
+  BEGIN { n = split(trunks, T, " "); for (i = 1; i <= n; i++) { split(T[i], c, ","); tx[i] = c[1]; tz[i] = c[2] } }
+  NF >= 3 { best = 0; bd = 1e9
+    for (i = 1; i <= n; i++) { dx = $1 - tx[i]; dz = $3 - tz[i]; d = dx * dx + dz * dz; if (d < bd) { bd = d; best = i } }
+    if (bd <= 64) who[best] = who[best] " " FILENAME }
+  END { for (i = 1; i <= n; i++) if (index(who[i], "breaks-a") && index(who[i], "breaks-b")) printf "%s ", T[i] }' \
+  run/round5-breaks-a.txt run/round5-breaks-b.txt)
+echo "  F logs broken: Axel $(sort -u run/round5-breaks-a.txt | wc -l), Birk $(sort -u run/round5-breaks-b.txt | wc -l)"
+if [ -z "$shared" ]; then echo "PASS F no tree was worked on by both lumberjacks"; pass=$((pass+1));
+else echo "FAIL F trees worked on by both lumberjacks: $shared"; fail=$((fail+1)); fi
 out=$(status "$FA"; status "$FB")
 check_not "F both lumberjacks back on the ground" "up=true" "$out"
 out=$(rcon "fill 778 -60 778 794 -36 849 air replace #minecraft:logs" "fill 795 -60 778 811 -36 849 air replace #minecraft:logs" \
