@@ -21,8 +21,7 @@ public final class GoblinLabourClient implements ClientModInitializer {
         ModelLayerRegistry.registerModelLayer(GOBLIN_LAYER, GoblinModel::createBodyLayer);
         EntityRendererRegistry.register(GoblinLabour.GOBLIN, GoblinRenderer::new);
         ModelLayerRegistry.registerModelLayer(GoblinChestLayers.SINGLE, GoblinChestLayers::single);
-        ModelLayerRegistry.registerModelLayer(GoblinChestLayers.LEFT, GoblinChestLayers::left);
-        ModelLayerRegistry.registerModelLayer(GoblinChestLayers.RIGHT, GoblinChestLayers::right);
+        ModelLayerRegistry.registerModelLayer(GoblinChestLayers.DOUBLE, GoblinChestLayers::doubleChest);
         BlockEntityRendererRegistry.register(GoblinLabour.GOBLIN_CHEST_BLOCK_ENTITY, GoblinChestRenderer::new);
         MenuScreens.register(GoblinLabour.GOBLIN_MENU, GoblinInventoryScreen::new);
         MenuScreens.register(GoblinLabour.BED_MENU, GoblinBedScreen::new);

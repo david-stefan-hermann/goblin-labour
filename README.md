@@ -16,7 +16,7 @@ Inspired by [Minions Remastered](https://github.com/BrassAmber-Mods/MinecarftMin
 2. **Goblin Blank**: smelt (or smoke) the meat pack.
 3. **Goblin Straw Bed**: six hay bales, the lower two rows of the crafting grid.
 4. Right-click the bed with a blank: a goblin with a random name appears and is bound to that bed.
-5. **Goblin Chest**: a chest and a meat pack, shapeless. Mossy green, and when it opens the lid turns out to be a jaw full of teeth with a tongue inside. Two of them next to each other make a double chest.
+5. **Goblin Chest**: a chest and a meat pack, shapeless. Mossy green under dark iron bands, with bone horns on the lid and a green eye on the lock plate; when it opens the lid turns out to be a jaw full of teeth. Two of them next to each other make a double chest with a bigger set of horns.
 
 Every bed has a **home**: 5 blocks in every horizontal direction and 2 up and down. Goblins never mine inside a home, and goblin chests placed in a home are where they unload. Homes of several beds that touch each other merge into one flat. Hold a **Goblin Head** (blank + torch) to see the home borders as floating emeralds.
 
