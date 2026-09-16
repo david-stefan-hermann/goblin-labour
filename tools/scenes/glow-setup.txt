@@ -1,0 +1,11 @@
+forceload add 690 690 715 715
+time set midnight
+gamerule doDaylightCycle false
+weather clear
+fill 690 -62 690 715 -50 715 air
+fill 690 -62 690 715 -62 715 stone
+fill 694 -61 692 714 -56 712 stone
+fill 695 -60 693 713 -58 711 air
+setblock 702 -60 700 goblinlabour:goblin_chest[facing=south]
+setblock 705 -60 700 goblinlabour:goblin_chest[facing=south,type=right]
+setblock 706 -60 700 goblinlabour:goblin_chest[facing=south,type=left]

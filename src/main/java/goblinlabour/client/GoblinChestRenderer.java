@@ -17,6 +17,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.sprite.SpriteGetter;
 import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.core.Direction;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.DoubleBlockCombiner;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
@@ -33,10 +34,16 @@ import org.jetbrains.annotations.Nullable;
  * <p>Unlike vanilla's, the double chest is one model that spans both blocks instead of two halves: its boxes and
  * their box UV run across the seam, so it cannot be cut in two. The left half draws all of it and the right half
  * draws nothing. Both halves still share the openness and the brightness, so it opens and lights as one chest.
+ *
+ * <p>The eye glows in the dark: the model is drawn a second time at full brightness with {@code goblin*_glow},
+ * which is the chest texture with everything but the lit pixels of the iris cut away. The chest itself is on a
+ * cutout layer, so every other pixel of that second pass is discarded and only the eye stays bright.
  */
 public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlockEntity, ChestRenderState> {
     private static final SpriteId SINGLE = Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin"));
     private static final SpriteId DOUBLE = Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin_double"));
+    private static final SpriteId SINGLE_GLOW = Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin_glow"));
+    private static final SpriteId DOUBLE_GLOW = Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin_double_glow"));
 
     /**
      * How far the model can reach out of its block, in blocks: the double chest is 1.41 either side of the seam,
@@ -105,6 +112,9 @@ public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlock
         open = 1.0f - open * open * open;
         collector.submitModel(isDouble ? twin : single, open, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1,
                 isDouble ? DOUBLE : SINGLE, sprites, 0, state.breakProgress);
+        // the eye, once more at full brightness; the crumbling overlay stays on the pass above
+        collector.order(1).submitModel(isDouble ? twin : single, open, poseStack, LightCoordsUtil.FULL_BRIGHT,
+                OverlayTexture.NO_OVERLAY, -1, isDouble ? DOUBLE_GLOW : SINGLE_GLOW, sprites, 0, null);
         poseStack.popPose();
     }
 }

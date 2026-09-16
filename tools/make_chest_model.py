@@ -9,12 +9,19 @@ Reads   art/goblin_chest_single.bbmodel   (single chest, 128x128 texture)
 Writes  src/main/java/goblinlabour/client/GoblinChestLayers.java
         src/main/resources/assets/goblinlabour/textures/entity/chest/goblin.png(.mcmeta)
         src/main/resources/assets/goblinlabour/textures/entity/chest/goblin_double.png(.mcmeta)
+        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin_glow.png(.mcmeta)
+        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin_double_glow.png(.mcmeta)
 
 The chest texture in the atlas is animated: the eye sparkles. The frames are not copied from
 art/anim straight across - the script stacks the chest texture from the bbmodel once per frame and
 paints only those pixels from the template into each one that the template itself moves from frame
 to frame (the iris). That way repainting the chest in Blockbench keeps the sparkle, and only a new
 iris needs a new template. Needs Pillow (pip install pillow).
+
+The *_glow texture is that same strip with everything cut away but the lit pixels of the eye cubes,
+so the renderer can draw the chest a second time at full brightness and only the iris survives the
+cutout - the eye then shines in the dark while the rest of the chest takes the room's light
+(GoblinChestRenderer, GoblinChestSpecialRenderer). The pupil is dark and drops out with the rest.
 
 Coordinates: Blockbench's "Modded Entity" space is the Java model space turned 180 degrees around z
 (x and y are negated, z is kept), and its box UV follows that turn - Blockbench's east face carries the
@@ -48,6 +55,8 @@ MODELS = [
     ("double", "goblin_chest_double.bbmodel", "goblin_double.png", "doubleChest", "DOUBLE", (0.0, 0.0, 8.0)),
 ]
 GROUPS = ["bottom", "lid", "lock"]  # the part names vanilla's ChestModel drives
+EYE = "eye_row"  # the cubes of the iris; their lit pixels are what glows in the dark
+DARK = 60  # anything below this brightness is the pupil (or a shadowed edge) and does not glow
 
 
 def fmt(value):
@@ -110,6 +119,45 @@ def sparkle(model, base_png, template_path):
             pixels[x, y] = frames[i][x, y]
         strip.paste(frame, (0, i * base.height))
     return strip, count, len(moving)
+
+
+def eye_pixels(model, data):
+    """Every texture pixel the eye cubes sit on, from all six of their faces.
+
+    Taken from the model rather than from a hand-drawn mask, so moving or resizing the eye in
+    Blockbench moves the glow with it.
+    """
+    pixels = set()
+    for e in data["elements"]:
+        if not e["name"].startswith(EYE):
+            continue
+        for face in e["faces"].values():
+            u = face["uv"]
+            x0, x1 = sorted((int(round(u[0])), int(round(u[2]))))
+            y0, y1 = sorted((int(round(u[1])), int(round(u[3]))))
+            pixels |= {(x, y) for y in range(y0, y1) for x in range(x0, x1)}
+    assert pixels, "%s: no %s* cubes, so there is nothing to make glow" % (model, EYE)
+    return pixels
+
+
+def glow(strip, pixels, frame_height):
+    """The strip with everything cut away but the lit pixels among the given ones.
+
+    Drawn over the chest at full brightness on the same cutout layer: transparent pixels are
+    discarded, so only the iris is lit and the chest keeps the light of the room it stands in.
+    """
+    out = Image.new("RGBA", strip.size)
+    source, target = strip.load(), out.load()
+    frames = strip.height // frame_height
+    lit = 0
+    for frame in range(frames):
+        for x, y in pixels:
+            r, g, b, a = source[x, y + frame * frame_height]
+            if a == 255 and 0.3 * r + 0.59 * g + 0.11 * b >= DARK:
+                target[x, y + frame * frame_height] = (r, g, b, 255)
+                lit += 1
+    assert lit, "the eye has no pixel brighter than %d, nothing would glow" % DARK
+    return out, lit // frames
 
 
 def write_mcmeta(template_path, out_path, size):
@@ -220,6 +268,12 @@ def main():
         write_mcmeta(template, os.path.join(TEXTURES, texture + ".mcmeta"), size)
         print("wrote %s and its .mcmeta (%s, %dx%d frames, %d of them, %d moving pixels)"
               % (texture, used["name"], size[0], size[1], count, moving))
+
+        lights, lit = glow(strip, eye_pixels(model, data), size[1])
+        glow_texture = texture.replace(".png", "_glow.png")
+        lights.save(os.path.join(TEXTURES, glow_texture))
+        write_mcmeta(template, os.path.join(TEXTURES, glow_texture + ".mcmeta"), size)
+        print("wrote %s and its .mcmeta (%d glowing pixels per frame)" % (glow_texture, lit))
         fields.append('    public static final ModelLayerLocation %s = '
                       'new ModelLayerLocation(GoblinLabour.id("goblin_chest"), "%s");' % (field, model))
         layers += layer(model, data, method, offset, used["id"])

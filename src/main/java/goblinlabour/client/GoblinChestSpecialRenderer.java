@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.special.SpecialModelRenderer;
 import net.minecraft.client.resources.model.sprite.SpriteGetter;
 import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.LightCoordsUtil;
 import org.joml.Vector3fc;
 
 import java.util.function.Consumer;
@@ -33,12 +34,14 @@ public class GoblinChestSpecialRenderer implements NoDataSpecialModelRenderer {
     private final SpriteGetter sprites;
     private final ChestModel model;
     private final SpriteId sprite;
+    private final SpriteId glow;
     private final float openness;
 
-    public GoblinChestSpecialRenderer(SpriteGetter sprites, ChestModel model, SpriteId sprite, float openness) {
+    public GoblinChestSpecialRenderer(SpriteGetter sprites, ChestModel model, SpriteId sprite, SpriteId glow, float openness) {
         this.sprites = sprites;
         this.model = model;
         this.sprite = sprite;
+        this.glow = glow;
         this.openness = openness;
     }
 
@@ -46,6 +49,9 @@ public class GoblinChestSpecialRenderer implements NoDataSpecialModelRenderer {
     public void submit(PoseStack poseStack, SubmitNodeCollector collector, int lightCoords, int overlayCoords,
                        boolean hasFoil, int outlineColor) {
         collector.submitModel(model, openness, poseStack, lightCoords, overlayCoords, -1, sprite, sprites, outlineColor, null);
+        // the eye glows in the item too, the same way as in the world (see GoblinChestRenderer)
+        collector.order(1).submitModel(model, openness, poseStack, LightCoordsUtil.FULL_BRIGHT, overlayCoords, -1,
+                glow, sprites, outlineColor, null);
     }
 
     @Override
@@ -69,7 +75,8 @@ public class GoblinChestSpecialRenderer implements NoDataSpecialModelRenderer {
         @Override
         public SpecialModelRenderer<Void> bake(SpecialModelRenderer.BakingContext context) {
             ChestModel model = new ChestModel(context.entityModelSet().bakeLayer(GoblinChestLayers.SINGLE));
-            return new GoblinChestSpecialRenderer(context.sprites(), model, Sheets.CHEST_MAPPER.apply(texture), openness);
+            return new GoblinChestSpecialRenderer(context.sprites(), model, Sheets.CHEST_MAPPER.apply(texture),
+                    Sheets.CHEST_MAPPER.apply(texture.withSuffix("_glow")), openness);
         }
     }
 }
