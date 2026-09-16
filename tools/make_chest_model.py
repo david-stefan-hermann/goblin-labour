@@ -5,9 +5,16 @@ Run from the project root:  python tools/make_chest_model.py
 
 Reads   art/goblin_chest_single.bbmodel   (single chest, 128x128 texture)
         art/goblin_chest_double.bbmodel   (whole double chest, 128x256 texture)
+        art/anim/goblin_chest_*.png(.mcmeta)  the sparkling iris, one frame per strip
 Writes  src/main/java/goblinlabour/client/GoblinChestLayers.java
-        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin.png
-        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin_double.png
+        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin.png(.mcmeta)
+        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin_double.png(.mcmeta)
+
+The chest texture in the atlas is animated: the eye sparkles. The frames are not copied from
+art/anim straight across - the script stacks the chest texture from the bbmodel once per frame and
+paints only those pixels from the template into each one that the template itself moves from frame
+to frame (the iris). That way repainting the chest in Blockbench keeps the sparkle, and only a new
+iris needs a new template. Needs Pillow (pip install pillow).
 
 Coordinates: Blockbench's "Modded Entity" space is the Java model space turned 180 degrees around z
 (x and y are negated, z is kept), and its box UV follows that turn - Blockbench's east face carries the
@@ -23,11 +30,15 @@ half draws the whole double chest, the right half draws nothing (see GoblinChest
 """
 
 import base64
+import io
 import json
 import math
 import os
 
+from PIL import Image
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ANIM = os.path.join(ROOT, "art", "anim")
 TEXTURES = os.path.join(ROOT, "src/main/resources/assets/goblinlabour/textures/entity/chest")
 JAVA = os.path.join(ROOT, "src/main/java/goblinlabour/client/GoblinChestLayers.java")
 
@@ -70,6 +81,52 @@ def cubes(name, pivot, elements):
     if len(lines) == 1:
         lines[0] += ";"
     return lines
+
+
+def sparkle(model, base_png, template_path):
+    """The chest texture stacked once per animation frame, with the template's moving pixels painted in.
+
+    Returns the strip and how many frames and moving pixels went into it. Everything outside those pixels
+    comes from the Blockbench model, so the template only has to carry the iris.
+    """
+    base = Image.open(io.BytesIO(base_png)).convert("RGBA")
+    assert os.path.exists(template_path), \
+        "%s: no animation template at %s" % (model, os.path.relpath(template_path, ROOT).replace("\\", "/"))
+    template = Image.open(template_path).convert("RGBA")
+    assert template.width == base.width and template.height % base.height == 0, \
+        "%s: template is %dx%d, not a stack of %dx%d frames - regenerate it for the new texture size" \
+        % (model, template.width, template.height, base.width, base.height)
+    count = template.height // base.height
+    frames = [template.crop((0, i * base.height, base.width, (i + 1) * base.height)).load() for i in range(count)]
+    moving = [(x, y) for y in range(base.height) for x in range(base.width)
+              if any(frames[i][x, y] != frames[0][x, y] for i in range(1, count))]
+    assert moving, "%s: the template's %d frames are all the same, nothing would move" % (model, count)
+
+    strip = Image.new("RGBA", (base.width, base.height * count))
+    for i in range(count):
+        frame = base.copy()
+        pixels = frame.load()
+        for x, y in moving:
+            pixels[x, y] = frames[i][x, y]
+        strip.paste(frame, (0, i * base.height))
+    return strip, count, len(moving)
+
+
+def write_mcmeta(template_path, out_path, size):
+    """The .mcmeta next to the strip: the template's timing, but with the frame size spelled out.
+
+    Without width and height Minecraft falls back to square frames (Math.min of the image), which cuts the
+    double chest's 128x256 frames into 128x128 ones and smears the texture over the model.
+    """
+    source = template_path + ".mcmeta"
+    assert os.path.exists(source), "%s is missing" % os.path.relpath(source, ROOT).replace("\\", "/")
+    with open(source, encoding="utf-8") as f:
+        meta = json.load(f)
+    animation = meta.setdefault("animation", {})
+    animation["width"], animation["height"] = size
+    with open(out_path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(meta, f, indent=2)
+        f.write("\n")
 
 
 def used_texture(model, data):
@@ -156,10 +213,13 @@ def main():
     for model, source, texture, method, field, offset in MODELS:
         data = read(source)
         used = used_texture(model, data)
-        with open(os.path.join(TEXTURES, texture), "wb") as f:
-            f.write(base64.b64decode(used["source"].split(",", 1)[1]))
-        print("wrote %s (%s, %dx%d)" % (texture, used["name"],
-                                        data["resolution"]["width"], data["resolution"]["height"]))
+        template = os.path.join(ANIM, os.path.splitext(source)[0] + ".png")
+        strip, count, moving = sparkle(model, base64.b64decode(used["source"].split(",", 1)[1]), template)
+        strip.save(os.path.join(TEXTURES, texture))
+        size = (data["resolution"]["width"], data["resolution"]["height"])
+        write_mcmeta(template, os.path.join(TEXTURES, texture + ".mcmeta"), size)
+        print("wrote %s and its .mcmeta (%s, %dx%d frames, %d of them, %d moving pixels)"
+              % (texture, used["name"], size[0], size[1], count, moving))
         fields.append('    public static final ModelLayerLocation %s = '
                       'new ModelLayerLocation(GoblinLabour.id("goblin_chest"), "%s");' % (field, model))
         layers += layer(model, data, method, offset, used["id"])
