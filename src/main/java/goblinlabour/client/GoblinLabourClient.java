@@ -2,7 +2,6 @@ package goblinlabour.client;
 
 import goblinlabour.item.GoblinHandbookItem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.inventory.BookViewScreen;
 
 import goblinlabour.GoblinLabour;
 import net.fabricmc.api.ClientModInitializer;
@@ -29,8 +28,7 @@ public final class GoblinLabourClient implements ClientModInitializer {
         MenuScreens.register(GoblinLabour.RING_MENU, RingScreen::new);
         MenuScreens.register(GoblinLabour.MILK_CHURN_MENU, MilkChurnScreen::new);
         ClientTickEvents.END_CLIENT_TICK.register(HomeZoneParticles::tick);
-        GoblinHandbookItem.setOpener(player -> Minecraft.getInstance().gui.setScreen(
-                new BookViewScreen(new BookViewScreen.BookAccess(GoblinHandbookItem.pages()))));
+        GoblinHandbookItem.setOpener(player -> Minecraft.getInstance().gui.setScreen(new HandbookScreen(0)));
         goblinlabour.entity.GoblinEntity.setClientStaffCheck(goblin -> Minecraft.getInstance().player != null
                 && Minecraft.getInstance().player.getMainHandItem().is(GoblinLabour.GOBLIN_STAFF));
         DevClientHooks.init();

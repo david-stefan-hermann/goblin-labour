@@ -30,7 +30,7 @@ The bed shows the trade too: while its goblin works, something lies under the fr
 
 Goblins talk in chat, in English, server-wide: when they start, get picked or ordered with the staff ("Yes, master!"), finish a job, come back from the dead, run out of storage, or cannot find a way out of their home. While working they chatter now and then ("Working, working, working!", "I love my job!"). They also have voices: pitched-up villager and witch sounds defined in `sounds.json`, so a resource pack can replace them.
 
-The **Goblin Handbook** (book + rotten flesh) explains all of this in game, in English and German.
+The **Goblin Handbook** (book + rotten flesh) explains all of this in game, in English and German, in its own screen: chapter tabs for Basics, Jobs, the Staff, the Goblin Ring and Farming, item icons beside each explanation, recipes as icons with an arrow, names in gold and warnings in red. The book turns its pages itself, so a text can be as long as it needs to be.
 
 ## Working
 

@@ -11,17 +11,14 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * The Goblin Handbook: a short in-game guide to the mod, shown in the vanilla book screen. The pages are
- * translatable ({@code goblinlabour.book.page.N}), so they follow the player's language. The client registers the
- * screen opener; on the server the item does nothing.
+ * The Goblin Handbook: a short in-game guide to the mod in its own screen, with chapters, item icons and recipes (the
+ * content is {@link Handbook}). The texts are translatable, so they follow the player's language. The client registers
+ * the screen opener; on the server the item does nothing.
  */
 public class GoblinHandbookItem extends Item {
-    public static final int PAGE_COUNT = 13;
     private static Consumer<Player> opener = player -> { };
 
     public GoblinHandbookItem(Properties properties) {
@@ -31,12 +28,6 @@ public class GoblinHandbookItem extends Item {
     /** Set by the client entry point: opens the book screen for the player. */
     public static void setOpener(Consumer<Player> clientOpener) {
         opener = clientOpener;
-    }
-
-    public static List<Component> pages() {
-        List<Component> pages = new ArrayList<>(PAGE_COUNT);
-        for (int i = 1; i <= PAGE_COUNT; i++) pages.add(Component.translatable("goblinlabour.book.page." + i));
-        return pages;
     }
 
     @Override

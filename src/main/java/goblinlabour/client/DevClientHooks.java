@@ -39,15 +39,11 @@ public final class DevClientHooks {
         }
     }
 
-    /** -Dgoblinlabour.dev.book=N: shows handbook page N (1-based) plus {@code offset} in the book screen. */
+    /** -Dgoblinlabour.dev.book=N: shows handbook page N (1-based) plus {@code offset} in the handbook screen. */
     private static void openBook(Minecraft minecraft, int offset) {
         String raw = System.getProperty("goblinlabour.dev.book");
         if (raw == null) return;
-        int first = Math.max(0, Integer.parseInt(raw.trim()) - 1 + offset);
-        java.util.List<net.minecraft.network.chat.Component> pages = goblinlabour.item.GoblinHandbookItem.pages();
-        if (first >= pages.size()) return;
-        minecraft.gui.setScreen(new net.minecraft.client.gui.screens.inventory.BookViewScreen(
-                new net.minecraft.client.gui.screens.inventory.BookViewScreen.BookAccess(pages.subList(first, pages.size()))));
+        minecraft.gui.setScreen(new HandbookScreen(Math.max(0, Integer.parseInt(raw.trim()) - 1 + offset)));
     }
 
     /** -Dgoblinlabour.dev.staffclick: left-clicks the nearest goblin with whatever the player holds (staff test). */
