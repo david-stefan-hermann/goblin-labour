@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Farm goblins by tool (round 7 point 9) over RCON, six farmers at once: shears shear sheep and the wool ends up in the
 # chest (A); a bucket milks a cow, the milk goes into the Milk Churn of the home, no milk bucket stays with the goblin,
-# and the churn's bucket slot fills and empties buckets (B); a hoe harvests ripe cocoa and replants it on the same side
+# the churn's bucket slot fills and empties buckets, its milk shows as a block state and a broken churn keeps it (B); a hoe harvests ripe cocoa and replants it on the same side
 # of the log, and cocoa beans in the tool row are planted on a free side (C); a hoe picks sweet berries and glow
 # berries (D); a hoe cuts sugar cane, cactus and bamboo down to the bottom block (E); a farmer without a hoe leaves the
 # ripe wheat alone, is blocked and says so (F); a treetap taps a Tech Reborn rubber log (G, only when Tech Reborn is in
@@ -98,6 +98,17 @@ rcon "data merge block $BC {Items:[{Slot:0b,id:\"minecraft:bucket\",count:1}]}" 
 out=$(wait_out 10 "milk=1000 " "goblinlabour churn $BC")
 check "B an empty bucket in the bucket slot is filled" "milk=1000 " "$out"
 check "B the milk bucket comes out below" "output=1xminecraft:milk_bucket" "$out"
+rcon "goblinlabour churn $BC 4000" > /dev/null
+out=$(wait_out 10 "Test passed" "execute if block $BC goblinlabour:milk_churn[level=4]"); check "B the churn shows four buckets behind the glass" "Test passed" "$out"
+# in one go: the Milker tidies loose items at home into its chest within seconds
+out=$(rcon "setblock $BC air destroy" \
+  "execute if entity @e[type=item,x=2099,y=-62,z=2137,dx=6,dy=6,dz=6,nbt={Item:{id:\"goblinlabour:milk_churn\",components:{\"goblinlabour:milk\":4000}}}]" \
+  "goblinlabour churn $BC placedrop" | grep -v '^>')
+check "B the broken churn drops with its 4000 mB" "Test passed" "$out"
+check "B placed again, the churn has its milk back" "milk=4000 " "$out"
+out=$(wait_out 10 "Test passed" "execute if block $BC goblinlabour:milk_churn[level=4]"); check "B and shows it again" "Test passed" "$out"
+rcon "goblinlabour churn $BC 0" > /dev/null
+out=$(wait_out 10 "Test passed" "execute if block $BC goblinlabour:milk_churn[level=0]"); check "B an empty churn shows no milk" "Test passed" "$out"
 
 # ---- A: wool in the chest ----
 out=$(wait_out 90 "wool" "data get block $AC Items"); check "A the wool of the sheared sheep is in the chest" "wool" "$out"

@@ -21,6 +21,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -28,14 +30,24 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
  * A grey metal tank for milk. Farmer goblins pour the milk they bring home into it; a player fills or empties buckets
- * with a right click, or opens its screen with an empty hand.
+ * with a right click, or opens its screen with an empty hand. The milk shows behind the glass ({@link #LEVEL}) and
+ * stays in the churn when it is broken.
  */
 public class MilkChurnBlock extends BaseEntityBlock {
     public static final MapCodec<MilkChurnBlock> CODEC = simpleCodec(MilkChurnBlock::new);
+    /** Buckets of milk (rounded up) the model shows behind the glass; the block entity keeps it in step. */
+    public static final IntegerProperty LEVEL = IntegerProperty.create("level", 0,
+            MilkChurnBlockEntity.CAPACITY / MilkChurnBlockEntity.BUCKET);
     private static final VoxelShape SHAPE = Block.box(1, 0, 1, 15, 16, 15);
 
     public MilkChurnBlock(Properties properties) {
         super(properties);
+        registerDefaultState(stateDefinition.any().setValue(LEVEL, 0));
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(LEVEL);
     }
 
     @Override

@@ -36,13 +36,18 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.permissions.Permission.HasCommandLevel;
 import net.minecraft.server.permissions.PermissionLevel;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Locale;
@@ -100,6 +105,8 @@ public final class GoblinCommand {
                 .then(Commands.literal("churn")
                         .then(Commands.argument("pos", BlockPosArgument.blockPos())
                                 .executes(ctx -> churn(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"), -1))
+                                .then(Commands.literal("placedrop")
+                                        .executes(ctx -> churnPlaceDrop(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"))))
                                 .then(Commands.argument("milk", IntegerArgumentType.integer(0, goblinlabour.block.MilkChurnBlockEntity.CAPACITY))
                                         .executes(ctx -> churn(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"),
                                                 IntegerArgumentType.getInteger(ctx, "milk"))))))
@@ -283,6 +290,33 @@ public final class GoblinCommand {
         source.sendSuccess(() -> Component.literal("Milk Churn at " + pos.toShortString() + ": milk=" + churn.getMilk()
                 + " / " + goblinlabour.block.MilkChurnBlockEntity.CAPACITY + " mB" + slots), true);
         return 1;
+    }
+
+    /**
+     * Dev: takes a Milk Churn item lying within two blocks of {@code pos} and places it at {@code pos} the way a player
+     * would (setblock would not carry the item's milk over), then shows the churn.
+     */
+    private static int churnPlaceDrop(CommandSourceStack source, BlockPos pos) {
+        ServerLevel level = source.getLevel();
+        ItemEntity drop = level.getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(2.0),
+                entity -> entity.getItem().is(GoblinLabour.MILK_CHURN_ITEM)).stream().findFirst().orElse(null);
+        if (drop == null) {
+            source.sendFailure(Component.literal("No Milk Churn item near " + pos.toShortString()));
+            return 0;
+        }
+        FakePlayer placer = FakePlayer.get(level);
+        ItemStack stack = drop.getItem().copyWithCount(1);
+        placer.setItemInHand(InteractionHand.MAIN_HAND, stack);
+        BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos).subtract(0.0, 0.5, 0.0), Direction.UP, pos.below(), false);
+        InteractionResult result = stack.useOn(new UseOnContext(placer, InteractionHand.MAIN_HAND, hit));
+        placer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        if (!result.consumesAction()) {
+            source.sendFailure(Component.literal("Could not place the Milk Churn at " + pos.toShortString() + ": " + result));
+            return 0;
+        }
+        drop.getItem().shrink(1);
+        if (drop.getItem().isEmpty()) drop.discard();
+        return churn(source, pos, -1);
     }
 
     private static String stackText(net.minecraft.world.item.ItemStack stack) {

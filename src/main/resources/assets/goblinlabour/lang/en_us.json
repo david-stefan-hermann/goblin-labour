@@ -91,6 +91,7 @@
   "gui.goblinlabour.dir.east": "east",
   "gui.goblinlabour.dir.west": "west",
   "gui.goblinlabour.tool_slot": "Tool slot",
+  "goblinlabour.churn.milk": "Milk: %s / %s mB",
   "gui.goblinlabour.milk": "Milk",
   "gui.goblinlabour.churn_input": "Bucket slot",
   "gui.goblinlabour.churn_input.hint": "A milk bucket is poured in, an empty bucket is filled. Both come out below.",
@@ -159,7 +160,7 @@
   "goblinlabour.handbook.farming.3": "Without a hoe ripe crops stay, and the farmer asks for one.",
   "goblinlabour.handbook.farming.4": "{Cocoa beans} in the tool row are planted on jungle logs.",
   "goblinlabour.handbook.farming.5": "{Bucket}: milks cows, each one every 5 minutes.",
-  "goblinlabour.handbook.farming.6": "The milk goes into a {Milk Churn} at home. Right-click it with a bucket, or with an empty hand for its screen.",
+  "goblinlabour.handbook.farming.6": "The milk goes into a {Milk Churn} at home and shows behind its glass. Right-click it with a bucket, or with an empty hand for its screen. Broken, it keeps its milk.",
   "goblinlabour.handbook.farming.7": "{Shears}: shears sheep.",
   "goblinlabour.handbook.farming.8": "{Treetap} (Tech Reborn): taps rubber trees for sap."
 }

@@ -1,0 +1,21 @@
+forceload add 2395 2395 2425 2425
+time set day
+weather clear
+kill @e[type=goblinlabour:goblin,x=2395,y=-64,z=2395,dx=30,dy=20,dz=30]
+kill @e[type=item,x=2395,y=-64,z=2395,dx=30,dy=20,dz=30]
+kill @e[type=cow,x=2395,y=-64,z=2395,dx=30,dy=20,dz=30]
+fill 2395 -60 2395 2425 -52 2425 air
+fill 2395 -61 2395 2425 -61 2425 grass_block
+fill 2408 -60 2410 2415 -60 2410 stone_bricks
+fill 2407 -60 2412 2416 -57 2412 gray_concrete
+setblock 2409 -59 2410 goblinlabour:milk_churn
+setblock 2410 -59 2410 goblinlabour:milk_churn
+setblock 2411 -59 2410 goblinlabour:milk_churn
+setblock 2412 -59 2410 goblinlabour:milk_churn
+setblock 2413 -59 2410 goblinlabour:milk_churn
+setblock 2414 -59 2410 goblinlabour:milk_churn
+goblinlabour churn 2410 -59 2410 1000
+goblinlabour churn 2411 -59 2410 3000
+goblinlabour churn 2412 -59 2410 5000
+goblinlabour churn 2413 -59 2410 7000
+goblinlabour churn 2414 -59 2410 10000

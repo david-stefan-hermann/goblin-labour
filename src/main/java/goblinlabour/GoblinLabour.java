@@ -36,8 +36,10 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
@@ -90,6 +92,14 @@ public final class GoblinLabour implements ModInitializer {
                     .networkSynchronized(UUIDUtil.STREAM_CODEC)
                     .build());
 
+    /** The milk (mB) of a broken Milk Churn, so the churn still has it when it is placed again. */
+    public static final DataComponentType<Integer> MILK = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE, id("milk"),
+            DataComponentType.<Integer>builder()
+                    .persistent(ExtraCodecs.NON_NEGATIVE_INT)
+                    .networkSynchronized(ByteBufCodecs.VAR_INT)
+                    .build());
+
     public static final Block GOBLIN_STRAW_BED = registerBlock("goblin_straw_bed", props -> new GoblinBedBlock(
             props.mapColor(MapColor.COLOR_YELLOW).strength(0.4f).sound(SoundType.GRASS).noOcclusion()));
     public static final BlockEntityType<GoblinBedBlockEntity> GOBLIN_BED_BLOCK_ENTITY = Registry.register(
@@ -114,7 +124,7 @@ public final class GoblinLabour implements ModInitializer {
             BuiltInRegistries.BLOCK_ENTITY_TYPE, id("milk_churn"),
             FabricBlockEntityTypeBuilder.create(goblinlabour.block.MilkChurnBlockEntity::new, MILK_CHURN).build());
     public static final Item MILK_CHURN_ITEM = registerItem("milk_churn",
-            props -> new BlockItem(MILK_CHURN, props.useBlockDescriptionPrefix()));
+            props -> new goblinlabour.item.MilkChurnItem(MILK_CHURN, props.useBlockDescriptionPrefix()));
     /** Technical block, never placed: its particle texture (the emerald item) is what the home markers show. */
     public static final Block HOME_MARKER = registerBlock("home_marker", props -> new HomeMarkerBlock(
             props.noCollision().noLootTable().replaceable().air()));

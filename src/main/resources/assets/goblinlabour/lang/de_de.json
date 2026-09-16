@@ -91,6 +91,7 @@
   "gui.goblinlabour.dir.east": "Osten",
   "gui.goblinlabour.dir.west": "Westen",
   "gui.goblinlabour.tool_slot": "Werkzeugplatz",
+  "goblinlabour.churn.milk": "Milch: %s / %s mB",
   "gui.goblinlabour.milk": "Milch",
   "gui.goblinlabour.churn_input": "Eimerplatz",
   "gui.goblinlabour.churn_input.hint": "Ein Milcheimer wird eingefüllt, ein leerer Eimer wird befüllt. Beide kommen unten wieder heraus.",
@@ -159,7 +160,7 @@
   "goblinlabour.handbook.farming.3": "Ohne Hacke bleibt Reifes stehen, und der Bauer bittet um eine.",
   "goblinlabour.handbook.farming.4": "{Kakaobohnen} in der Werkzeugleiste pflanzt er an Dschungelstämme.",
   "goblinlabour.handbook.farming.5": "{Eimer}: melkt Kühe, jede alle 5 Minuten.",
-  "goblinlabour.handbook.farming.6": "Die Milch kommt in eine {Milchkanne} der Wohnung. Rechtsklick mit Eimer füllt oder leert sie, mit leerer Hand öffnet sich ihr Fenster.",
+  "goblinlabour.handbook.farming.6": "Die Milch kommt in eine {Milchkanne} der Wohnung und ist hinter ihrem Glas zu sehen. Rechtsklick mit Eimer füllt oder leert sie, mit leerer Hand öffnet sich ihr Fenster. Abgebaut behält sie ihre Milch.",
   "goblinlabour.handbook.farming.7": "{Schere}: schert Schafe.",
   "goblinlabour.handbook.farming.8": "{Treetap} (Tech Reborn): zapft Gummibäume an."
 }

@@ -11,6 +11,16 @@ pass=0; fail=0
 check() { if [[ "$3" == *"$2"* ]]; then echo "PASS $1"; pass=$((pass+1)); else echo "FAIL $1: expected '$2' in: $3"; fail=$((fail+1)); fi; }
 status() { rcon "goblinlabour status $1" | grep -v '^>' ; }
 ok() { if [ "$2" = 1 ]; then echo "PASS $1"; pass=$((pass+1)); else echo "FAIL $1${3:+: $3}"; fail=$((fail+1)); fi; }
+column_dump() { # column_dump <x> <z>: the blocks at y -60..-52, L log, S scaffold, s sapling, . air, ? anything else
+  local line="" y bits
+  for y in $(seq -60 -52); do
+    bits=$(rcon "execute if block $1 $y $2 #minecraft:logs" "execute if block $1 $y $2 goblinlabour:goblin_scaffold" \
+                "execute if block $1 $y $2 #minecraft:saplings" "execute if block $1 $y $2 air" \
+           | grep -v '^>' | sed 's/^Test passed.*/1/; s/^Test failed.*/0/' | tr -d '\r\n')
+    case "$bits" in 1*) line+="L" ;; 01*) line+="S" ;; 001*) line+="s" ;; 0001) line+="." ;; *) line+="?" ;; esac
+  done
+  echo "$line"
+}
 wait_status() { # wait_status <bed> <seconds> <substring>
   local end=$(( $(date +%s) + $2 ))
   while [ "$(date +%s)" -lt "$end" ]; do
@@ -133,6 +143,11 @@ check "C wheat harvested and replanted" "Test passed" "$out"; check "C the repla
 out=$(status "$C"); ok "C wheat (not just seeds) in inventory" "$(echo "$out" | grep -qE 'xminecraft:wheat( |$)' && echo 1 || echo 0)" "$out"
 
 out=$(wait_block 150 "60 -53 67" "air"); check "B top log (8 high) felled" "Test passed" "$out"
+if [[ "$out" != *"Test passed"* ]]; then
+  # a rare failure (1 in 12 runs, 2026-09-16) that never came back with a trace: keep what is needed to tell why
+  for xz in "60 67" "59 67" "61 67" "60 66" "60 68"; do echo "  B column $xz (y -60..-52; L log, S scaffold, s sapling, . air): $(column_dump $xz)"; done
+  echo "  B: $(status "$B" | cut -c1-700)"
+fi
 out=$(wait_status "$B" 60 "up=false"); check "B came down the scaffold (it stays for two minutes)" "up=false" "$out"
 out=$(rcon "execute if block 60 -60 67 oak_sapling"); check "B sapling replanted" "Test passed" "$out"
 out=$(status "$B"); check "B logs in inventory" "oak_log" "$out"

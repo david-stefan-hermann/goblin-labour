@@ -91,6 +91,27 @@ public class MakeTextures {
             'M', 0xFF9AA0A6, 'm', 0xFFB7BCC1, 'D', 0xFF5C6166, 'd', 0xFF484C50, 'R', 0xFFD0D4D8,
             'F', 0xFF3E4246, 'G', 0x78C4CCD4, 'g', 0x9CE6ECF0, 'H', 0xFF6E7378, 'h', 0xFF83898E);
 
+    /** The milk the churn shows behind its glass: cream with a few darker flecks. */
+    static final String[] CHURN_MILK = {
+            "WWWWWWWWWWWWWWWW",
+            "WWWWWWWWWWwWWWWW",
+            "WWwWWWWWWWWWWWWW",
+            "WWWWWWWWWWWWWWwW",
+            "WWWWWWwWWWWWWWWW",
+            "WWWWWWWWWWWWWWWW",
+            "WwWWWWWWWWWwWWWW",
+            "WWWWWWWWWWWWWWWW",
+            "WWWWWwWWWWWWWWWW",
+            "WWWWWWWWWWWWWwWW",
+            "WWWWWWWWwWWWWWWW",
+            "WWwWWWWWWWWWWWWW",
+            "WWWWWWWWWWWWWWWW",
+            "WWWWWWWWWWwWWWWW",
+            "WWWWwWWWWWWWWWWW",
+            "WWWWWWWWWWWWWWwW",
+    };
+    static final Map<Character, Integer> CHURN_MILK_COLORS = Map.of('W', 0xFFF4F1E6, 'w', 0xFFE3DECB);
+
     static final String[] MEAT = {
             "................",
             "................",
@@ -206,6 +227,7 @@ public class MakeTextures {
         save(renderArgb(CHURN_SIDE, CHURN_COLORS), ASSETS + "textures/block/milk_churn_side.png");
         save(renderArgb(CHURN_TOP, CHURN_COLORS), ASSETS + "textures/block/milk_churn_top.png");
         save(renderArgb(CHURN_BOTTOM, CHURN_COLORS), ASSETS + "textures/block/milk_churn_bottom.png");
+        save(renderArgb(CHURN_MILK, CHURN_MILK_COLORS), ASSETS + "textures/block/milk_churn_milk.png");
         System.out.println("Textures written");
     }
 

@@ -6,6 +6,8 @@ import net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -19,6 +21,7 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -64,6 +67,11 @@ public class MilkChurnBlockEntity extends BlockEntity implements WorldlyContaine
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, MilkChurnBlockEntity churn) {
         churn.process();
+        // the model shows the milk behind the glass by this state; one place keeps it in step with every change
+        int buckets = churn.bucketsShown();
+        if (state.getValue(MilkChurnBlock.LEVEL) != buckets) {
+            level.setBlock(pos, state.setValue(MilkChurnBlock.LEVEL, buckets), Block.UPDATE_CLIENTS);
+        }
     }
 
     private void process() {
@@ -91,6 +99,11 @@ public class MilkChurnBlockEntity extends BlockEntity implements WorldlyContaine
     public void setMilk(int milk) {
         this.milk = Math.clamp(milk, 0, CAPACITY);
         setChanged();
+    }
+
+    /** Whole buckets in the tank, rounded up so that any milk shows. */
+    public int bucketsShown() {
+        return (milk + BUCKET - 1) / BUCKET;
     }
 
     /** How many whole buckets still fit. */
@@ -224,5 +237,25 @@ public class MilkChurnBlockEntity extends BlockEntity implements WorldlyContaine
         milk = Math.clamp(in.getIntOr("milk", 0), 0, CAPACITY);
         items.clear();
         ContainerHelper.loadAllItems(in, items);
+    }
+
+    // The milk travels with the item: the loot table copies it onto the dropped churn, placing it brings it back.
+
+    @Override
+    protected void applyImplicitComponents(DataComponentGetter components) {
+        super.applyImplicitComponents(components);
+        milk = Math.clamp(components.getOrDefault(GoblinLabour.MILK, 0), 0, CAPACITY);
+    }
+
+    @Override
+    protected void collectImplicitComponents(DataComponentMap.Builder components) {
+        super.collectImplicitComponents(components);
+        if (milk > 0) components.set(GoblinLabour.MILK, milk);
+    }
+
+    @Override
+    public void removeComponentsFromTag(ValueOutput out) {
+        super.removeComponentsFromTag(out);
+        out.discard("milk");
     }
 }

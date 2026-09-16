@@ -1,5 +1,89 @@
 {
-  "variants": {
-    "": { "model": "goblinlabour:block/milk_churn" }
-  }
+  "multipart": [
+    {
+      "apply": {
+        "model": "goblinlabour:block/milk_churn"
+      }
+    },
+    {
+      "when": {
+        "level": "1"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_1"
+      }
+    },
+    {
+      "when": {
+        "level": "2"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_2"
+      }
+    },
+    {
+      "when": {
+        "level": "3"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_3"
+      }
+    },
+    {
+      "when": {
+        "level": "4"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_4"
+      }
+    },
+    {
+      "when": {
+        "level": "5"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_5"
+      }
+    },
+    {
+      "when": {
+        "level": "6"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_6"
+      }
+    },
+    {
+      "when": {
+        "level": "7"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_7"
+      }
+    },
+    {
+      "when": {
+        "level": "8"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_8"
+      }
+    },
+    {
+      "when": {
+        "level": "9"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_9"
+      }
+    },
+    {
+      "when": {
+        "level": "10"
+      },
+      "apply": {
+        "model": "goblinlabour:block/milk_churn_milk_10"
+      }
+    }
+  ]
 }
