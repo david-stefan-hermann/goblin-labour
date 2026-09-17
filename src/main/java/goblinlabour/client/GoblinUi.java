@@ -15,8 +15,8 @@ import org.joml.Vector3f;
 
 /**
  * The goblin look shared by all screens: a moss-green panel in vanilla's panel pixel layout, darker slots, and a
- * flat green button. Everything is drawn with rectangles, no textures. The Milk Churn is the one screen in vanilla
- * grey ({@link Palette#GREY}).
+ * flat green button. Everything is drawn with rectangles, no textures. The milk can is the one screen in dark grey
+ * metal ({@link Palette#METAL}).
  */
 public final class GoblinUi {
     public static final int PANEL = 0xFF6FA35F;
@@ -41,8 +41,8 @@ public final class GoblinUi {
     /** The colours of a panel and its slots. */
     public record Palette(int panel, int border, int light, int shadow, int slot, int slotDark, int label) {
         public static final Palette GREEN = new Palette(PANEL, BORDER, LIGHT, SHADOW, SLOT, SLOT_DARK, LABEL);
-        /** Vanilla's container grey. */
-        public static final Palette GREY = new Palette(0xFFC6C6C6, 0xFF000000, 0xFFFFFFFF, 0xFF555555, 0xFF8B8B8B, 0xFF373737, 0xFF404040);
+        /** The milk can's dark grey metal, with light labels. */
+        public static final Palette METAL = new Palette(0xFF3C3F43, 0xFF141517, 0xFF5D6166, 0xFF2A2C30, 0xFF2B2E32, 0xFF141517, 0xFFD8DBDE);
     }
 
     private GoblinUi() {

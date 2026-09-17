@@ -94,7 +94,11 @@ public class HandbookScreen extends Screen {
             for (int i = 0; i < sections.size(); i++) {
                 Placed placed = place(sections.get(i), width);
                 int needed = placed.height();
-                if (placed.section() instanceof Handbook.Recipe && i + 1 < sections.size()) needed += place(sections.get(i + 1), width).height();
+                // a heading or a recipe never ends a page: it moves over together with what follows it
+                for (int j = i; j + 1 < sections.size() && (sections.get(j) instanceof Handbook.Heading
+                        || sections.get(j) instanceof Handbook.Recipe); j++) {
+                    needed += place(sections.get(j + 1), width).height();
+                }
                 if (!current.isEmpty() && used + needed > contentHeight()) {
                     pages.add(new Page(c, current));
                     current = new ArrayList<>();

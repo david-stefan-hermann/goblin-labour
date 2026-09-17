@@ -1,1 +1,7 @@
-{ "variants": { "": { "model": "goblinlabour:block/goblin_chest" } } }
+{
+  "variants": {
+    "": {
+      "model": "goblinlabour:block/goblin_chest"
+    }
+  }
+}

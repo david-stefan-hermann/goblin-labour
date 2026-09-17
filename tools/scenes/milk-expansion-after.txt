@@ -1,0 +1,11 @@
+goblinlabour churn 785 -59 790
+goblinlabour tank 785 -60 790
+goblinlabour churn 788 -59 790
+goblinlabour tank 788 -60 790
+goblinlabour pipe 785 -60 790 north 2500
+goblinlabour pipe 785 -60 790 down -1000
+goblinlabour pipe 785 -60 790 up 100000
+goblinlabour tank 785 -60 790
+goblinlabour pipe 785 -59 790 north 1000
+give @p goblinlabour:milk_can_expansion
+give @p goblinlabour:milk_churn

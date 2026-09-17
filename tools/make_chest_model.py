@@ -6,22 +6,28 @@ Run from the project root:  python tools/make_chest_model.py
 Reads   art/goblin_chest_single.bbmodel   (single chest, 128x128 texture)
         art/goblin_chest_double.bbmodel   (whole double chest, 128x256 texture)
         art/anim/goblin_chest_*.png(.mcmeta)  the sparkling iris, one frame per strip
+        art/chest_colors/goblin_chest_<single|double>_<colour>.png  the chest in the sixteen dye colours
 Writes  src/main/java/goblinlabour/client/GoblinChestLayers.java
-        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin.png(.mcmeta)
-        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin_double.png(.mcmeta)
+        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin[_<colour>].png
+        src/main/resources/assets/goblinlabour/textures/entity/chest/goblin[_<colour>]_double.png
         src/main/resources/assets/goblinlabour/textures/entity/chest/goblin_glow.png(.mcmeta)
         src/main/resources/assets/goblinlabour/textures/entity/chest/goblin_double_glow.png(.mcmeta)
 
-The chest texture in the atlas is animated: the eye sparkles. The frames are not copied from
-art/anim straight across - the script stacks the chest texture from the bbmodel once per frame and
-paints only those pixels from the template into each one that the template itself moves from frame
-to frame (the iris). That way repainting the chest in Blockbench keeps the sparkle, and only a new
-iris needs a new template. Needs Pillow (pip install pillow).
+The chest comes in the sixteen dye colours; green, the bbmodel's own texture, has no colour in its file
+name. art/chest_colors/make_chest_colors.py makes the colours from the bbmodel, so after repainting the
+chest run that first: this script stops when the green file no longer matches the bbmodel.
 
-The *_glow texture is that same strip with everything cut away but the lit pixels of the eye cubes,
-so the renderer can draw the chest a second time at full brightness and only the iris survives the
-cutout - the eye then shines in the dark while the rest of the chest takes the room's light
-(GoblinChestRenderer, GoblinChestSpecialRenderer). The pupil is dark and drops out with the rest.
+The eye sparkles, and the sparkle lives only in the *_glow textures: the script stacks the chest
+texture from the bbmodel once per frame and paints only those pixels from the template into each one
+that the template itself moves from frame to frame (the iris). That way repainting the chest in
+Blockbench keeps the sparkle, and only a new iris needs a new template. Needs Pillow (pip install pillow).
+The *_glow texture is that strip with everything cut away but the lit pixels of the eye cubes, so the
+renderer can draw the chest a second time at full brightness and only the iris survives the cutout -
+the eye then shines in the dark while the rest of the chest takes the room's light (GoblinChestRenderer,
+GoblinChestSpecialRenderer). The pupil is dark and drops out with the rest. Every moving pixel of the
+template is lit, so the still colour textures under the animated glow look exactly like an animated
+chest texture - and the dye never touches the eye, so all colours share the glow. Sixteen animated
+chest textures would each be recomputed and uploaded every tick.
 
 Coordinates: Blockbench's "Modded Entity" space is the Java model space turned 180 degrees around z
 (x and y are negated, z is kept), and its box UV follows that turn - Blockbench's east face carries the
@@ -49,11 +55,16 @@ ANIM = os.path.join(ROOT, "art", "anim")
 TEXTURES = os.path.join(ROOT, "src/main/resources/assets/goblinlabour/textures/entity/chest")
 JAVA = os.path.join(ROOT, "src/main/java/goblinlabour/client/GoblinChestLayers.java")
 
-# model name -> (bbmodel, texture png, java method, layer field, offset of Blockbench (0,0,0) in model space)
+COLOURS = os.path.join(ROOT, "art", "chest_colors")
+
+# model name -> (bbmodel, texture suffix, java method, layer field, offset of Blockbench (0,0,0) in model space)
 MODELS = [
-    ("single", "goblin_chest_single.bbmodel", "goblin.png", "single", "SINGLE", (8.0, 0.0, 8.0)),
-    ("double", "goblin_chest_double.bbmodel", "goblin_double.png", "doubleChest", "DOUBLE", (0.0, 0.0, 8.0)),
+    ("single", "goblin_chest_single.bbmodel", "", "single", "SINGLE", (8.0, 0.0, 8.0)),
+    ("double", "goblin_chest_double.bbmodel", "_double", "doubleChest", "DOUBLE", (0.0, 0.0, 8.0)),
 ]
+# Minecraft's dye colours, named like GoblinChestBlock.texture does
+DYES = ["white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray", "light_gray", "cyan",
+        "purple", "blue", "brown", "green", "red", "black"]
 GROUPS = ["bottom", "lid", "lock"]  # the part names vanilla's ChestModel drives
 EYE = "eye_row"  # the cubes of the iris; their lit pixels are what glows in the dark
 DARK = 60  # anything below this brightness is the pupil (or a shadowed edge) and does not glow
@@ -177,6 +188,27 @@ def write_mcmeta(template_path, out_path, size):
         f.write("\n")
 
 
+def colour_textures(model, source, suffix, base_png, size):
+    """Copies the chest in every dye colour into the atlas folder, as still images."""
+    base = Image.open(io.BytesIO(base_png)).convert("RGBA")
+    stem = os.path.splitext(source)[0]
+    for dye in DYES:
+        path = os.path.join(COLOURS, "%s_%s.png" % (stem, dye))
+        shown = os.path.relpath(path, ROOT).replace(os.sep, "/")
+        assert os.path.exists(path), "%s is missing - run python art/chest_colors/make_chest_colors.py" % shown
+        image = Image.open(path).convert("RGBA")
+        assert image.size == size, "%s: %dx%d, the model's texture is %dx%d" % (shown, image.width, image.height, *size)
+        if dye == "green":
+            assert image.tobytes() == base.tobytes(), \
+                "%s is older than the bbmodel - run python art/chest_colors/make_chest_colors.py" % shown
+        name = ("goblin" if dye == "green" else "goblin_" + dye) + suffix + ".png"
+        image.save(os.path.join(TEXTURES, name))
+        stale = os.path.join(TEXTURES, name + ".mcmeta")  # from when the chest texture itself was animated
+        if os.path.exists(stale):
+            os.remove(stale)
+    print("wrote the %s chest in %d colours" % (model, len(DYES)))
+
+
 def used_texture(model, data):
     """The one texture every face is painted with; a Blockbench project may hold unused variants next to it."""
     ids = {f.get("texture") for e in data["elements"] for f in e["faces"].values()}
@@ -258,22 +290,21 @@ def layer(model, data, method, offset, texture_id):
 def main():
     layers = []
     fields = []
-    for model, source, texture, method, field, offset in MODELS:
+    for model, source, suffix, method, field, offset in MODELS:
         data = read(source)
         used = used_texture(model, data)
-        template = os.path.join(ANIM, os.path.splitext(source)[0] + ".png")
-        strip, count, moving = sparkle(model, base64.b64decode(used["source"].split(",", 1)[1]), template)
-        strip.save(os.path.join(TEXTURES, texture))
+        base_png = base64.b64decode(used["source"].split(",", 1)[1])
         size = (data["resolution"]["width"], data["resolution"]["height"])
-        write_mcmeta(template, os.path.join(TEXTURES, texture + ".mcmeta"), size)
-        print("wrote %s and its .mcmeta (%s, %dx%d frames, %d of them, %d moving pixels)"
-              % (texture, used["name"], size[0], size[1], count, moving))
+        colour_textures(model, source, suffix, base_png, size)
 
+        template = os.path.join(ANIM, os.path.splitext(source)[0] + ".png")
+        strip, count, moving = sparkle(model, base_png, template)
         lights, lit = glow(strip, eye_pixels(model, data), size[1])
-        glow_texture = texture.replace(".png", "_glow.png")
+        glow_texture = "goblin%s_glow.png" % suffix
         lights.save(os.path.join(TEXTURES, glow_texture))
         write_mcmeta(template, os.path.join(TEXTURES, glow_texture + ".mcmeta"), size)
-        print("wrote %s and its .mcmeta (%d glowing pixels per frame)" % (glow_texture, lit))
+        print("wrote %s and its .mcmeta (%s, %dx%d frames, %d of them, %d moving pixels, %d glowing per frame)"
+              % (glow_texture, used["name"], size[0], size[1], count, moving, lit))
         fields.append('    public static final ModelLayerLocation %s = '
                       'new ModelLayerLocation(GoblinLabour.id("goblin_chest"), "%s");' % (field, model))
         layers += layer(model, data, method, offset, used["id"])

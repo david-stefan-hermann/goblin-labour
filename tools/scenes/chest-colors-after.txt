@@ -1,0 +1,10 @@
+clear @p
+give @p goblinlabour:red_goblin_chest
+give @p goblinlabour:orange_goblin_chest
+give @p goblinlabour:yellow_goblin_chest
+give @p goblinlabour:lime_goblin_chest
+give @p goblinlabour:cyan_goblin_chest
+give @p goblinlabour:light_blue_goblin_chest
+give @p goblinlabour:purple_goblin_chest
+give @p goblinlabour:magenta_goblin_chest
+give @p goblinlabour:black_goblin_chest

@@ -22,7 +22,7 @@ import java.util.function.Consumer;
  * Draws the Goblin Chest as an item (in hand, in the inventory, on the ground): vanilla's
  * {@code minecraft:chest} special renderer is hard-wired to vanilla's chest model, which is not this chest's
  * shape, so the goblin chest brings its own. Same job, but with {@link GoblinChestLayers#SINGLE} and the goblin
- * chest's sprite in the chest atlas.
+ * chest's sprite in the chest atlas ({@code texture}, one per colour; the glowing eye is the same for all).
  *
  * <p>Referenced from {@code assets/goblinlabour/items/goblin_chest.json} as
  * {@code {"type": "goblinlabour:goblin_chest"}}; the id is registered in
@@ -76,7 +76,7 @@ public class GoblinChestSpecialRenderer implements NoDataSpecialModelRenderer {
         public SpecialModelRenderer<Void> bake(SpecialModelRenderer.BakingContext context) {
             ChestModel model = new ChestModel(context.entityModelSet().bakeLayer(GoblinChestLayers.SINGLE));
             return new GoblinChestSpecialRenderer(context.sprites(), model, Sheets.CHEST_MAPPER.apply(texture),
-                    Sheets.CHEST_MAPPER.apply(texture.withSuffix("_glow")), openness);
+                    Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin_glow")), openness);
         }
     }
 }

@@ -30,6 +30,10 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributeHandler;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
 import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
@@ -44,6 +48,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
@@ -52,10 +57,15 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.MapColor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -100,6 +110,12 @@ public final class GoblinLabour implements ModInitializer {
                     .networkSynchronized(ByteBufCodecs.VAR_INT)
                     .build());
 
+    /**
+     * Milk as a fluid for Fabric's transfer API (see {@link goblinlabour.fluid.MilkFluid}); only tanks hold it, it is
+     * never placed in the world.
+     */
+    public static final Fluid MILK_FLUID = Registry.register(BuiltInRegistries.FLUID, id("milk"), new goblinlabour.fluid.MilkFluid());
+
     public static final Block GOBLIN_STRAW_BED = registerBlock("goblin_straw_bed", props -> new GoblinBedBlock(
             props.mapColor(MapColor.COLOR_YELLOW).strength(0.4f).sound(SoundType.GRASS).noOcclusion()));
     public static final BlockEntityType<GoblinBedBlockEntity> GOBLIN_BED_BLOCK_ENTITY = Registry.register(
@@ -111,20 +127,34 @@ public final class GoblinLabour implements ModInitializer {
                     .isSuffocating((state, level, pos) -> false).isViewBlocking((state, level, pos) -> false)));
     public static final Item GOBLIN_SCAFFOLD_ITEM = registerItem("goblin_scaffold",
             props -> new BlockItem(GOBLIN_SCAFFOLD, props.useBlockDescriptionPrefix()));
-    public static final Block GOBLIN_CHEST = registerBlock("goblin_chest", props -> new GoblinChestBlock(
-            props.mapColor(MapColor.COLOR_GREEN).strength(2.5f).sound(SoundType.WOOD).ignitedByLava()));
+    /**
+     * The Goblin Chest in the sixteen dye colours, one block and item each. Green is the plain {@code goblin_chest}
+     * the recipe makes; a dye turns any chest into another colour (the {@code dye_*_goblin_chest} recipes).
+     */
+    public static final Map<DyeColor, Block> GOBLIN_CHESTS = registerGoblinChests();
+    public static final Block GOBLIN_CHEST = GOBLIN_CHESTS.get(DyeColor.GREEN);
     public static final BlockEntityType<GoblinChestBlockEntity> GOBLIN_CHEST_BLOCK_ENTITY = Registry.register(
             BuiltInRegistries.BLOCK_ENTITY_TYPE, id("goblin_chest"),
-            FabricBlockEntityTypeBuilder.create(GoblinChestBlockEntity::new, GOBLIN_CHEST).build());
-    public static final Item GOBLIN_CHEST_ITEM = registerItem("goblin_chest",
-            props -> new BlockItem(GOBLIN_CHEST, props.useBlockDescriptionPrefix()));
+            FabricBlockEntityTypeBuilder.create(GoblinChestBlockEntity::new, GOBLIN_CHESTS.values().toArray(Block[]::new)).build());
+    public static final Map<DyeColor, Item> GOBLIN_CHEST_ITEMS = registerGoblinChestItems();
+    public static final Item GOBLIN_CHEST_ITEM = GOBLIN_CHEST_ITEMS.get(DyeColor.GREEN);
     public static final Block MILK_CHURN = registerBlock("milk_churn", props -> new goblinlabour.block.MilkChurnBlock(
             props.mapColor(MapColor.METAL).strength(2.0f).sound(SoundType.COPPER).noOcclusion().requiresCorrectToolForDrops()));
     public static final BlockEntityType<goblinlabour.block.MilkChurnBlockEntity> MILK_CHURN_BLOCK_ENTITY = Registry.register(
             BuiltInRegistries.BLOCK_ENTITY_TYPE, id("milk_churn"),
             FabricBlockEntityTypeBuilder.create(goblinlabour.block.MilkChurnBlockEntity::new, MILK_CHURN).build());
     public static final Item MILK_CHURN_ITEM = registerItem("milk_churn",
-            props -> new goblinlabour.item.MilkChurnItem(MILK_CHURN, props.useBlockDescriptionPrefix()));
+            props -> new goblinlabour.item.MilkChurnItem(MILK_CHURN, goblinlabour.block.MilkChurnBlockEntity.CAPACITY,
+                    props.useBlockDescriptionPrefix()));
+    /** A tank block under the Milk Can: takes its milk, holds twenty buckets, other mods pipe the milk out. */
+    public static final Block MILK_CAN_EXPANSION = registerBlock("milk_can_expansion", props -> new goblinlabour.block.MilkCanExpansionBlock(
+            props.mapColor(MapColor.METAL).strength(2.0f).sound(SoundType.COPPER).requiresCorrectToolForDrops()));
+    public static final BlockEntityType<goblinlabour.block.MilkCanExpansionBlockEntity> MILK_CAN_EXPANSION_BLOCK_ENTITY = Registry.register(
+            BuiltInRegistries.BLOCK_ENTITY_TYPE, id("milk_can_expansion"),
+            FabricBlockEntityTypeBuilder.create(goblinlabour.block.MilkCanExpansionBlockEntity::new, MILK_CAN_EXPANSION).build());
+    public static final Item MILK_CAN_EXPANSION_ITEM = registerItem("milk_can_expansion",
+            props -> new goblinlabour.item.MilkChurnItem(MILK_CAN_EXPANSION, goblinlabour.block.MilkCanExpansionBlockEntity.CAPACITY,
+                    props.useBlockDescriptionPrefix()));
     /** Technical block, never placed: its particle texture (the emerald item) is what the home markers show. */
     public static final Block HOME_MARKER = registerBlock("home_marker", props -> new HomeMarkerBlock(
             props.noCollision().noLootTable().replaceable().air()));
@@ -160,7 +190,15 @@ public final class GoblinLabour implements ModInitializer {
 
     public static final ExtendedMenuType<goblinlabour.menu.MilkChurnMenu, net.minecraft.core.BlockPos> MILK_CHURN_MENU = Registry.register(
             BuiltInRegistries.MENU, id("milk_churn"),
-            new ExtendedMenuType<>(goblinlabour.menu.MilkChurnMenu::new, net.minecraft.core.BlockPos.STREAM_CODEC));
+            new ExtendedMenuType<>(goblinlabour.menu.MilkChurnMenu::can, net.minecraft.core.BlockPos.STREAM_CODEC));
+    public static final ExtendedMenuType<goblinlabour.menu.MilkChurnMenu, net.minecraft.core.BlockPos> MILK_CAN_EXPANSION_MENU = Registry.register(
+            BuiltInRegistries.MENU, id("milk_can_expansion"),
+            new ExtendedMenuType<>(goblinlabour.menu.MilkChurnMenu::expansion, net.minecraft.core.BlockPos.STREAM_CODEC));
+
+    /** Opening data: the chest's row count (3 or 6) and its colour. */
+    public static final ExtendedMenuType<goblinlabour.menu.GoblinChestMenu, goblinlabour.menu.GoblinChestMenu.OpeningData> GOBLIN_CHEST_MENU = Registry.register(
+            BuiltInRegistries.MENU, id("goblin_chest"),
+            new ExtendedMenuType<>(goblinlabour.menu.GoblinChestMenu::client, goblinlabour.menu.GoblinChestMenu.OpeningData.STREAM_CODEC));
 
     public static final ExtendedMenuType<GoblinBedMenu, GoblinBedMenuData> BED_MENU = Registry.register(
             BuiltInRegistries.MENU, id("bed"),
@@ -176,8 +214,9 @@ public final class GoblinLabour implements ModInitializer {
                         out.accept(GOBLIN_MEAT_PACK);
                         out.accept(GOBLIN_BLANK);
                         out.accept(GOBLIN_STRAW_BED_ITEM);
-                        out.accept(GOBLIN_CHEST_ITEM);
+                        chestColours().forEach(color -> out.accept(GOBLIN_CHEST_ITEMS.get(color)));
                         out.accept(MILK_CHURN_ITEM);
+                        out.accept(MILK_CAN_EXPANSION_ITEM);
                         out.accept(GOBLIN_HEAD);
                         out.accept(GOBLIN_STAFF);
                         out.accept(GOBLIN_RING);
@@ -195,6 +234,14 @@ public final class GoblinLabour implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(RingCrew::tick);
         PlayerBlockBreakEvents.AFTER.register(RingCrew::afterBlockBreak);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> RingCrew.endAll());
+        // the expansion's milk for pipes and storage mods, from every side; its name for their screens
+        FluidStorage.SIDED.registerForBlockEntity((expansion, side) -> expansion.tank, MILK_CAN_EXPANSION_BLOCK_ENTITY);
+        FluidVariantAttributes.register(MILK_FLUID, new FluidVariantAttributeHandler() {
+            @Override
+            public Component getName(FluidVariant variant) {
+                return Component.translatable("fluid.goblinlabour.milk");
+            }
+        });
         DevHooks.initServer();
         LOGGER.info("Goblin Labour loaded");
     }
@@ -203,6 +250,32 @@ public final class GoblinLabour implements ModInitializer {
         Identifier id = id(name);
         BlockBehaviour.Properties props = BlockBehaviour.Properties.of().setId(ResourceKey.create(Registries.BLOCK, id));
         return Registry.register(BuiltInRegistries.BLOCK, id, factory.apply(props));
+    }
+
+    /** Green first (the plain chest, registered before there were colours), then the dyed ones in dye order. */
+    public static List<DyeColor> chestColours() {
+        List<DyeColor> colours = new ArrayList<>(List.of(DyeColor.values()));
+        colours.remove(DyeColor.GREEN);
+        colours.addFirst(DyeColor.GREEN);
+        return colours;
+    }
+
+    private static Map<DyeColor, Block> registerGoblinChests() {
+        Map<DyeColor, Block> chests = new EnumMap<>(DyeColor.class);
+        for (DyeColor color : chestColours()) {
+            chests.put(color, registerBlock(GoblinChestBlock.name(color), props -> new GoblinChestBlock(color,
+                    props.mapColor(color.getMapColor()).strength(2.5f).sound(SoundType.WOOD).ignitedByLava())));
+        }
+        return chests;
+    }
+
+    private static Map<DyeColor, Item> registerGoblinChestItems() {
+        Map<DyeColor, Item> items = new EnumMap<>(DyeColor.class);
+        for (DyeColor color : chestColours()) {
+            items.put(color, registerItem(GoblinChestBlock.name(color),
+                    props -> new BlockItem(GOBLIN_CHESTS.get(color), props.useBlockDescriptionPrefix())));
+        }
+        return items;
     }
 
     private static Item registerItem(String name, Function<Item.Properties, Item> factory) {

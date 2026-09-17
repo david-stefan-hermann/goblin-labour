@@ -1,0 +1,24 @@
+forceload add 735 735 765 765
+time set day
+weather clear
+kill @e[type=item,x=735,y=-64,z=735,dx=30,dy=20,dz=30]
+fill 735 -60 735 765 -50 765 air
+fill 735 -61 735 765 -61 765 grass_block
+fill 740 -60 744 756 -60 744 stone_bricks
+setblock 741 -59 744 goblinlabour:white_goblin_chest[facing=south]
+setblock 743 -59 744 goblinlabour:orange_goblin_chest[facing=south]
+setblock 745 -59 744 goblinlabour:magenta_goblin_chest[facing=south]
+setblock 747 -59 744 goblinlabour:light_blue_goblin_chest[facing=south]
+setblock 749 -59 744 goblinlabour:yellow_goblin_chest[facing=south]
+setblock 751 -59 744 goblinlabour:lime_goblin_chest[facing=south]
+setblock 753 -59 744 goblinlabour:pink_goblin_chest[facing=south]
+setblock 755 -59 744 goblinlabour:gray_goblin_chest[facing=south]
+setblock 741 -60 748 goblinlabour:light_gray_goblin_chest[facing=south]
+setblock 743 -60 748 goblinlabour:cyan_goblin_chest[facing=south]
+setblock 745 -60 748 goblinlabour:purple_goblin_chest[facing=south]
+setblock 747 -60 748 goblinlabour:blue_goblin_chest[facing=south]
+setblock 749 -60 748 goblinlabour:brown_goblin_chest[facing=south]
+setblock 751 -60 748 goblinlabour:goblin_chest[facing=south]
+setblock 753 -60 748 goblinlabour:red_goblin_chest[facing=south]
+setblock 755 -60 748 goblinlabour:black_goblin_chest[facing=south]
+goblinlabour dyecheck

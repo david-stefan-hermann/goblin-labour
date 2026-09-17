@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "goblin_chest_dye",
+  "ingredients": [
+    "minecraft:cyan_dye",
+    [
+      "goblinlabour:white_goblin_chest",
+      "goblinlabour:orange_goblin_chest",
+      "goblinlabour:magenta_goblin_chest",
+      "goblinlabour:light_blue_goblin_chest",
+      "goblinlabour:yellow_goblin_chest",
+      "goblinlabour:lime_goblin_chest",
+      "goblinlabour:pink_goblin_chest",
+      "goblinlabour:gray_goblin_chest",
+      "goblinlabour:light_gray_goblin_chest",
+      "goblinlabour:purple_goblin_chest",
+      "goblinlabour:blue_goblin_chest",
+      "goblinlabour:brown_goblin_chest",
+      "goblinlabour:goblin_chest",
+      "goblinlabour:red_goblin_chest",
+      "goblinlabour:black_goblin_chest"
+    ]
+  ],
+  "result": {
+    "id": "goblinlabour:cyan_goblin_chest"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "goblinlabour:item/goblin_chest",
+    "model": {
+      "type": "goblinlabour:goblin_chest",
+      "texture": "goblinlabour:goblin_red"
+    }
+  }
+}

@@ -1,0 +1,3186 @@
+{
+  "textures": {
+    "particle": "goblinlabour:block/milk_can_side",
+    "side": "goblinlabour:block/milk_can_side",
+    "top": "goblinlabour:block/milk_can_top",
+    "bottom": "goblinlabour:block/milk_can_bottom",
+    "side_top": "goblinlabour:block/milk_can_side_top",
+    "milk": "goblinlabour:block/milk_can_milk"
+  },
+  "elements": [
+    {
+      "name": "lid_0",
+      "from": [
+        3.0,
+        16,
+        4.0
+      ],
+      "to": [
+        13.0,
+        17,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            3.0,
+            15,
+            13.0,
+            16.0
+          ],
+          "texture": "#side_top"
+        },
+        "south": {
+          "uv": [
+            3.0,
+            15,
+            13.0,
+            16.0
+          ],
+          "texture": "#side_top"
+        },
+        "east": {
+          "uv": [
+            4.0,
+            15,
+            12.0,
+            16.0
+          ],
+          "texture": "#side_top"
+        },
+        "west": {
+          "uv": [
+            4.0,
+            15,
+            12.0,
+            16.0
+          ],
+          "texture": "#side_top"
+        },
+        "up": {
+          "uv": [
+            3.0,
+            4.0,
+            13.0,
+            12.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            3.0,
+            4.0,
+            13.0,
+            12.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "lid_1",
+      "from": [
+        4.0,
+        16,
+        3.0
+      ],
+      "to": [
+        12.0,
+        17,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4.0,
+            15,
+            12.0,
+            16.0
+          ],
+          "texture": "#side_top"
+        },
+        "south": {
+          "uv": [
+            4.0,
+            15,
+            12.0,
+            16.0
+          ],
+          "texture": "#side_top"
+        },
+        "east": {
+          "uv": [
+            3.0,
+            15,
+            13.0,
+            16.0
+          ],
+          "texture": "#side_top"
+        },
+        "west": {
+          "uv": [
+            3.0,
+            15,
+            13.0,
+            16.0
+          ],
+          "texture": "#side_top"
+        },
+        "up": {
+          "uv": [
+            4.0,
+            3.0,
+            12.0,
+            13.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            4.0,
+            3.0,
+            12.0,
+            13.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "lid_knob_0",
+      "from": [
+        5.0,
+        17,
+        6.0
+      ],
+      "to": [
+        11.0,
+        18,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.0,
+            14,
+            11.0,
+            15
+          ],
+          "texture": "#side_top"
+        },
+        "south": {
+          "uv": [
+            5.0,
+            14,
+            11.0,
+            15
+          ],
+          "texture": "#side_top"
+        },
+        "east": {
+          "uv": [
+            6.0,
+            14,
+            10.0,
+            15
+          ],
+          "texture": "#side_top"
+        },
+        "west": {
+          "uv": [
+            6.0,
+            14,
+            10.0,
+            15
+          ],
+          "texture": "#side_top"
+        },
+        "up": {
+          "uv": [
+            5.0,
+            6.0,
+            11.0,
+            10.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            5.0,
+            6.0,
+            11.0,
+            10.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "lid_knob_1",
+      "from": [
+        6.0,
+        17,
+        5.0
+      ],
+      "to": [
+        10.0,
+        18,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.0,
+            14,
+            10.0,
+            15
+          ],
+          "texture": "#side_top"
+        },
+        "south": {
+          "uv": [
+            6.0,
+            14,
+            10.0,
+            15
+          ],
+          "texture": "#side_top"
+        },
+        "east": {
+          "uv": [
+            5.0,
+            14,
+            11.0,
+            15
+          ],
+          "texture": "#side_top"
+        },
+        "west": {
+          "uv": [
+            5.0,
+            14,
+            11.0,
+            15
+          ],
+          "texture": "#side_top"
+        },
+        "up": {
+          "uv": [
+            6.0,
+            5.0,
+            10.0,
+            11.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            6.0,
+            5.0,
+            10.0,
+            11.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "drip_n_15",
+      "from": [
+        6,
+        15,
+        2.8
+      ],
+      "to": [
+        8,
+        16,
+        3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0.0,
+            10,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            6,
+            0.0,
+            8,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            6,
+            2.8,
+            8,
+            3
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            6,
+            13,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_16",
+      "from": [
+        6,
+        16,
+        2.8
+      ],
+      "to": [
+        8,
+        16.2,
+        3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0.0,
+            10,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            6,
+            0.0,
+            8,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            6,
+            2.8,
+            8,
+            3
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            6,
+            13,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_12",
+      "from": [
+        6,
+        12,
+        3.8
+      ],
+      "to": [
+        8,
+        15,
+        4.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            1,
+            10,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            6,
+            1,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            12.0,
+            1,
+            12.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            3.8,
+            1,
+            4.0,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            6,
+            3.8,
+            8,
+            4.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            6,
+            12.0,
+            8,
+            12.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_11",
+      "from": [
+        6,
+        11,
+        2.8
+      ],
+      "to": [
+        8,
+        12,
+        3.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            4,
+            10,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            6,
+            4,
+            8,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            13.0,
+            4,
+            13.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            4,
+            3.0,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            6,
+            2.8,
+            8,
+            3.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            6,
+            13.0,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_0",
+      "from": [
+        6,
+        0,
+        1.8
+      ],
+      "to": [
+        8,
+        11,
+        2.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            5,
+            10,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            6,
+            5,
+            8,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            14.0,
+            5,
+            14.2,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            1.8,
+            5,
+            2.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            6,
+            1.8,
+            8,
+            2.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            6,
+            14.0,
+            8,
+            14.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_ledge15",
+      "from": [
+        6,
+        14.8,
+        2.8
+      ],
+      "to": [
+        8,
+        15,
+        4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            1,
+            10,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            6,
+            1,
+            8,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            12,
+            1,
+            13.2,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            1,
+            4,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            6,
+            2.8,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            6,
+            12,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_ledge12",
+      "from": [
+        6,
+        12,
+        2.8
+      ],
+      "to": [
+        8,
+        12.2,
+        4.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            3.8,
+            10,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            6,
+            3.8,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            11.8,
+            3.8,
+            13.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            3.8,
+            4.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            6,
+            2.8,
+            8,
+            4.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            6,
+            11.8,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_ledge11",
+      "from": [
+        6,
+        11,
+        1.8
+      ],
+      "to": [
+        8,
+        11.2,
+        3.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            4.8,
+            10,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            6,
+            4.8,
+            8,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            12.8,
+            4.8,
+            14.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            1.8,
+            4.8,
+            3.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            6,
+            1.8,
+            8,
+            3.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            6,
+            12.8,
+            8,
+            14.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n2_15",
+      "from": [
+        9,
+        15,
+        2.8
+      ],
+      "to": [
+        10,
+        16,
+        3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0.0,
+            7,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            9,
+            0.0,
+            10,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            9,
+            2.8,
+            10,
+            3
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            9,
+            13,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n2_16",
+      "from": [
+        9,
+        16,
+        2.8
+      ],
+      "to": [
+        10,
+        16.2,
+        3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0.0,
+            7,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            9,
+            0.0,
+            10,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            9,
+            2.8,
+            10,
+            3
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            9,
+            13,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n2_12",
+      "from": [
+        9,
+        12,
+        3.8
+      ],
+      "to": [
+        10,
+        15,
+        4.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            1,
+            7,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            9,
+            1,
+            10,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            12.0,
+            1,
+            12.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            3.8,
+            1,
+            4.0,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            9,
+            3.8,
+            10,
+            4.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            9,
+            12.0,
+            10,
+            12.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n2_11",
+      "from": [
+        9,
+        11,
+        2.8
+      ],
+      "to": [
+        10,
+        12,
+        3.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            4,
+            7,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            9,
+            4,
+            10,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            13.0,
+            4,
+            13.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            4,
+            3.0,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            9,
+            2.8,
+            10,
+            3.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            9,
+            13.0,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n2_0",
+      "from": [
+        9,
+        6.6,
+        1.8
+      ],
+      "to": [
+        10,
+        11,
+        2.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            5,
+            7,
+            9.4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            9,
+            5,
+            10,
+            9.4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            14.0,
+            5,
+            14.2,
+            9.4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            1.8,
+            5,
+            2.0,
+            9.4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            9,
+            1.8,
+            10,
+            2.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            9,
+            14.0,
+            10,
+            14.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n2_ledge15",
+      "from": [
+        9,
+        14.8,
+        2.8
+      ],
+      "to": [
+        10,
+        15,
+        4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            1,
+            7,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            9,
+            1,
+            10,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            12,
+            1,
+            13.2,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            1,
+            4,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            9,
+            2.8,
+            10,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            9,
+            12,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n2_ledge12",
+      "from": [
+        9,
+        12,
+        2.8
+      ],
+      "to": [
+        10,
+        12.2,
+        4.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            3.8,
+            7,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            9,
+            3.8,
+            10,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            11.8,
+            3.8,
+            13.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            3.8,
+            4.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            9,
+            2.8,
+            10,
+            4.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            9,
+            11.8,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n2_ledge11",
+      "from": [
+        9,
+        11,
+        1.8
+      ],
+      "to": [
+        10,
+        11.2,
+        3.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            4.8,
+            7,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            9,
+            4.8,
+            10,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            12.8,
+            4.8,
+            14.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            1.8,
+            4.8,
+            3.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            9,
+            1.8,
+            10,
+            3.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            9,
+            12.8,
+            10,
+            14.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_s_15",
+      "from": [
+        8,
+        15,
+        13
+      ],
+      "to": [
+        10,
+        16,
+        13.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0.0,
+            8,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            8,
+            0.0,
+            10,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            8,
+            13,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            8,
+            2.8,
+            10,
+            3
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_s_16",
+      "from": [
+        8,
+        16,
+        13
+      ],
+      "to": [
+        10,
+        16.2,
+        13.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0.0,
+            8,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            8,
+            0.0,
+            10,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            8,
+            13,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            8,
+            2.8,
+            10,
+            3
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_s_12",
+      "from": [
+        8,
+        12,
+        12.0
+      ],
+      "to": [
+        10,
+        15,
+        12.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            1,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            8,
+            1,
+            10,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            3.8,
+            1,
+            4.0,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            12.0,
+            1,
+            12.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            8,
+            12.0,
+            10,
+            12.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            8,
+            3.8,
+            10,
+            4.0
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_s_11",
+      "from": [
+        8,
+        11,
+        13.0
+      ],
+      "to": [
+        10,
+        12,
+        13.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            4,
+            8,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            8,
+            4,
+            10,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            2.8,
+            4,
+            3.0,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            13.0,
+            4,
+            13.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            8,
+            13.0,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            8,
+            2.8,
+            10,
+            3.0
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_s_0",
+      "from": [
+        8,
+        0,
+        14.0
+      ],
+      "to": [
+        10,
+        11,
+        14.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            5,
+            8,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            8,
+            5,
+            10,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            1.8,
+            5,
+            2.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            14.0,
+            5,
+            14.2,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            8,
+            14.0,
+            10,
+            14.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            8,
+            1.8,
+            10,
+            2.0
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_s_ledge15",
+      "from": [
+        8,
+        14.8,
+        12
+      ],
+      "to": [
+        10,
+        15,
+        13.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            1,
+            8,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            8,
+            1,
+            10,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            2.8,
+            1,
+            4,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            12,
+            1,
+            13.2,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            8,
+            12,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            8,
+            2.8,
+            10,
+            4
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_s_ledge12",
+      "from": [
+        8,
+        12,
+        11.8
+      ],
+      "to": [
+        10,
+        12.2,
+        13.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            3.8,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            8,
+            3.8,
+            10,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            2.8,
+            3.8,
+            4.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            11.8,
+            3.8,
+            13.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            8,
+            11.8,
+            10,
+            13.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            8,
+            2.8,
+            10,
+            4.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_s_ledge11",
+      "from": [
+        8,
+        11,
+        12.8
+      ],
+      "to": [
+        10,
+        11.2,
+        14.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            4.8,
+            8,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            8,
+            4.8,
+            10,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            1.8,
+            4.8,
+            3.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            12.8,
+            4.8,
+            14.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            8,
+            12.8,
+            10,
+            14.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            8,
+            1.8,
+            10,
+            3.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_e_15",
+      "from": [
+        13,
+        15,
+        7
+      ],
+      "to": [
+        13.2,
+        16,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            8,
+            0.0,
+            9,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            7,
+            0.0,
+            8,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            13,
+            7,
+            13.2,
+            8
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            13,
+            8,
+            13.2,
+            9
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_e_16",
+      "from": [
+        13,
+        16,
+        7
+      ],
+      "to": [
+        13.2,
+        16.2,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            8,
+            0.0,
+            9,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            7,
+            0.0,
+            8,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            13,
+            7,
+            13.2,
+            8
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            13,
+            8,
+            13.2,
+            9
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_e_12",
+      "from": [
+        12.0,
+        12,
+        7
+      ],
+      "to": [
+        12.2,
+        15,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            3.8,
+            1,
+            4.0,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            12.0,
+            1,
+            12.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            8,
+            1,
+            9,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            7,
+            1,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            12.0,
+            7,
+            12.2,
+            8
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            12.0,
+            8,
+            12.2,
+            9
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_e_11",
+      "from": [
+        13.0,
+        11,
+        7
+      ],
+      "to": [
+        13.2,
+        12,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.8,
+            4,
+            3.0,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            13.0,
+            4,
+            13.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            8,
+            4,
+            9,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            7,
+            4,
+            8,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            13.0,
+            7,
+            13.2,
+            8
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            13.0,
+            8,
+            13.2,
+            9
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_e_0",
+      "from": [
+        14.0,
+        2.2,
+        7
+      ],
+      "to": [
+        14.2,
+        11,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1.8,
+            5,
+            2.0,
+            13.8
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            14.0,
+            5,
+            14.2,
+            13.8
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            8,
+            5,
+            9,
+            13.8
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            7,
+            5,
+            8,
+            13.8
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            14.0,
+            7,
+            14.2,
+            8
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            14.0,
+            8,
+            14.2,
+            9
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_e_ledge15",
+      "from": [
+        12,
+        14.8,
+        7
+      ],
+      "to": [
+        13.2,
+        15,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.8,
+            1,
+            4,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            12,
+            1,
+            13.2,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            8,
+            1,
+            9,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            7,
+            1,
+            8,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            12,
+            7,
+            13.2,
+            8
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            12,
+            8,
+            13.2,
+            9
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_e_ledge12",
+      "from": [
+        11.8,
+        12,
+        7
+      ],
+      "to": [
+        13.2,
+        12.2,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.8,
+            3.8,
+            4.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            11.8,
+            3.8,
+            13.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            8,
+            3.8,
+            9,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            7,
+            3.8,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            11.8,
+            7,
+            13.2,
+            8
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            11.8,
+            8,
+            13.2,
+            9
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_e_ledge11",
+      "from": [
+        12.8,
+        11,
+        7
+      ],
+      "to": [
+        14.2,
+        11.2,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1.8,
+            4.8,
+            3.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            12.8,
+            4.8,
+            14.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            8,
+            4.8,
+            9,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            7,
+            4.8,
+            8,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            12.8,
+            7,
+            14.2,
+            8
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            12.8,
+            8,
+            14.2,
+            9
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_w_15",
+      "from": [
+        2.8,
+        15,
+        8
+      ],
+      "to": [
+        3,
+        16,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            7,
+            0.0,
+            8,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            8,
+            0.0,
+            9,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            2.8,
+            8,
+            3,
+            9
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            2.8,
+            7,
+            3,
+            8
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_w_16",
+      "from": [
+        2.8,
+        16,
+        8
+      ],
+      "to": [
+        3,
+        16.2,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            7,
+            0.0,
+            8,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            8,
+            0.0,
+            9,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            2.8,
+            8,
+            3,
+            9
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            2.8,
+            7,
+            3,
+            8
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_w_12",
+      "from": [
+        3.8,
+        12,
+        8
+      ],
+      "to": [
+        4.0,
+        15,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12.0,
+            1,
+            12.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            3.8,
+            1,
+            4.0,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            7,
+            1,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            8,
+            1,
+            9,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            3.8,
+            8,
+            4.0,
+            9
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            3.8,
+            7,
+            4.0,
+            8
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_w_11",
+      "from": [
+        2.8,
+        11,
+        8
+      ],
+      "to": [
+        3.0,
+        12,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            13.0,
+            4,
+            13.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            2.8,
+            4,
+            3.0,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            7,
+            4,
+            8,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            8,
+            4,
+            9,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            2.8,
+            8,
+            3.0,
+            9
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            2.8,
+            7,
+            3.0,
+            8
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_w_0",
+      "from": [
+        1.8,
+        4.4,
+        8
+      ],
+      "to": [
+        2.0,
+        11,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            14.0,
+            5,
+            14.2,
+            11.6
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            1.8,
+            5,
+            2.0,
+            11.6
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            7,
+            5,
+            8,
+            11.6
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            8,
+            5,
+            9,
+            11.6
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            1.8,
+            8,
+            2.0,
+            9
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            1.8,
+            7,
+            2.0,
+            8
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_w_ledge15",
+      "from": [
+        2.8,
+        14.8,
+        8
+      ],
+      "to": [
+        4,
+        15,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12,
+            1,
+            13.2,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            2.8,
+            1,
+            4,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            7,
+            1,
+            8,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            8,
+            1,
+            9,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            2.8,
+            8,
+            4,
+            9
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            2.8,
+            7,
+            4,
+            8
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_w_ledge12",
+      "from": [
+        2.8,
+        12,
+        8
+      ],
+      "to": [
+        4.2,
+        12.2,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            11.8,
+            3.8,
+            13.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            2.8,
+            3.8,
+            4.2,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            7,
+            3.8,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            8,
+            3.8,
+            9,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            2.8,
+            8,
+            4.2,
+            9
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            2.8,
+            7,
+            4.2,
+            8
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_w_ledge11",
+      "from": [
+        1.8,
+        11,
+        8
+      ],
+      "to": [
+        3.2,
+        11.2,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12.8,
+            4.8,
+            14.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            1.8,
+            4.8,
+            3.2,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            7,
+            4.8,
+            8,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            8,
+            4.8,
+            9,
+            5
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            1.8,
+            8,
+            3.2,
+            9
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            1.8,
+            7,
+            3.2,
+            8
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "puddle_0",
+      "from": [
+        1.0,
+        0,
+        2.0
+      ],
+      "to": [
+        15.0,
+        0.1,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1.0,
+            15.9,
+            15.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            1.0,
+            15.9,
+            15.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            2.0,
+            15.9,
+            14.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.0,
+            15.9,
+            14.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            1.0,
+            2.0,
+            15.0,
+            14.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            1.0,
+            2.0,
+            15.0,
+            14.0
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "puddle_1",
+      "from": [
+        2.0,
+        0,
+        1.0
+      ],
+      "to": [
+        14.0,
+        0.1,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.0,
+            15.9,
+            14.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            2.0,
+            15.9,
+            14.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            1.0,
+            15.9,
+            15.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            1.0,
+            15.9,
+            15.0,
+            16.0
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            2.0,
+            1.0,
+            14.0,
+            15.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            2.0,
+            1.0,
+            14.0,
+            15.0
+          ],
+          "texture": "#milk"
+        }
+      }
+    }
+  ]
+}

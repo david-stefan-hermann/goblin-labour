@@ -1,0 +1,15 @@
+forceload add 775 775 800 800
+time set day
+weather clear
+kill @e[type=item,x=775,y=-64,z=775,dx=25,dy=20,dz=25]
+fill 775 -60 775 800 -50 800 air
+fill 775 -61 775 800 -61 800 grass_block
+setblock 785 -60 790 goblinlabour:milk_can_expansion
+setblock 785 -59 790 goblinlabour:milk_churn
+goblinlabour churn 785 -59 790 10000
+setblock 788 -60 790 goblinlabour:milk_can_expansion
+goblinlabour tank 788 -60 790 13000
+setblock 788 -59 790 goblinlabour:milk_churn
+goblinlabour churn 788 -59 790 10000
+setblock 791 -60 790 goblinlabour:milk_can_expansion
+goblinlabour tank 791 -60 790 13000

@@ -192,6 +192,19 @@ public final class GoblinCommand {
                         .then(Commands.literal("expire")
                                 .then(Commands.argument("seconds", IntegerArgumentType.integer(0, 3600))
                                         .executes(ctx -> ringExpire(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "seconds"))))))
+                .then(Commands.literal("dyecheck").executes(ctx -> dyeCheck(ctx.getSource())))
+                .then(Commands.literal("tank")
+                        .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                .executes(ctx -> tank(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"), -1))
+                                .then(Commands.argument("milk", IntegerArgumentType.integer(0, goblinlabour.block.MilkCanExpansionBlockEntity.CAPACITY))
+                                        .executes(ctx -> tank(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"),
+                                                IntegerArgumentType.getInteger(ctx, "milk"))))))
+                .then(Commands.literal("pipe")
+                        .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                .then(Commands.argument("side", StringArgumentType.word())
+                                        .then(Commands.argument("mB", IntegerArgumentType.integer(-100_000, 100_000))
+                                                .executes(ctx -> pipe(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"),
+                                                        StringArgumentType.getString(ctx, "side"), IntegerArgumentType.getInteger(ctx, "mB")))))))
                 .then(Commands.literal("fillstorage")
                         .then(Commands.argument("bed", BlockPosArgument.blockPos())
                                 .then(Commands.argument("item", ItemArgument.item(context))
@@ -317,6 +330,95 @@ public final class GoblinCommand {
         drop.getItem().shrink(1);
         if (drop.getItem().isEmpty()) drop.discard();
         return churn(source, pos, -1);
+    }
+
+    /** Dev: shows (and with {@code milk} sets) a Milk Can Expansion's tank. */
+    private static int tank(CommandSourceStack source, BlockPos pos, int milk) {
+        if (!(source.getLevel().getBlockEntity(pos) instanceof goblinlabour.block.MilkCanExpansionBlockEntity expansion)) {
+            source.sendFailure(Component.literal("No Milk Can Expansion at " + pos.toShortString()));
+            return 0;
+        }
+        if (milk >= 0) expansion.setMilk(milk);
+        source.sendSuccess(() -> Component.literal("Milk Can Expansion at " + pos.toShortString() + ": milk=" + expansion.getMilk()
+                + " / " + goblinlabour.block.MilkCanExpansionBlockEntity.CAPACITY + " mB (" + expansion.tank.amount + " droplets, "
+                + expansion.tank.variant + ") signal=" + expansion.signal()), true);
+        return 1;
+    }
+
+    /**
+     * Dev: what a pipe or a Refined Storage importer does - finds the fluid storage at {@code pos} through Fabric's
+     * {@code FluidStorage.SIDED} lookup from {@code side} and extracts (positive mB) or inserts (negative mB) milk in a
+     * transaction.
+     */
+    private static int pipe(CommandSourceStack source, BlockPos pos, String side, int mB) {
+        Direction direction = Direction.byName(side);
+        if (direction == null) {
+            source.sendFailure(Component.literal("Unknown side " + side));
+            return 0;
+        }
+        net.fabricmc.fabric.api.transfer.v1.storage.Storage<net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant> storage =
+                net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage.SIDED.find(source.getLevel(), pos, direction);
+        if (storage == null) {
+            source.sendFailure(Component.literal("No fluid storage at " + pos.toShortString() + " from " + side));
+            return 0;
+        }
+        net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant milk =
+                net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.of(GoblinLabour.MILK_FLUID);
+        long droplets = Math.abs(mB) * (net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants.BUCKET / 1000);
+        long moved;
+        try (net.fabricmc.fabric.api.transfer.v1.transaction.Transaction transaction =
+                     net.fabricmc.fabric.api.transfer.v1.transaction.Transaction.openOuter()) {
+            moved = mB >= 0 ? storage.extract(milk, droplets, transaction) : storage.insert(milk, droplets, transaction);
+            transaction.commit();
+        }
+        long total = 0;
+        for (net.fabricmc.fabric.api.transfer.v1.storage.StorageView<net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant> view : storage) {
+            total += view.getAmount();
+        }
+        long left = total;
+        String name = net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes.getName(milk).getString();
+        source.sendSuccess(() -> Component.literal("Pipe " + (mB >= 0 ? "extracted " : "inserted ") + moved / 81 + " mB of "
+                + name + " from " + side + ", " + left / 81 + " mB left"), true);
+        return 1;
+    }
+
+    /**
+     * Dev: crafts every goblin chest colour with every dye (and the dye before the chest) through the server's
+     * recipes. A dye must give the chest of its colour, the chest's own colour must give nothing, and a chest plus a
+     * meat pack must still give the green chest.
+     */
+    private static int dyeCheck(CommandSourceStack source) {
+        ServerLevel level = source.getLevel();
+        int ok = 0;
+        java.util.List<String> wrong = new java.util.ArrayList<>();
+        for (net.minecraft.world.item.DyeColor from : net.minecraft.world.item.DyeColor.values()) {
+            for (net.minecraft.world.item.DyeColor dye : net.minecraft.world.item.DyeColor.values()) {
+                ItemStack chest = new ItemStack(GoblinLabour.GOBLIN_CHEST_ITEMS.get(from));
+                ItemStack paint = new ItemStack(net.minecraft.world.item.Items.DYE.pick(dye));
+                for (java.util.List<ItemStack> grid : java.util.List.of(java.util.List.of(chest, paint), java.util.List.of(paint, chest))) {
+                    ItemStack result = craft(level, grid);
+                    boolean good = from == dye ? result.isEmpty()
+                            : result.is(GoblinLabour.GOBLIN_CHEST_ITEMS.get(dye)) && result.getCount() == 1;
+                    if (good) ok++;
+                    else wrong.add(from.getSerializedName() + "+" + dye.getSerializedName() + "=" + stackText(result));
+                }
+            }
+        }
+        ItemStack plain = craft(level, java.util.List.of(new ItemStack(net.minecraft.world.item.Items.CHEST),
+                new ItemStack(GoblinLabour.GOBLIN_MEAT_PACK)));
+        if (plain.is(GoblinLabour.GOBLIN_CHEST_ITEM)) ok++;
+        else wrong.add("chest+meat_pack=" + stackText(plain));
+        int okCount = ok;
+        source.sendSuccess(() -> Component.literal("Dye check: ok=" + okCount + " wrong=" + wrong.size()
+                + (wrong.isEmpty() ? "" : " " + wrong)), false);
+        return wrong.isEmpty() ? 1 : 0;
+    }
+
+    private static ItemStack craft(ServerLevel level, java.util.List<ItemStack> row) {
+        net.minecraft.world.item.crafting.CraftingInput input = net.minecraft.world.item.crafting.CraftingInput.of(row.size(), 1, row);
+        return level.getServer().getRecipeManager()
+                .getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING, input, level)
+                .map(holder -> holder.value().assemble(input)).orElse(ItemStack.EMPTY);
     }
 
     private static String stackText(net.minecraft.world.item.ItemStack stack) {

@@ -1,4 +1,4 @@
 {
   "replace": false,
-  "values": [ "goblinlabour:goblin_straw_bed", "goblinlabour:goblin_chest" ]
+  "values": [ "goblinlabour:goblin_straw_bed", "#goblinlabour:goblin_chests" ]
 }

@@ -53,6 +53,18 @@ public final class DevHooks {
                     GoblinLabour.LOGGER.info("Dev view: opened the Milk Churn at {}", menuBed);
                     continue;
                 }
+                if (menuEndsWith(",tank") && menuBed != null
+                        && server.overworld().getBlockEntity(menuBed) instanceof goblinlabour.block.MilkCanExpansionBlockEntity tank) {
+                    player.openMenu(tank); // -Dgoblinlabour.dev.menu=x,y,z,tank: the Milk Can Expansion screen at x,y,z
+                    GoblinLabour.LOGGER.info("Dev view: opened the Milk Can Expansion at {}", menuBed);
+                    continue;
+                }
+                if (menuEndsWith(",chest") && menuBed != null) {
+                    net.minecraft.world.MenuProvider chest = server.overworld().getBlockState(menuBed).getMenuProvider(server.overworld(), menuBed);
+                    if (chest != null) player.openMenu(chest); // -Dgoblinlabour.dev.menu=x,y,z,chest: the chest screen at x,y,z
+                    GoblinLabour.LOGGER.info("Dev view: opened the chest at {}: {}", menuBed, chest != null);
+                    continue;
+                }
                 if (menuEndsWith(",ring") || menuEndsWith(",ringmenu")) {
                     devRing(server.overworld(), player, menuEndsWith(",ringmenu"));
                     continue;

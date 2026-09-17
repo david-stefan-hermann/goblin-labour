@@ -2,6 +2,7 @@ package goblinlabour.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import goblinlabour.GoblinLabour;
+import goblinlabour.block.GoblinChestBlock;
 import goblinlabour.block.GoblinChestBlockEntity;
 import net.minecraft.client.model.object.chest.ChestModel;
 import net.minecraft.client.renderer.Sheets;
@@ -18,6 +19,7 @@ import net.minecraft.client.resources.model.sprite.SpriteGetter;
 import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.core.Direction;
 import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.DoubleBlockCombiner;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
@@ -27,9 +29,12 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 /**
  * Vanilla's {@link ChestRenderer} with the goblin chest's own models ({@link GoblinChestLayers}) and textures
- * ({@code textures/entity/chest/goblin*.png} in the chest atlas).
+ * ({@code textures/entity/chest/goblin*.png} in the chest atlas, one per colour, see {@link GoblinChestBlock#texture}).
  *
  * <p>Unlike vanilla's, the double chest is one model that spans both blocks instead of two halves: its boxes and
  * their box UV run across the seam, so it cannot be cut in two. The left half draws all of it and the right half
@@ -38,10 +43,14 @@ import org.jetbrains.annotations.Nullable;
  * <p>The eye glows in the dark: the model is drawn a second time at full brightness with {@code goblin*_glow},
  * which is the chest texture with everything but the lit pixels of the iris cut away. The chest itself is on a
  * cutout layer, so every other pixel of that second pass is discarded and only the eye stays bright.
+ *
+ * <p>Only the glow textures are animated (the eye sparkles), and all colours share them: the dye only changes the
+ * steel, never the eye. The coloured chest textures are still images, so sixteen colours cost no more per tick than
+ * one.
  */
-public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlockEntity, ChestRenderState> {
-    private static final SpriteId SINGLE = Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin"));
-    private static final SpriteId DOUBLE = Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin_double"));
+public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlockEntity, GoblinChestRenderer.State> {
+    private static final Map<DyeColor, SpriteId> SINGLE = sprites("");
+    private static final Map<DyeColor, SpriteId> DOUBLE = sprites("_double");
     private static final SpriteId SINGLE_GLOW = Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin_glow"));
     private static final SpriteId DOUBLE_GLOW = Sheets.CHEST_MAPPER.apply(GoblinLabour.id("goblin_double_glow"));
 
@@ -61,9 +70,22 @@ public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlock
         twin = new ChestModel(context.bakeLayer(GoblinChestLayers.DOUBLE));
     }
 
+    /** Vanilla's chest render state plus the colour. */
+    public static class State extends ChestRenderState {
+        public DyeColor color = DyeColor.GREEN;
+    }
+
+    private static Map<DyeColor, SpriteId> sprites(String suffix) {
+        Map<DyeColor, SpriteId> sprites = new EnumMap<>(DyeColor.class);
+        for (DyeColor color : DyeColor.values()) {
+            sprites.put(color, Sheets.CHEST_MAPPER.apply(GoblinLabour.id(GoblinChestBlock.texture(color) + suffix)));
+        }
+        return sprites;
+    }
+
     @Override
-    public ChestRenderState createRenderState() {
-        return new ChestRenderState();
+    public State createRenderState() {
+        return new State();
     }
 
     /**
@@ -79,7 +101,7 @@ public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlock
     }
 
     @Override
-    public void extractRenderState(GoblinChestBlockEntity chest, ChestRenderState state, float partialTick, Vec3 cameraPosition,
+    public void extractRenderState(GoblinChestBlockEntity chest, State state, float partialTick, Vec3 cameraPosition,
                                    @Nullable ModelFeatureRenderer.CrumblingOverlay breakProgress) {
         BlockEntityRenderer.super.extractRenderState(chest, state, partialTick, cameraPosition, breakProgress);
         boolean inLevel = chest.getLevel() != null;
@@ -87,6 +109,7 @@ public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlock
                 : GoblinLabour.GOBLIN_CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH);
         state.type = blockState.hasProperty(ChestBlock.TYPE) ? blockState.getValue(ChestBlock.TYPE) : ChestType.SINGLE;
         state.facing = blockState.getValue(ChestBlock.FACING);
+        state.color = blockState.getBlock() instanceof GoblinChestBlock goblinChest ? goblinChest.color() : DyeColor.GREEN;
         DoubleBlockCombiner.NeighborCombineResult<? extends ChestBlockEntity> combined =
                 inLevel && blockState.getBlock() instanceof ChestBlock block
                         ? block.combine(blockState, chest.getLevel(), chest.getBlockPos(), true)
@@ -98,7 +121,7 @@ public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlock
     }
 
     @Override
-    public void submit(ChestRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
+    public void submit(State state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
         if (state.type == ChestType.RIGHT) {
             return; // the left half draws the whole double chest
         }
@@ -111,7 +134,7 @@ public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlock
         float open = 1.0f - state.open;
         open = 1.0f - open * open * open;
         collector.submitModel(isDouble ? twin : single, open, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1,
-                isDouble ? DOUBLE : SINGLE, sprites, 0, state.breakProgress);
+                (isDouble ? DOUBLE : SINGLE).get(state.color), sprites, 0, state.breakProgress);
         // the eye, once more at full brightness; the crumbling overlay stays on the pass above
         collector.order(1).submitModel(isDouble ? twin : single, open, poseStack, LightCoordsUtil.FULL_BRIGHT,
                 OverlayTexture.NO_OVERLAY, -1, isDouble ? DOUBLE_GLOW : SINGLE_GLOW, sprites, 0, null);

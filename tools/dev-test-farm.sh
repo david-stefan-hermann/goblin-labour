@@ -99,7 +99,7 @@ out=$(wait_out 10 "milk=1000 " "goblinlabour churn $BC")
 check "B an empty bucket in the bucket slot is filled" "milk=1000 " "$out"
 check "B the milk bucket comes out below" "output=1xminecraft:milk_bucket" "$out"
 rcon "goblinlabour churn $BC 4000" > /dev/null
-out=$(wait_out 10 "Test passed" "execute if block $BC goblinlabour:milk_churn[level=4]"); check "B the churn shows four buckets behind the glass" "Test passed" "$out"
+out=$(wait_out 10 "Test passed" "execute if block $BC goblinlabour:milk_churn[level=4]"); check "B the can shows four buckets at its rim" "Test passed" "$out"
 # in one go: the Milker tidies loose items at home into its chest within seconds
 out=$(rcon "setblock $BC air destroy" \
   "execute if entity @e[type=item,x=2099,y=-62,z=2137,dx=6,dy=6,dz=6,nbt={Item:{id:\"goblinlabour:milk_churn\",components:{\"goblinlabour:milk\":4000}}}]" \

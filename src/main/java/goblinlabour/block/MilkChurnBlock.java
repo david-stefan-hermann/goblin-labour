@@ -29,16 +29,21 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
- * A grey metal tank for milk. Farmer goblins pour the milk they bring home into it; a player fills or empties buckets
- * with a right click, or opens its screen with an empty hand. The milk shows behind the glass ({@link #LEVEL}) and
- * stays in the churn when it is broken.
+ * A grey milk can (the block id is still {@code milk_churn}). Farmer goblins pour the milk they bring home into it; a
+ * player fills or empties buckets with a right click, or opens its screen with an empty hand. The milk shows at the
+ * rim ({@link #LEVEL}) and stays in the can when it is broken.
  */
 public class MilkChurnBlock extends BaseEntityBlock {
     public static final MapCodec<MilkChurnBlock> CODEC = simpleCodec(MilkChurnBlock::new);
-    /** Buckets of milk (rounded up) the model shows behind the glass; the block entity keeps it in step. */
+    /**
+     * Buckets of milk (rounded up); the block entity keeps it in step. The blockstate turns it into the can's four
+     * looks: a drip over the rim (1-3), milk up to the rim (4-6), milk running over (7-9), and the lid on when full.
+     */
     public static final IntegerProperty LEVEL = IntegerProperty.create("level", 0,
             MilkChurnBlockEntity.CAPACITY / MilkChurnBlockEntity.BUCKET);
-    private static final VoxelShape SHAPE = Block.box(1, 0, 1, 15, 16, 15);
+    /** The can is 12 px round and a full block high; the lid of a full can adds 2 px on top. */
+    private static final VoxelShape OPEN = Block.box(2, 0, 2, 14, 16, 14);
+    private static final VoxelShape CLOSED = Block.box(2, 0, 2, 14, 18, 14);
 
     public MilkChurnBlock(Properties properties) {
         super(properties);
@@ -62,12 +67,12 @@ public class MilkChurnBlock extends BaseEntityBlock {
 
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return SHAPE;
+        return state.getValue(LEVEL) * MilkChurnBlockEntity.BUCKET >= MilkChurnBlockEntity.CAPACITY ? CLOSED : OPEN;
     }
 
     /**
      * Not a way through: vanilla counts every block that is not a full cube as open for paths, so goblins walked into
-     * the churn, jumped onto it and got stuck on top (like chests, it is solid for path finding).
+     * the can, jumped onto it and got stuck on top (like chests, it is solid for path finding).
      */
     @Override
     protected boolean isPathfindable(BlockState state, PathComputationType type) {

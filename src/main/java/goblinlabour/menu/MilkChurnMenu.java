@@ -9,44 +9,46 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-/** The Milk Churn screen: input slot above the output slot, the tank gauge beside them, then the player's inventory. */
+/**
+ * The screen of the Milk Can and of the Milk Can Expansion, shaped like the block (see {@code MilkCanPicture}): in
+ * the body the bucket slot above the output slot, the tank gauge to their right, and the player's inventory below
+ * ({@link MilkCanLayout}).
+ */
 public class MilkChurnMenu extends AbstractContainerMenu {
-    public static final int WIDTH = 176;
-    public static final int SLOT_X = 44;
-    public static final int INPUT_Y = 20;
-    public static final int OUTPUT_Y = 58;
-    public static final int TANK_X = 98;
-    public static final int TANK_Y = 18;
-    public static final int TANK_WIDTH = 16;
-    public static final int TANK_HEIGHT = 58;
-    public static final int PLAYER_Y = TANK_Y + TANK_HEIGHT + 22;
-    public static final int HOTBAR_Y = PLAYER_Y + 58;
-    public static final int HEIGHT = HOTBAR_Y + 24;
-
     private final Container churn;
     private final ContainerData data;
+    private final int bodyY;
 
-    /** Client side: the slots and the milk level arrive through the normal menu sync. */
-    public MilkChurnMenu(int containerId, Inventory playerInventory, BlockPos pos) {
-        this(containerId, playerInventory, new SimpleContainer(2), new SimpleContainerData(2));
+    /** Client side, Milk Can: the slots and the milk level arrive through the normal menu sync. */
+    public static MilkChurnMenu can(int containerId, Inventory playerInventory, BlockPos pos) {
+        return new MilkChurnMenu(GoblinLabour.MILK_CHURN_MENU, containerId, playerInventory, new SimpleContainer(2),
+                new SimpleContainerData(2), MilkCanLayout.CAN_BODY_Y);
     }
 
-    public MilkChurnMenu(int containerId, Inventory playerInventory, Container churn, ContainerData data) {
-        super(GoblinLabour.MILK_CHURN_MENU, containerId);
+    /** Client side, Milk Can Expansion. */
+    public static MilkChurnMenu expansion(int containerId, Inventory playerInventory, BlockPos pos) {
+        return new MilkChurnMenu(GoblinLabour.MILK_CAN_EXPANSION_MENU, containerId, playerInventory, new SimpleContainer(2),
+                new SimpleContainerData(2), MilkCanLayout.EXPANSION_BODY_Y);
+    }
+
+    public MilkChurnMenu(MenuType<?> type, int containerId, Inventory playerInventory, Container churn, ContainerData data, int bodyY) {
+        super(type, containerId);
         this.churn = churn;
         this.data = data;
-        addSlot(new Slot(churn, MilkChurnBlockEntity.INPUT, SLOT_X, INPUT_Y) {
+        this.bodyY = bodyY;
+        addSlot(new Slot(churn, MilkChurnBlockEntity.INPUT, MilkCanLayout.SLOT_X, MilkCanLayout.inputY(bodyY)) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.is(Items.BUCKET) || stack.is(Items.MILK_BUCKET);
             }
         });
-        addSlot(new Slot(churn, MilkChurnBlockEntity.OUTPUT, SLOT_X, OUTPUT_Y) {
+        addSlot(new Slot(churn, MilkChurnBlockEntity.OUTPUT, MilkCanLayout.SLOT_X, MilkCanLayout.outputY(bodyY)) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return false;
@@ -54,13 +56,17 @@ public class MilkChurnMenu extends AbstractContainerMenu {
         });
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInventory, 9 + row * 9 + col, 8 + col * 18, PLAYER_Y + row * 18));
+                addSlot(new Slot(playerInventory, 9 + row * 9 + col, 8 + col * 18, MilkCanLayout.playerY(bodyY) + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, HOTBAR_Y));
+            addSlot(new Slot(playerInventory, col, 8 + col * 18, MilkCanLayout.hotbarY(bodyY)));
         }
         addDataSlots(data);
+    }
+
+    public int bodyY() {
+        return bodyY;
     }
 
     public int milk() {

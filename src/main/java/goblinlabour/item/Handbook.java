@@ -3,6 +3,7 @@ package goblinlabour.item;
 import goblinlabour.GoblinLabour;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
@@ -62,6 +63,9 @@ public final class Handbook {
                         heading("basics", 6),
                         new Recipe(List.of(stack(Items.CHEST), stack(GoblinLabour.GOBLIN_MEAT_PACK)), stack(GoblinLabour.GOBLIN_CHEST_ITEM)),
                         line(GoblinLabour.GOBLIN_CHEST_ITEM, "basics", 7),
+                        new Recipe(List.of(stack(GoblinLabour.GOBLIN_CHEST_ITEM), stack(Items.DYE.red())),
+                                stack(GoblinLabour.GOBLIN_CHEST_ITEMS.get(DyeColor.RED))),
+                        text("basics", 14),
                         heading("basics", 8),
                         line(Items.IRON_PICKAXE, "basics", 9),
                         line(Items.TORCH, "basics", 10),
@@ -101,6 +105,8 @@ public final class Handbook {
                         line(Items.BUCKET, "farming", 5),
                         new Recipe(List.of(stack(Items.IRON_INGOT, 7), stack(Items.GLASS), stack(Items.BUCKET)), stack(GoblinLabour.MILK_CHURN_ITEM)),
                         line(GoblinLabour.MILK_CHURN_ITEM, "farming", 6),
+                        new Recipe(List.of(stack(Items.IRON_INGOT, 8), stack(Items.BUCKET)), stack(GoblinLabour.MILK_CAN_EXPANSION_ITEM)),
+                        line(GoblinLabour.MILK_CAN_EXPANSION_ITEM, "farming", 9),
                         line(Items.SHEARS, "farming", 7),
                         new ItemLine(treetap(), "goblinlabour.handbook.farming.8"))));
     }

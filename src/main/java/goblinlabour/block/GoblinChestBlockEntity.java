@@ -6,7 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-/** A plain chest block entity with its own type (for the renderer) and name. */
+/** A plain chest block entity with its own type (for the renderer), shared by all colours, named after its block. */
 public class GoblinChestBlockEntity extends ChestBlockEntity {
     public GoblinChestBlockEntity(BlockPos pos, BlockState state) {
         super(GoblinLabour.GOBLIN_CHEST_BLOCK_ENTITY, pos, state);
@@ -14,6 +14,6 @@ public class GoblinChestBlockEntity extends ChestBlockEntity {
 
     @Override
     protected Component getDefaultName() {
-        return Component.translatable("block.goblinlabour.goblin_chest");
+        return getBlockState().getBlock().getName();
     }
 }

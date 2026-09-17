@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "side": "goblinlabour:block/milk_can_expansion_side",
+    "top": "goblinlabour:block/milk_can_expansion_top",
+    "bottom": "goblinlabour:block/milk_can_expansion_bottom",
+    "particle": "goblinlabour:block/milk_can_expansion_side"
+  }
+}

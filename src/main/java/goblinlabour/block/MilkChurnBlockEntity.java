@@ -1,6 +1,7 @@
 package goblinlabour.block;
 
 import goblinlabour.GoblinLabour;
+import goblinlabour.menu.MilkCanLayout;
 import goblinlabour.menu.MilkChurnMenu;
 import net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider;
 import net.minecraft.core.BlockPos;
@@ -30,7 +31,8 @@ import net.minecraft.world.level.storage.ValueOutput;
 /**
  * The Milk Churn's tank (milk in mB, up to ten buckets) and its two slots: a milk bucket in the input is poured in and
  * comes out empty, an empty bucket in the input is filled and comes out as a milk bucket. Hoppers put buckets in from
- * the top and the sides and take them out below. Farmer goblins pour their milk in directly (see {@link #pour}).
+ * the top and the sides and take them out below. Farmer goblins pour their milk in directly (see {@link #pour}). A
+ * can standing on a Milk Can Expansion pours its milk down into it.
  */
 public class MilkChurnBlockEntity extends BlockEntity implements WorldlyContainer, ExtendedMenuProvider<BlockPos> {
     public static final int CAPACITY = 10_000;
@@ -39,6 +41,8 @@ public class MilkChurnBlockEntity extends BlockEntity implements WorldlyContaine
     public static final int OUTPUT = 1;
     private static final int[] TOP_AND_SIDES = {INPUT};
     private static final int[] BOTTOM = {OUTPUT};
+    /** How much milk (mB) a can pours into the expansion below it per tick: two buckets a second. */
+    private static final int POUR_DOWN = 100;
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(2, ItemStack.EMPTY);
     private int milk;
@@ -67,7 +71,14 @@ public class MilkChurnBlockEntity extends BlockEntity implements WorldlyContaine
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, MilkChurnBlockEntity churn) {
         churn.process();
-        // the model shows the milk behind the glass by this state; one place keeps it in step with every change
+        if (churn.milk > 0 && level.getBlockEntity(pos.below()) instanceof MilkCanExpansionBlockEntity expansion) {
+            int poured = expansion.fill(Math.min(churn.milk, POUR_DOWN));
+            if (poured > 0) {
+                churn.milk -= poured;
+                churn.setChanged();
+            }
+        }
+        // the model shows the milk at the rim by this state; one place keeps it in step with every change
         int buckets = churn.bucketsShown();
         if (state.getValue(MilkChurnBlock.LEVEL) != buckets) {
             level.setBlock(pos, state.setValue(MilkChurnBlock.LEVEL, buckets), Block.UPDATE_CLIENTS);
@@ -147,7 +158,7 @@ public class MilkChurnBlockEntity extends BlockEntity implements WorldlyContaine
 
     @Override
     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-        return new MilkChurnMenu(containerId, playerInventory, this, data);
+        return new MilkChurnMenu(GoblinLabour.MILK_CHURN_MENU, containerId, playerInventory, this, data, MilkCanLayout.CAN_BODY_Y);
     }
 
     // ---- container -----------------------------------------------------------------------------------------------
