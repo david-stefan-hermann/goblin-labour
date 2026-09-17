@@ -1,0 +1,422 @@
+{
+  "textures": {
+    "particle": "goblinlabour:block/milk_can_milk",
+    "milk": "goblinlabour:block/milk_can_milk"
+  },
+  "elements": [
+    {
+      "name": "drip_n_inside",
+      "from": [
+        7,
+        15,
+        4
+      ],
+      "to": [
+        8,
+        16,
+        4.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0.0,
+            9,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            7,
+            0.0,
+            8,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            11.8,
+            0.0,
+            12,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            4,
+            0.0,
+            4.2,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            7,
+            4,
+            8,
+            4.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            7,
+            11.8,
+            8,
+            12
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "spill_n",
+      "from": [
+        7,
+        16,
+        2.8
+      ],
+      "to": [
+        8,
+        16.2,
+        4.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0.0,
+            9,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            7,
+            0.0,
+            8,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            11.8,
+            0.0,
+            13.2,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            0.0,
+            4.2,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            7,
+            2.8,
+            8,
+            4.2
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            7,
+            11.8,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_15",
+      "from": [
+        7,
+        15,
+        2.8
+      ],
+      "to": [
+        8,
+        16,
+        3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0.0,
+            9,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            7,
+            0.0,
+            8,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            1
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            7,
+            2.8,
+            8,
+            3
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            7,
+            13,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_16",
+      "from": [
+        7,
+        16,
+        2.8
+      ],
+      "to": [
+        8,
+        16.2,
+        3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0.0,
+            9,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            7,
+            0.0,
+            8,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            13,
+            0.0,
+            13.2,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            0.0,
+            3,
+            0.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            7,
+            2.8,
+            8,
+            3
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            7,
+            13,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_12",
+      "from": [
+        7,
+        12.6,
+        3.8
+      ],
+      "to": [
+        8,
+        15,
+        4.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            1,
+            9,
+            3.4
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            7,
+            1,
+            8,
+            3.4
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            12.0,
+            1,
+            12.2,
+            3.4
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            3.8,
+            1,
+            4.0,
+            3.4
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            7,
+            3.8,
+            8,
+            4.0
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            7,
+            12.0,
+            8,
+            12.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    },
+    {
+      "name": "drip_n_ledge15",
+      "from": [
+        7,
+        14.8,
+        2.8
+      ],
+      "to": [
+        8,
+        15,
+        4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            1,
+            9,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "south": {
+          "uv": [
+            7,
+            1,
+            8,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "east": {
+          "uv": [
+            12,
+            1,
+            13.2,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "west": {
+          "uv": [
+            2.8,
+            1,
+            4,
+            1.2
+          ],
+          "texture": "#milk"
+        },
+        "up": {
+          "uv": [
+            7,
+            2.8,
+            8,
+            4
+          ],
+          "texture": "#milk"
+        },
+        "down": {
+          "uv": [
+            7,
+            12,
+            8,
+            13.2
+          ],
+          "texture": "#milk"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,355 @@
+{
+  "textures": {
+    "particle": "goblinlabour:block/milk_can_side",
+    "side": "goblinlabour:block/milk_can_side",
+    "top": "goblinlabour:block/milk_can_top",
+    "bottom": "goblinlabour:block/milk_can_bottom"
+  },
+  "elements": [
+    {
+      "name": "lid_0",
+      "from": [
+        4.0,
+        14,
+        6.0
+      ],
+      "to": [
+        12.0,
+        15,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4.0,
+            1,
+            12.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "south": {
+          "uv": [
+            4.0,
+            1,
+            12.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "east": {
+          "uv": [
+            6.0,
+            1,
+            10.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "west": {
+          "uv": [
+            6.0,
+            1,
+            10.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "up": {
+          "uv": [
+            4.0,
+            6.0,
+            12.0,
+            10.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            4.0,
+            6.0,
+            12.0,
+            10.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "lid_1",
+      "from": [
+        5.0,
+        14,
+        5.0
+      ],
+      "to": [
+        11.0,
+        15,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.0,
+            1,
+            11.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "south": {
+          "uv": [
+            5.0,
+            1,
+            11.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "east": {
+          "uv": [
+            5.0,
+            1,
+            11.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "west": {
+          "uv": [
+            5.0,
+            1,
+            11.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "up": {
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "lid_2",
+      "from": [
+        6.0,
+        14,
+        4.0
+      ],
+      "to": [
+        10.0,
+        15,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.0,
+            1,
+            10.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "south": {
+          "uv": [
+            6.0,
+            1,
+            10.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "east": {
+          "uv": [
+            4.0,
+            1,
+            12.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "west": {
+          "uv": [
+            4.0,
+            1,
+            12.0,
+            2
+          ],
+          "texture": "#side"
+        },
+        "up": {
+          "uv": [
+            6.0,
+            4.0,
+            10.0,
+            12.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            6.0,
+            4.0,
+            10.0,
+            12.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "lid_knob_0",
+      "from": [
+        6.0,
+        15,
+        7.0
+      ],
+      "to": [
+        10.0,
+        16,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.0,
+            0.0,
+            10.0,
+            1
+          ],
+          "texture": "#side"
+        },
+        "south": {
+          "uv": [
+            6.0,
+            0.0,
+            10.0,
+            1
+          ],
+          "texture": "#side"
+        },
+        "east": {
+          "uv": [
+            7.0,
+            0.0,
+            9.0,
+            1
+          ],
+          "texture": "#side"
+        },
+        "west": {
+          "uv": [
+            7.0,
+            0.0,
+            9.0,
+            1
+          ],
+          "texture": "#side"
+        },
+        "up": {
+          "uv": [
+            6.0,
+            7.0,
+            10.0,
+            9.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            6.0,
+            7.0,
+            10.0,
+            9.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    },
+    {
+      "name": "lid_knob_1",
+      "from": [
+        7.0,
+        15,
+        6.0
+      ],
+      "to": [
+        9.0,
+        16,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.0,
+            0.0,
+            9.0,
+            1
+          ],
+          "texture": "#side"
+        },
+        "south": {
+          "uv": [
+            7.0,
+            0.0,
+            9.0,
+            1
+          ],
+          "texture": "#side"
+        },
+        "east": {
+          "uv": [
+            6.0,
+            0.0,
+            10.0,
+            1
+          ],
+          "texture": "#side"
+        },
+        "west": {
+          "uv": [
+            6.0,
+            0.0,
+            10.0,
+            1
+          ],
+          "texture": "#side"
+        },
+        "up": {
+          "uv": [
+            7.0,
+            6.0,
+            9.0,
+            10.0
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            7.0,
+            6.0,
+            9.0,
+            10.0
+          ],
+          "texture": "#bottom"
+        }
+      }
+    }
+  ]
+}
