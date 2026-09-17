@@ -8,3 +8,6 @@ out/
 libs/*.jar
 build.out
 HANDOFF-*.md
+
+# Python bytecode from the art/ and tools/ scripts
+__pycache__/
