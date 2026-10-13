@@ -23,6 +23,19 @@ public interface JobHost {
 
     void setStatus(GoblinBedBlockEntity.Status status);
 
+    /**
+     * The chest the player assigned with the staff (a left-click on any container), or null: then the goblin unloads
+     * into the goblin chests of its flat as before.
+     */
+    @Nullable
+    default BlockPos depositChest() {
+        return null;
+    }
+
+    /** Called when the assigned chest is gone or holds no storage any more. */
+    default void clearDepositChest() {
+    }
+
     /** False for a ring crew: no home to leave (no exit check) and no flat whose chests it unloads into. */
     default boolean hasHome() {
         return true;

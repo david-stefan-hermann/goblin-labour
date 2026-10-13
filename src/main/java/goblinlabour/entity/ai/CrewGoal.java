@@ -1,13 +1,18 @@
 package goblinlabour.entity.ai;
 
+import goblinlabour.GoblinSounds;
+import goblinlabour.GoblinSpeech;
 import goblinlabour.block.GoblinChestBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.home.HomeRegistry;
-import goblinlabour.job.Climber;
 import goblinlabour.job.JobConfig;
 import goblinlabour.job.JobRunner;
 import goblinlabour.job.JobTask;
+import goblinlabour.job.Climber;
+import goblinlabour.job.Headway;
 import goblinlabour.job.Mining;
+import goblinlabour.job.Reach;
+import goblinlabour.job.Standing;
 import goblinlabour.ring.CrewOrder;
 import goblinlabour.ring.RingContainer;
 import goblinlabour.ring.RingCrew;
@@ -21,7 +26,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
@@ -83,6 +87,8 @@ public class CrewGoal extends Goal {
     private static final int WORK_DY = 6;
     /** The player's personal space, and the lane ahead of the player (where it looks or walks). */
     private static final double PERSONAL_SQ = 2.5 * 2.5;
+    /** The personal space while mining ore: the goblin may work right behind or beside the player. */
+    private static final double MINING_PERSONAL = 1.0;
     private static final double LANE_LENGTH = 6.0, LANE_HALF_WIDTH = 1.5;
     /**
      * A spot a goblin walks to has to be this much clear of the personal space and the lanes. Without the margin a
@@ -105,7 +111,9 @@ public class CrewGoal extends Goal {
     private static final int STORE_INTERVAL = 8;
     private static final int MAX_PATH_CHECKS = 3;
     private static final double WALK_SPEED = 1.0, STROLL_SPEED = 0.7, HURRY_SPEED = 1.25;
-    private static final int PAUSE_MIN = 40, PAUSE_MAX = 160, WALK_TIMEOUT = 200;
+    private static final int PAUSE_MIN = 120, PAUSE_MAX = 360, WALK_TIMEOUT = 200;
+    /** A goblin idling this far from the player (and out of its way) stands well and mostly stays put. */
+    private static final double WELL_MIN = 2.5, WELL_MAX = 5.5;
 
 
     private enum Mode { IDLE, RETURN, AVOID, MINE, LOOT, DEPOSIT, ORDER, ASSIST }
@@ -140,9 +148,7 @@ public class CrewGoal extends Goal {
     private int nextChestCheck;
     private int nextBlink;
     @Nullable private JobConfig lastOrderConfig;
-    @Nullable private Vec3 headwayPoint;
-    private double headwayBest;
-    private int stuckTicks;
+    private final Headway headway = new Headway();
     private final Map<BlockPos, Long> skippedBlocks = new HashMap<>();
     private final Map<Integer, Long> skippedItems = new HashMap<>();
     /** What this goblin's own mining dropped: fetched before other loose items. */
@@ -165,7 +171,7 @@ public class CrewGoal extends Goal {
                 + (chest != null ? " chest=" + chest.toShortString().replace(" ", "") + (lidOpen ? "(open)" : "") : "")
                 + String.format(Locale.ROOT, " progress=%.2f away=%.1f dy=%.1f", progress,
                 horizontalDistance(goblin.position(), owner.position()), goblin.getY() - owner.getY())
-                + " way=" + inWay(owner, goblin.position()) + " stuck=" + stuckTicks + " skipped=" + skippedBlocks.size()
+                + " way=" + inWay(owner, goblin.position()) + " stuck=" + headway.stuckTicks() +" skipped=" + skippedBlocks.size()
                 + " pick=" + enchantments(goblin.getInventory().getItem(0));
     }
 
@@ -227,6 +233,9 @@ public class CrewGoal extends Goal {
         // the goblin off the leash until the order is done: it digs the whole shaft or tunnel without waiting
         CrewOrder order = goblin.crewOrder();
         boolean onOrder = mode != Mode.DEPOSIT && order != null && order.active();
+        // up on a scaffold column without an order to work on there (the order is done): sneak down before anything
+        // else, or the leash blinks it off the column
+        if (!onOrder && goblin.climber().comeDownFirst(level)) return;
 
         // 1. never further than the leash from the player, unless an order says otherwise
         double away = horizontalDistance(goblin.position(), owner.position());
@@ -242,16 +251,25 @@ public class CrewGoal extends Goal {
         if (mode == Mode.RETURN) switchTo(level, Mode.IDLE);
 
         // 2. out of the player's way
-        inWayTicks = inWay(owner, goblin.position(), goblin.crewAvoidsLook()) ? inWayTicks + 1 : Math.min(inWayTicks + 1, 0);
-        // a short trip into the player's personal space is allowed while fetching an item lying right there
-        boolean fetchingClose = mode == Mode.LOOT && item != null && item.isAlive() && goblin.distanceToSqr(item) < 4.0;
-        if (inWayTicks >= IN_WAY_TICKS && mode != Mode.AVOID && !fetchingClose) switchTo(level, Mode.AVOID);
+        boolean inWayNow = mode == Mode.MINE ? inWayWhileMining(owner, goblin.position()) : inWay(owner, goblin.position(), goblin.crewAvoidsLook());
+        inWayTicks = inWayNow ? inWayTicks + 1 : Math.min(inWayTicks + 1, 0);
+        // fetching an item is a short trip with its own time limit (walkTo): it may lead through the player's way
+        boolean fetchingClose = mode == Mode.LOOT && item != null && item.isAlive();
+        // up on a column for an order the goblin stays: the player below it is no reason to leave the column
+        boolean climbingForOrder = onOrder && Climber.isUp(level, goblin);
+        if (inWayTicks >= IN_WAY_TICKS && mode != Mode.AVOID && !fetchingClose && !climbingForOrder) switchTo(level, Mode.AVOID);
         if (mode == Mode.AVOID) {
             if (tickAvoid(level, owner)) return;
             switchTo(level, Mode.IDLE);
         }
 
         if (onOrder && tickOrder(level, owner, crew, order)) return;
+
+        // ore comes first: it interrupts helping the player dig and fetching items that are not the crew's own drops
+        if ((mode == Mode.ASSIST || mode == Mode.LOOT && !drops.contains(item)) && goblin.tickCount >= nextChoose) {
+            nextChoose = goblin.tickCount + CHOOSE_INTERVAL;
+            if (nextOre(level, owner, crew, now)) return;
+        }
 
         // 3.-5. the task at hand, or a new one
         boolean busy = switch (mode) {
@@ -273,9 +291,8 @@ public class CrewGoal extends Goal {
         walking = false;
         walkTarget = null;
         returnSpot = null;
-        headwayPoint = null;
-        stuckTicks = 0;
-        if (next == Mode.IDLE) pauseTicks = goblin.getRandom().nextInt(10, 40);
+        headway.reset();
+        if (next == Mode.IDLE) pauseTicks = goblin.getRandom().nextInt(40, 100);
     }
 
     private void release(ServerLevel level) {
@@ -355,7 +372,7 @@ public class CrewGoal extends Goal {
         int budget = MAX_PATH_CHECKS;
         for (BlockPos pos : candidates) {
             if (Mining.verdict(level, pos, level.getBlockState(pos), goblin) != Mining.Verdict.OK || targetedBy(owner, pos)) continue;
-            SpotSearch search = standSpot(level, owner, crew, pos, budget);
+            SpotSearch search = standSpot(level, owner, crew, pos, budget, false);
             budget = search.budget();
             if (search.spot() != null && !search.spot().below().equals(pos)) { // not the block it would stand on
                 switchTo(level, Mode.ASSIST);
@@ -388,6 +405,10 @@ public class CrewGoal extends Goal {
     private boolean tickOrder(ServerLevel level, ServerPlayer owner, RingCrew.Session crew, CrewOrder order) {
         if (RingCrew.isFull(goblin)) {
             crew.notifyFull(); // the drops would not fit: unload into a chest nearby first, or the player makes room
+            if (mode == Mode.ORDER && Climber.isUp(level, goblin)) {
+                goblin.getNavigation().stop(); // wait up there until there is room again
+                return true;
+            }
             return false;
         }
         JobConfig config = order.getJob();
@@ -470,8 +491,7 @@ public class CrewGoal extends Goal {
         GoblinEntity.poof(level, goblin.getX(), goblin.getY(), goblin.getZ());
         goblin.snapTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, goblin.getYRot(), goblin.getXRot());
         goblin.getNavigation().stop();
-        headwayPoint = null;
-        stuckTicks = 0;
+        headway.reset();
         GoblinEntity.poof(level, goblin.getX(), goblin.getY(), goblin.getZ());
     }
 
@@ -499,6 +519,22 @@ public class CrewGoal extends Goal {
         double personal = Math.sqrt(PERSONAL_SQ) + margin;
         if (dx * dx + dz * dz < personal * personal) return true;
         return inLanes(owner, dx, dz, lookLane, margin);
+    }
+
+    /**
+     * In the way of a player while the goblin mines ore near it: closer than {@link #MINING_PERSONAL} or in the lane the
+     * player walks along. The lane the player looks along is fine, the ore is usually right there.
+     */
+    public static boolean inWayWhileMining(Player owner, Vec3 point) {
+        double dx = point.x - owner.getX(), dz = point.z - owner.getZ();
+        if (Math.abs(point.y - owner.getY()) > 3.0) return false;
+        if (dx * dx + dz * dz < MINING_PERSONAL * MINING_PERSONAL) return true;
+        return inLanes(owner, dx, dz, false, 0.0);
+    }
+
+    /** True while the goblin works on ore (it keeps out of the look lane only when not mining). */
+    public boolean mining() {
+        return mode == Mode.MINE;
     }
 
     /**
@@ -531,7 +567,7 @@ public class CrewGoal extends Goal {
         if (walkTarget == null || inWay(owner, Vec3.atBottomCenterOf(walkTarget))) {
             walkTarget = asideSpot(level, owner);
             holdSpot(walkTarget);
-            headwayPoint = null;
+            headway.forgetPoint();
             if (walkTarget == null) {
                 inWayTicks = -40; // nowhere better to stand right now; look again in a moment
                 return false;
@@ -590,8 +626,8 @@ public class CrewGoal extends Goal {
             if (skippedBlocks.containsKey(pos) || crew.isClaimed(pos, goblin)) continue;
             BlockState state = level.getBlockState(pos);
             if (!state.is(ConventionalBlockTags.ORES) || Mining.verdict(level, pos, state, goblin) != Mining.Verdict.OK) continue;
-            if (targetedBy(owner, pos)) continue;
-            SpotSearch search = standSpot(level, owner, crew, pos, budget);
+            if (minedBy(owner, pos)) continue;
+            SpotSearch search = standSpot(level, owner, crew, pos, budget, true);
             budget = search.budget();
             if (search.spot() != null) {
                 switchTo(level, Mode.MINE);
@@ -614,7 +650,7 @@ public class CrewGoal extends Goal {
      * otherwise the nearest spot around it with solid ground, the ore in reach and in plain sight, close to the player
      * and out of its way, that the goblin can walk to.
      */
-    private SpotSearch standSpot(ServerLevel level, ServerPlayer owner, RingCrew.Session crew, BlockPos target, int budget) {
+    private SpotSearch standSpot(ServerLevel level, ServerPlayer owner, RingCrew.Session crew, BlockPos target, int budget, boolean forOre) {
         Vec3 center = Vec3.atCenterOf(target);
         Vec3 eyes = goblin.getEyePosition();
         if (goblin.onGround() && eyes.distanceToSqr(center) <= REACH_SQ && Mining.canSee(level, eyes, target)
@@ -631,7 +667,8 @@ public class CrewGoal extends Goal {
                     if (!standableOnGround(level, spot) || crew.isClaimed(spot, goblin)) continue;
                     Vec3 bottom = Vec3.atBottomCenterOf(spot);
                     if (horizontalDistance(bottom, owner.position()) > RingCrew.WORK_RADIUS || Math.abs(spot.getY() - owner.getY()) > WORK_DY) continue;
-                    if (inWay(owner, bottom)) continue;
+                    // ore the player just uncovered is right in front of it: for ore the goblin may stand close by
+                    if (forOre ? inWayWhileMining(owner, bottom) : inWay(owner, bottom)) continue;
                     Vec3 spotEyes = bottom.add(0.0, goblin.getEyeHeight(), 0.0);
                     double reach = spotEyes.distanceToSqr(center);
                     if (reach > REACH_SQ || !Mining.canSee(level, spotEyes, target)) continue;
@@ -660,8 +697,8 @@ public class CrewGoal extends Goal {
                 : state.is(ConventionalBlockTags.ORES);
         if (!fits || Mining.verdict(level, mineTarget, state, goblin) != Mining.Verdict.OK) return false;
         long now = level.getGameTime();
-        if (targetedBy(owner, mineTarget)) {
-            skippedBlocks.put(mineTarget, now + SKIP_TICKS); // the player is mining it
+        if (mode == Mode.ASSIST ? targetedBy(owner, mineTarget) : minedBy(owner, mineTarget)) {
+            skippedBlocks.put(mineTarget, now + SKIP_TICKS); // the player is at it
             return false;
         }
         int slot = Mining.bestToolSlot(goblin, state);
@@ -681,6 +718,7 @@ public class CrewGoal extends Goal {
             level.destroyBlockProgress(goblin.getId(), mineTarget, -1);
             progress = 0.0f;
             drops.addAll(Mining.harvest(level, mineTarget, state, goblin, tool));
+            RingCrew.placeTorchIfDark(level, goblin, owner);
             return false;
         }
         if (progress > 0.0f) {
@@ -695,7 +733,15 @@ public class CrewGoal extends Goal {
         return true;
     }
 
-    /** True if the player's crosshair is on that block: the player is about to mine it, the goblin leaves it alone. */
+    /**
+     * True while the player is mining that block: swinging with the crosshair on it. Ore the player only looks at is
+     * fair game, it usually just uncovered it; blocks it digs itself (assist) are left alone on the look alone.
+     */
+    private static boolean minedBy(Player owner, BlockPos pos) {
+        return owner.swinging && targetedBy(owner, pos);
+    }
+
+    /** True if the player's crosshair is on that block. */
     private static boolean targetedBy(Player owner, BlockPos pos) {
         HitResult hit = owner.pick(5.0, 1.0f, false);
         return hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult block && block.getBlockPos().equals(pos);
@@ -711,7 +757,8 @@ public class CrewGoal extends Goal {
         for (ItemEntity candidate : level.getEntitiesOfClass(ItemEntity.class, area, ItemEntity::isAlive)) {
             if (skippedItems.containsKey(candidate.getId()) || crew.isClaimed(candidate, goblin)) continue;
             if (!candidate.onGround() || !RingCrew.collectable(candidate, owner) || !ring.canAddItem(candidate.getItem())) continue;
-            if (HomeRegistry.isProtected(level, candidate.blockPosition()) || inLane(owner, candidate.position())) continue;
+            // items in the player's lanes count too: what the player throws lands right there
+            if (HomeRegistry.isProtected(level, candidate.blockPosition())) continue;
             double cost = goblin.distanceToSqr(candidate) - (drops.contains(candidate) ? 64.0 : 0.0);
             if (cost < bestCost) {
                 bestCost = cost;
@@ -797,6 +844,15 @@ public class CrewGoal extends Goal {
     private BlockPos findChest(ServerLevel level, ServerPlayer owner) {
         BlockPos here = goblin.blockPosition();
         int range = RingCrew.CHEST_RANGE;
+        RingCrew.Session crew = goblin.crew();
+        BlockPos assigned = crew == null ? null : crew.chest();
+        if (assigned != null) {
+            // a chest the player assigned with the staff: the crew carries everything there, and nowhere else
+            if (skippedBlocks.containsKey(assigned) || assigned.distSqr(here) > (double) range * range) return null;
+            if (ItemStorage.SIDED.find(level, assigned, Direction.UP) != null) return assigned;
+            crew.setChest(null);
+            GoblinSpeech.say(level, goblin, GoblinSpeech.CHEST_GONE, GoblinSounds.NO);
+        }
         BlockPos best = null;
         double bestDist = range * range;
         for (int cx = (here.getX() - range) >> 4; cx <= (here.getX() + range) >> 4; cx++) {
@@ -928,6 +984,14 @@ public class CrewGoal extends Goal {
         }
         if (--pauseTicks > 0) {
             idleLook(owner);
+            if (goblin.isOnBed(level)) Reach.stepOffBed(level, goblin);
+            if (pauseTicks % 20 == 0) RingCrew.placeTorchIfDark(level, goblin, owner);
+            return;
+        }
+        // standing well already: mostly stay and look around a while longer instead of strolling for its own sake
+        double away = horizontalDistance(goblin.position(), owner.position());
+        if (away >= WELL_MIN && away <= WELL_MAX && clearOfWay(owner, goblin.position()) && random.nextInt(3) != 0) {
+            pauseTicks = random.nextInt(PAUSE_MIN, PAUSE_MAX);
             return;
         }
         BlockPos spot = strollSpot(level, owner);
@@ -1003,23 +1067,11 @@ public class CrewGoal extends Goal {
     }
 
     private boolean headway(Vec3 point) {
-        double distance = goblin.position().distanceTo(point);
-        if (headwayPoint == null || headwayPoint.distanceToSqr(point) > 0.25) {
-            headwayPoint = point;
-            headwayBest = distance;
-            stuckTicks = 0;
-        }
-        if (distance < headwayBest - 0.3) {
-            headwayBest = distance;
-            stuckTicks = 0;
-            return true;
-        }
-        return ++stuckTicks <= STUCK_TICKS;
+        return headway.tick(goblin.position(), point) <= STUCK_TICKS;
     }
 
     private boolean reachable(BlockPos pos) {
-        Path path = goblin.getNavigation().createPath(pos, 1);
-        return path != null && path.canReach();
+        return Reach.reachable(goblin.getNavigation(), pos);
     }
 
     private static double horizontalDistance(Vec3 a, Vec3 b) {
@@ -1028,16 +1080,11 @@ public class CrewGoal extends Goal {
     }
 
     /** Room for a goblin at {@code pos}: two open blocks without fluid on top of something solid. */
-    public static boolean standable(ServerLevel level, BlockPos pos) {
-        BlockPos above = pos.above(), below = pos.below();
-        return level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()
-                && level.getBlockState(above).getCollisionShape(level, above).isEmpty()
-                && level.getFluidState(pos).isEmpty() && level.getFluidState(above).isEmpty()
-                && !level.getBlockState(below).getCollisionShape(level, below).isEmpty();
+    private static boolean standable(ServerLevel level, BlockPos pos) {
+        return Standing.dry(level, pos);
     }
 
     private static boolean standableOnGround(ServerLevel level, BlockPos pos) {
-        BlockState ground = level.getBlockState(pos.below());
-        return standable(level, pos) && !ground.is(BlockTags.LEAVES) && !Climber.isScaffold(ground);
+        return Standing.dryOffLeaves(level, pos);
     }
 }

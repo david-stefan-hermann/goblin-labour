@@ -3,8 +3,8 @@
 set -u
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
-export JAVA_HOME="${JAVA_HOME:-C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot}"
-export TEMP='C:\jtmp' TMP='C:\jtmp'
+if [ "${OS:-}" = Windows_NT ]; then export JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot"; fi
+if [ "${OS:-}" = Windows_NT ]; then export TEMP='C:\jtmp' TMP='C:\jtmp'; fi
 rcon() { "$JAVA_HOME/bin/java" tools/Rcon.java 127.0.0.1 25599 gl "$@"; }
 st() { rcon "goblinlabour status $1" | grep -v '^>' | sed 's/inventory:/inv:/; s/ | order=.*//' | cut -c1-230; }
 ( ./gradlew runServer --no-daemon -q > run/runServer.out 2>&1; echo "EXIT=$?" >> run/runServer.out ) &

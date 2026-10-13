@@ -22,6 +22,8 @@ public final class GoblinSpeech {
     public static final String BED_GONE = "My bed! Where's my bed?!";
     public static final String STAY = "Staying here.";
     public static final String FETCH_ITEMS = "Going back for my stuff.";
+    public static final String ITEMS_LOST = "My stuff is down there, but there's no getting to it.";
+    public static final String CHEST_GONE = "My chest is gone! Back to the old ones.";
 
     /** Picked with the staff. */
     public static final String[] FOLLOW = {

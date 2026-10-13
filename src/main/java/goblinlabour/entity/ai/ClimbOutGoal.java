@@ -1,11 +1,13 @@
 package goblinlabour.entity.ai;
 
+import goblinlabour.GoblinLabour;
 import goblinlabour.GoblinSpeech;
 import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.home.HomeRegistry;
 import goblinlabour.job.Climber;
 import goblinlabour.job.Job;
+import goblinlabour.job.Standing;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
@@ -37,9 +39,15 @@ import java.util.UUID;
 public class ClimbOutGoal extends Goal {
     private static final int CHECK_INTERVAL = 40;
     private static final int FAILED_CHECK_INTERVAL = 400;
-    private static final int SEARCH_RADIUS = 16;
-    private static final int MAX_AREA = 400;
+    /**
+     * How far the walkable area around the goblin is followed: a shaft with a 32 block tunnel off its floor (and
+     * room for a second one) is still one closed hole.
+     */
+    private static final int SEARCH_RADIUS = 48;
+    private static final int MAX_AREA = 2500;
+    /** The nearest spots of the area are all tried as a column foot; further away only those with room above. */
     private static final int MAX_CANDIDATES = 64;
+    private static final int MAX_COLUMN_CHECKS = 256;
     private static final int GIVE_UP_TICKS = 2400;
     private static final int STUCK_TICKS = 100;
     private static final int SPEECH_COOLDOWN = 2400;
@@ -49,10 +57,23 @@ public class ClimbOutGoal extends Goal {
     /** A waiting goblin asks this often whether the column is free, and stands at least this far from its foot. */
     private static final int WAIT_CHECK = 40;
     private static final int WAIT_GAP_SQ = 2 * 2;
+    /**
+     * A goblin on its way into its column that gets no closer for this long has somebody standing on the foot: it
+     * lets that one climb first instead of shoving until it gives up.
+     */
+    private static final int WALK_PATIENCE = 60;
     /** A reservation not refreshed for this long belongs to a goblin that is gone. */
     private static final int RESERVATION_TTL = 60;
+    private static final boolean DEV = net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment();
+    /** Dev: why the last {@link #closedArea} call found no closed area. */
+    private static String areaFailure = "";
     /** Column foot -> the goblin climbing it, per dimension. */
     private static final Map<ResourceKey<Level>, Map<BlockPos, Reservation>> COLUMNS = new HashMap<>();
+
+    /** Forgets it all when the server stops: in single player the next world runs in the same JVM. */
+    public static void reset() {
+        COLUMNS.clear();
+    }
 
     private record Reservation(UUID goblin, long refreshed) {
     }
@@ -78,9 +99,14 @@ public class ClimbOutGoal extends Goal {
     private int ticks;
     private int stageTicks;
     private int stuckTicks;
+    private double walkBest = Double.MAX_VALUE;
+    private int walkProgressAt;
     private boolean done;
     private Vec3 lastPos = Vec3.ZERO;
     private long lastSpoke = -SPEECH_COOLDOWN;
+    private int lastDevLog = -1000;
+    /** Dev: the highest feet height of this climb, to see a goblin fall back down. */
+    private double climbedTo = -Double.MAX_VALUE;
 
     public ClimbOutGoal(GoblinEntity goblin) {
         this.goblin = goblin;
@@ -117,13 +143,18 @@ public class ClimbOutGoal extends Goal {
         if (!goblin.getNavigation().isDone() && goblin.tickCount - lastHeadwayTick < NO_HEADWAY_TICKS) return false;
 
         Set<BlockPos> found = closedArea(level, goblin.blockPosition(), flat);
-        if (found == null) return false;
+        if (found == null) {
+            devLog("stuck on the way home at %s, but no closed area: %s", goblin.blockPosition().toShortString(), areaFailure);
+            return false;
+        }
         area = found;
         plan = findPlan(level, found);
+        devLog("stuck at %s in an area of %d: %s", goblin.blockPosition().toShortString(), found.size(),
+                plan == null ? "no column, blinks home" : "column " + plan.column().toShortString() + " to " + plan.exit().toShortString());
         if (plan != null) reserve(level, plan.column()); // at once: a crew mate planning in this tick joins this column
         if (plan == null) {
             nextCheck = goblin.tickCount + FAILED_CHECK_INTERVAL;
-            goblin.blinkTo(level, bed.getBlockPos());
+            goblin.blinkTo(level, bed.getBlockPos(), "no way up");
             return false;
         }
         return true;
@@ -143,6 +174,7 @@ public class ClimbOutGoal extends Goal {
 
     @Override
     public void start() {
+        climbedTo = -Double.MAX_VALUE;
         ticks = 0;
         stageTicks = 0;
         stuckTicks = 0;
@@ -161,6 +193,11 @@ public class ClimbOutGoal extends Goal {
     public void stop() {
         ServerLevel level = (ServerLevel) goblin.level();
         goblin.getNavigation().stop();
+        if (!done && DEV) {
+            GoblinBedBlockEntity bed = goblin.bed();
+            GoblinLabour.LOGGER.info("Dev: {} climb-out aborted at {} (stage {}, {} ticks, wants home {})", goblin.goblinName(),
+                    goblin.blockPosition().toShortString(), stage, ticks, bed != null && wantsHome(bed));
+        }
         if (!done) goblin.climber().settle(level); // aborted half-way: back to the foot of the column
         goblin.setShiftKeyDown(false);
         goblin.setClimbing(false);
@@ -187,11 +224,20 @@ public class ClimbOutGoal extends Goal {
         Vec3 columnCenter = new Vec3(column.getX() + 0.5, goblin.getY(), column.getZ() + 0.5);
 
         if (stage != Stage.WAIT) reserve(level, column); // still ours: keep it fresh
+        if (DEV && (stage == Stage.CLIMB || stage == Stage.STEP_OUT)) {
+            if (goblin.getY() > climbedTo) climbedTo = goblin.getY();
+            else if (goblin.getY() < climbedTo - 1.5) {
+                GoblinLabour.LOGGER.info("Dev: {} fell while climbing out from y={} to y={} (stage {}, in column {})", goblin.goblinName(),
+                        String.format("%.1f", climbedTo), String.format("%.1f", goblin.getY()), stage, inColumn);
+                climbedTo = goblin.getY();
+            }
+        }
 
         switch (stage) {
             case WAIT -> {
                 goblin.getLookControl().setLookAt(columnCenter.x, goblin.getEyeY(), columnCenter.z);
-                if (stageTicks % WAIT_CHECK == 0 && reserve(level, column)) {
+                // already standing on the foot: this one climbs next, as soon as the column is free
+                if ((inColumn || stageTicks % WAIT_CHECK == 0) && reserve(level, column)) {
                     setStage(Stage.WALK);
                     return;
                 }
@@ -207,14 +253,26 @@ public class ClimbOutGoal extends Goal {
                     setStage(Stage.CLIMB);
                     return;
                 }
-                if (horizontalDistSqr(columnCenter) < 2.25) {
+                double toColumn = horizontalDistSqr(columnCenter);
+                if (toColumn < walkBest - 0.01) {
+                    walkBest = toColumn;
+                    walkProgressAt = stageTicks;
+                } else if (toColumn < 2.25 && stageTicks - walkProgressAt > WALK_PATIENCE) {
+                    if (DEV) GoblinLabour.LOGGER.info("Dev: {} climb-out lets the goblin on the foot of {} go first",
+                            goblin.goblinName(), column.toShortString());
+                    releaseColumn(level);
+                    waitSpot = null;
+                    setStage(Stage.WAIT);
+                    return;
+                }
+                if (toColumn < 2.25) {
                     goblin.getNavigation().stop();
                     goblin.getMoveControl().setWantedPosition(columnCenter.x, column.getY(), columnCenter.z, 0.6);
                 } else if (goblin.tickCount % 10 == 0) {
                     goblin.getNavigation().moveTo(columnCenter.x, column.getY(), columnCenter.z, 1.0);
                 }
                 if (goblin.position().distanceToSqr(lastPos) < 0.0001) {
-                    if (++stuckTicks > STUCK_TICKS) replan();
+                    if (++stuckTicks > STUCK_TICKS) replan("stuck on the way to the column");
                 } else {
                     stuckTicks = 0;
                 }
@@ -233,7 +291,7 @@ public class ClimbOutGoal extends Goal {
                 if (horizontalDistSqr(columnCenter) > 0.0625) {
                     goblin.getMoveControl().setWantedPosition(columnCenter.x, goblin.getY(), columnCenter.z, 0.3);
                 }
-                if (!goblin.climber().climb(level)) replan();
+                if (!goblin.climber().climb(level)) replan("cannot climb on");
             }
             case STEP_OUT -> {
                 Vec3 target = Vec3.atBottomCenterOf(exit);
@@ -247,7 +305,7 @@ public class ClimbOutGoal extends Goal {
                     setStage(Stage.CLIMB); // slipped back down
                 } else if (stageTicks > 60) {
                     goblin.getJumpControl().jump();
-                    if (stageTicks > 160) replan();
+                    if (stageTicks > 160) replan("cannot step out");
                 }
             }
         }
@@ -257,6 +315,8 @@ public class ClimbOutGoal extends Goal {
         stage = next;
         stageTicks = 0;
         stuckTicks = 0;
+        walkBest = Double.MAX_VALUE;
+        walkProgressAt = 0;
     }
 
     /** Takes (or refreshes) the column for this goblin. False while another goblin climbs it. */
@@ -307,7 +367,9 @@ public class ClimbOutGoal extends Goal {
         return plan == null ? "-" : stage.name();
     }
 
-    private void replan() {
+    private void replan(String why) {
+        if (DEV) GoblinLabour.LOGGER.info("Dev: {} climb-out replans at {} (stage {}): {}", goblin.goblinName(),
+                goblin.blockPosition().toShortString(), stage, why);
         plan = null; // canContinueToUse ends the goal; the next check plans again from where the goblin is
     }
 
@@ -323,6 +385,13 @@ public class ClimbOutGoal extends Goal {
      * Returns null when that area is not a closed hole: it is large, reaches far, or touches the goblin's flat.
      */
     @Nullable
+    /** Dev only, at most every 20 seconds per goblin. */
+    private void devLog(String format, Object... args) {
+        if (!DEV || goblin.tickCount - lastDevLog < 400) return;
+        lastDevLog = goblin.tickCount;
+        GoblinLabour.LOGGER.info("Dev: {} climb-out: {}", goblin.goblinName(), String.format(format, args));
+    }
+
     static Set<BlockPos> closedArea(ServerLevel level, BlockPos start, BoundingBox flat) {
         Set<BlockPos> area = new HashSet<>();
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
@@ -340,11 +409,20 @@ public class ClimbOutGoal extends Goal {
                     // Up onto scaffold is climbing, not walking: two columns side by side would otherwise make a
                     // staircase out of the hole, and the goblins below would never be seen as stuck.
                     if (dy == 1 && Climber.isScaffold(level.getBlockState(n.below()))) continue;
-                    if (!standable(level, n)) continue;
-                    if (Math.abs(n.getX() - start.getX()) > SEARCH_RADIUS || Math.abs(n.getZ() - start.getZ()) > SEARCH_RADIUS) return null;
-                    if (flat.isInside(n)) return null;
+                    if (!walkable(level, n)) continue;
+                    if (Math.abs(n.getX() - start.getX()) > SEARCH_RADIUS || Math.abs(n.getZ() - start.getZ()) > SEARCH_RADIUS) {
+                        areaFailure = "reaches past " + SEARCH_RADIUS + " blocks at " + n.toShortString();
+                        return null;
+                    }
+                    if (flat.isInside(n)) {
+                        areaFailure = "leads home at " + n.toShortString();
+                        return null;
+                    }
                     if (area.add(n)) {
-                        if (area.size() > MAX_AREA) return null;
+                        if (area.size() > MAX_AREA) {
+                            areaFailure = "more than " + MAX_AREA + " blocks";
+                            return null;
+                        }
                         queue.add(n);
                     }
                     break;
@@ -365,7 +443,9 @@ public class ClimbOutGoal extends Goal {
         double bestCost = Double.MAX_VALUE;
         int candidates = 0;
         for (BlockPos spot : area.stream().sorted((a, b) -> Double.compare(a.distSqr(start), b.distSqr(start))).toList()) {
-            if (candidates++ >= MAX_CANDIDATES) break;
+            // deep in a tunnel the nearest spots all have a ceiling right above: the shaft further back is the way out
+            if (candidates >= MAX_CANDIDATES && !passable(level, spot.above(3))) continue;
+            if (candidates++ >= MAX_COLUMN_CHECKS) break;
             // a column another goblin is about to climb counts as built: all goblins in a hole share one column,
             // side-by-side columns would form a scaffold tower that goblins walk up into and cannot leave
             boolean shared = climbedByOther(level, spot);
@@ -379,7 +459,7 @@ public class ClimbOutGoal extends Goal {
                 BlockPos exit = null;
                 for (Direction dir : Direction.Plane.HORIZONTAL) {
                     BlockPos side = feet.relative(dir);
-                    if (!area.contains(side) && standable(level, side)) {
+                    if (!area.contains(side) && isExit(level, side)) {
                         exit = side;
                         break;
                     }
@@ -397,14 +477,31 @@ public class ClimbOutGoal extends Goal {
         return best;
     }
 
-    /** No collision for a walking goblin (goblin scaffold counts as open, it can be climbed through). */
     private static boolean passable(ServerLevel level, BlockPos pos) {
-        BlockState state = level.getBlockState(pos);
-        return Climber.isScaffold(state) || state.getCollisionShape(level, pos).isEmpty();
+        return Standing.passable(level, pos);
     }
 
+    /** Scaffold counts as open and as ground here: the goblin climbs through it. */
     private static boolean standable(ServerLevel level, BlockPos pos) {
-        if (!passable(level, pos) || !passable(level, pos.above())) return false;
+        return Standing.climbable(level, pos);
+    }
+
+    /**
+     * A block to step out onto at the top of a column: room to stand on real ground. The top of a neighbouring
+     * scaffold column (the one the goblin before built) is no way out: stepping onto it the goblin sinks back into
+     * the hole and plans the same one-block climb again, over and over.
+     */
+    private static boolean isExit(ServerLevel level, BlockPos pos) {
+        return standable(level, pos) && !Climber.isScaffold(level.getBlockState(pos))
+                && !Climber.isScaffold(level.getBlockState(pos.below()));
+    }
+
+    /**
+     * Where a goblin walks: it is 0.95 blocks tall, so one free block is enough (a 1x1 tunnel is a way, not a wall).
+     * Scaffold counts as open and as ground, like in {@link #standable}.
+     */
+    private static boolean walkable(ServerLevel level, BlockPos pos) {
+        if (!passable(level, pos)) return false;
         BlockPos below = pos.below();
         BlockState ground = level.getBlockState(below);
         if (!ground.getFluidState().isEmpty() && ground.getCollisionShape(level, below).isEmpty()) return false;

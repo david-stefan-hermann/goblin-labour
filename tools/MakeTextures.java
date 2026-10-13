@@ -136,7 +136,7 @@ public class MakeTextures {
 
     public static void main(String[] args) throws Exception {
         save(render(RING, RING_COLORS, false), ASSETS + "textures/item/goblin_ring.png");
-        save(render(BOOK, BOOK_COLORS), ASSETS + "textures/item/goblin_handbook.png");
+        save(render(BOOK, BOOK_COLORS), ASSETS + "textures/item/guide_book.png");
         save(render(STAFF, STAFF_COLORS), ASSETS + "textures/item/goblin_staff.png");
         BufferedImage head = render(HEAD, HEAD_COLORS);
         save(head, ASSETS + "textures/item/goblin_head.png");

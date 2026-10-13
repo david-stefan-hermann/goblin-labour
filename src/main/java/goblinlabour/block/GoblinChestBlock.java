@@ -48,7 +48,7 @@ public class GoblinChestBlock extends ChestBlock {
     private final DyeColor color;
 
     public GoblinChestBlock(DyeColor color, Properties properties) {
-        super(() -> GoblinLabour.GOBLIN_CHEST_BLOCK_ENTITY, SoundEvents.CHEST_OPEN, SoundEvents.CHEST_CLOSE, properties);
+        super(() -> GoblinLabour.GOBLIN_CHEST_BLOCK_ENTITY, SoundEvents.COPPER_CHEST_OPEN, SoundEvents.COPPER_CHEST_CLOSE, properties);
         this.color = color;
     }
 

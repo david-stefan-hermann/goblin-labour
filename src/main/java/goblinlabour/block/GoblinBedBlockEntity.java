@@ -64,6 +64,8 @@ public class GoblinBedBlockEntity extends BlockEntity implements goblinlabour.jo
     @Nullable private JobConfig jobBefore;
     @Nullable private Assignment assignment;
     @Nullable private BlockPos deathPos;
+    /** The chest the player assigned with the staff; the goblin unloads there instead of into the flat's chests. */
+    @Nullable private BlockPos depositChest;
     /** Set by the last job that was not REST; the goblin (also after respawning) takes its texture tint from it. */
     private GoblinStyle style = GoblinStyle.LUMBERJACK;
 
@@ -314,6 +316,23 @@ public class GoblinBedBlockEntity extends BlockEntity implements goblinlabour.jo
         }
     }
 
+    @Override
+    @Nullable
+    public BlockPos depositChest() {
+        return depositChest;
+    }
+
+    /** The staff assigned a chest (or cleared it with null); the goblin takes everything there from now on. */
+    public void setDepositChest(@Nullable BlockPos pos) {
+        depositChest = pos == null ? null : pos.immutable();
+        setChanged();
+    }
+
+    @Override
+    public void clearDepositChest() {
+        setDepositChest(null);
+    }
+
     public Component describe() {
         if (goblinUuid == null) return Component.translatable("goblinlabour.bed.empty");
         return Component.translatable("goblinlabour.bed.status", goblinName,
@@ -335,6 +354,7 @@ public class GoblinBedBlockEntity extends BlockEntity implements goblinlabour.jo
         out.storeNullable("job_before", JobConfig.CODEC, jobBefore);
         out.storeNullable("order", Assignment.CODEC, assignment);
         out.storeNullable("deathPos", BlockPos.CODEC, deathPos);
+        out.storeNullable("deposit_chest", BlockPos.CODEC, depositChest);
         out.store("style", GoblinStyle.CODEC, style);
     }
 
@@ -357,6 +377,7 @@ public class GoblinBedBlockEntity extends BlockEntity implements goblinlabour.jo
         jobBefore = in.read("job_before", JobConfig.CODEC).orElse(null);
         assignment = in.read("order", Assignment.CODEC).orElse(null);
         deathPos = in.read("deathPos", BlockPos.CODEC).orElse(null);
+        depositChest = in.read("deposit_chest", BlockPos.CODEC).orElse(null);
         style = in.read("style", GoblinStyle.CODEC).orElse(GoblinStyle.LUMBERJACK);
     }
 

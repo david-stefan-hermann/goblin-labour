@@ -48,5 +48,11 @@
     "sounds": [
       { "name": "minecraft:mob/villager/death", "pitch": 1.4 }
     ]
+  },
+  "block.goblin_chest.open": {
+    "sounds": [
+      { "name": "goblinlabour:sfx/animal_dog_growl_01_1" },
+      { "name": "goblinlabour:sfx/devil_demon_there_is_no_hope_1" }
+    ]
   }
 }

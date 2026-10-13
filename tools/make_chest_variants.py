@@ -10,7 +10,7 @@ GoblinChestBlock.name). Per colour this writes
     assets/goblinlabour/items/<name>.json               the chest renderer with the colour's texture
     data/goblinlabour/loot_table/blocks/<name>.json     drops itself, keeps a custom name
     data/goblinlabour/recipe/dye_<colour>_goblin_chest.json   any other goblin chest + the dye
-and once data/goblinlabour/tags/block/goblin_chests.json (mined with an axe). The item model with the
+and once data/goblinlabour/tags/block/goblin_chests.json (mined with a pickaxe). The item model with the
 display transforms (models/item/goblin_chest.json) and the textures (tools/make_chest_model.py) are shared or
 made elsewhere; the recipe that makes the green chest (recipe/goblin_chest.json) is not touched.
 """

@@ -1,5 +1,6 @@
 package goblinlabour;
 
+import bcf.guidebook.GuideBookItem;
 import goblinlabour.block.GoblinBedBlock;
 import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.block.GoblinChestBlock;
@@ -9,12 +10,17 @@ import goblinlabour.block.HomeMarkerBlock;
 import goblinlabour.command.GoblinCommand;
 import goblinlabour.dev.DevHooks;
 import goblinlabour.entity.GoblinEntity;
+import goblinlabour.entity.ai.ClimbOutGoal;
+import goblinlabour.home.HomeRegistry;
 import goblinlabour.item.GoblinBlankItem;
 import goblinlabour.item.GoblinData;
-import goblinlabour.item.GoblinHandbookItem;
+import goblinlabour.item.GuideBook;
 import goblinlabour.item.GoblinHeadItem;
 import goblinlabour.item.GoblinRingItem;
+import goblinlabour.item.GoblinScaffoldItem;
 import goblinlabour.item.GoblinStaffItem;
+import goblinlabour.job.ChopJob;
+import goblinlabour.job.FarmJob;
 import goblinlabour.menu.GoblinBedMenu;
 import goblinlabour.menu.GoblinBedMenuData;
 import goblinlabour.menu.GoblinInventoryMenu;
@@ -122,11 +128,11 @@ public final class GoblinLabour implements ModInitializer {
             BuiltInRegistries.BLOCK_ENTITY_TYPE, id("goblin_straw_bed"),
             FabricBlockEntityTypeBuilder.create(GoblinBedBlockEntity::new, GOBLIN_STRAW_BED).build());
 
-    public static final Block GOBLIN_SCAFFOLD = registerBlock("goblin_scaffold", props -> new GoblinScaffoldBlock(
-            props.mapColor(MapColor.COLOR_BROWN).strength(0.2f).sound(SoundType.SCAFFOLDING).noOcclusion().noLootTable().dynamicShape().randomTicks()
+    public static final GoblinScaffoldBlock GOBLIN_SCAFFOLD = registerBlock("goblin_scaffold", props -> new GoblinScaffoldBlock(
+            props.mapColor(MapColor.COLOR_BROWN).instabreak().sound(SoundType.SCAFFOLDING).noOcclusion().noLootTable().dynamicShape().randomTicks()
                     .isSuffocating((state, level, pos) -> false).isViewBlocking((state, level, pos) -> false)));
     public static final Item GOBLIN_SCAFFOLD_ITEM = registerItem("goblin_scaffold",
-            props -> new BlockItem(GOBLIN_SCAFFOLD, props.useBlockDescriptionPrefix()));
+            props -> new GoblinScaffoldItem(GOBLIN_SCAFFOLD, props.useBlockDescriptionPrefix()));
     /**
      * The Goblin Chest in the sixteen dye colours, one block and item each. Green is the plain {@code goblin_chest}
      * the recipe makes; a dye turns any chest into another colour (the {@code dye_*_goblin_chest} recipes).
@@ -165,7 +171,8 @@ public final class GoblinLabour implements ModInitializer {
     public static final Item GOBLIN_BLANK = registerItem("goblin_blank", props -> new GoblinBlankItem(props.stacksTo(16)));
     public static final Item GOBLIN_HEAD = registerItem("goblin_head", props -> new GoblinHeadItem(props.stacksTo(1)));
     public static final Item GOBLIN_STAFF = registerItem("goblin_staff", props -> new GoblinStaffItem(props.stacksTo(1)));
-    public static final Item GOBLIN_HANDBOOK = registerItem("goblin_handbook", props -> new GoblinHandbookItem(props.stacksTo(1)));
+    /** Everything the mod adds in one book; given once to every player. */
+    public static final Item GUIDE_BOOK = registerItem("guide_book", props -> new GuideBookItem(props.stacksTo(1), GuideBook.BOOK));
     public static final Item GOBLIN_RING = registerItem("goblin_ring", props -> new GoblinRingItem(props.stacksTo(1).rarity(Rarity.UNCOMMON)));
 
     public static final EntityType<GoblinEntity> GOBLIN = Registry.register(
@@ -210,7 +217,7 @@ public final class GoblinLabour implements ModInitializer {
                     .title(Component.translatable("itemGroup.goblinlabour.main"))
                     .icon(() -> new ItemStack(GOBLIN_HEAD))
                     .displayItems((params, out) -> {
-                        out.accept(GOBLIN_HANDBOOK);
+                        out.accept(GUIDE_BOOK);
                         out.accept(GOBLIN_MEAT_PACK);
                         out.accept(GOBLIN_BLANK);
                         out.accept(GOBLIN_STRAW_BED_ITEM);
@@ -234,6 +241,7 @@ public final class GoblinLabour implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(RingCrew::tick);
         PlayerBlockBreakEvents.AFTER.register(RingCrew::afterBlockBreak);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> RingCrew.endAll());
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> resetWorldState());
         // the expansion's milk for pipes and storage mods, from every side; its name for their screens
         FluidStorage.SIDED.registerForBlockEntity((expansion, side) -> expansion.tank, MILK_CAN_EXPANSION_BLOCK_ENTITY);
         FluidVariantAttributes.register(MILK_FLUID, new FluidVariantAttributeHandler() {
@@ -242,11 +250,26 @@ public final class GoblinLabour implements ModInitializer {
                 return Component.translatable("fluid.goblinlabour.milk");
             }
         });
+        GuideBook.BOOK.giveOnJoin();
         DevHooks.initServer();
         LOGGER.info("Goblin Labour loaded");
     }
 
-    private static Block registerBlock(String name, Function<BlockBehaviour.Properties, Block> factory) {
+    /**
+     * The per-world memory kept in static maps (tree claims, stumps, climbing columns, milked cows, staff selections,
+     * homes, scaffold touches). A single player world switch keeps the JVM and the dimension keys, so without this the
+     * next world would inherit the last one's state.
+     */
+    private static void resetWorldState() {
+        ChopJob.reset();
+        ClimbOutGoal.reset();
+        FarmJob.reset();
+        StaffSelection.reset();
+        HomeRegistry.reset();
+        GoblinScaffoldBlock.reset();
+    }
+
+    private static <T extends Block> T registerBlock(String name, Function<BlockBehaviour.Properties, T> factory) {
         Identifier id = id(name);
         BlockBehaviour.Properties props = BlockBehaviour.Properties.of().setId(ResourceKey.create(Registries.BLOCK, id));
         return Registry.register(BuiltInRegistries.BLOCK, id, factory.apply(props));
@@ -264,7 +287,7 @@ public final class GoblinLabour implements ModInitializer {
         Map<DyeColor, Block> chests = new EnumMap<>(DyeColor.class);
         for (DyeColor color : chestColours()) {
             chests.put(color, registerBlock(GoblinChestBlock.name(color), props -> new GoblinChestBlock(color,
-                    props.mapColor(color.getMapColor()).strength(2.5f).sound(SoundType.WOOD).ignitedByLava())));
+                    props.mapColor(color.getMapColor()).strength(2.5f).sound(SoundType.COPPER))));
         }
         return chests;
     }

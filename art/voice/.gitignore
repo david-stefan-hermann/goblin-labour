@@ -1,0 +1,8 @@
+.venv/
+model/
+model-turbo/
+variants/
+*.log
+__pycache__/
+preview*.wav
+.env

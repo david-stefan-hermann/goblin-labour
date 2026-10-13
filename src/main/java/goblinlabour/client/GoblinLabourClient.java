@@ -1,6 +1,5 @@
 package goblinlabour.client;
 
-import goblinlabour.item.GoblinHandbookItem;
 import net.minecraft.client.Minecraft;
 
 import goblinlabour.GoblinLabour;
@@ -36,7 +35,6 @@ public final class GoblinLabourClient implements ClientModInitializer {
         FluidRenderingRegistry.register(GoblinLabour.MILK_FLUID, new FluidModel.Unbaked(milk, milk, null, null));
         MenuScreens.register(GoblinLabour.GOBLIN_CHEST_MENU, GoblinChestScreen::new);
         ClientTickEvents.END_CLIENT_TICK.register(HomeZoneParticles::tick);
-        GoblinHandbookItem.setOpener(player -> Minecraft.getInstance().gui.setScreen(new HandbookScreen(0)));
         goblinlabour.entity.GoblinEntity.setClientStaffCheck(goblin -> Minecraft.getInstance().player != null
                 && Minecraft.getInstance().player.getMainHandItem().is(GoblinLabour.GOBLIN_STAFF));
         DevClientHooks.init();

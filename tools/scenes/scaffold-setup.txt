@@ -1,0 +1,6 @@
+forceload add 2510 2450 2530 2470
+fill 2510 -60 2450 2530 -50 2470 air
+fill 2510 -61 2450 2530 -61 2470 grass_block
+fill 2520 -60 2460 2520 -55 2460 goblinlabour:goblin_scaffold[distance=0]
+time set day
+weather clear

@@ -59,13 +59,14 @@ public class FollowStaffGoal extends Goal {
     @Override
     public void tick() {
         goblin.getLookControl().setLookAt(player, 30.0f, 30.0f);
+        if (goblin.level() instanceof ServerLevel level && goblin.climber().comeDownFirst(level)) return;
         double dist = goblin.distanceToSqr(player);
         if (dist <= STOP_SQ) {
             goblin.getNavigation().stop();
             return;
         }
         if (dist > TELEPORT_SQ && goblin.level() instanceof ServerLevel level) {
-            goblin.blinkTo(level, BlockPos.containing(player.position()));
+            goblin.blinkTo(level, BlockPos.containing(player.position()), "follow");
             return;
         }
         if (goblin.tickCount % 10 == 0) {

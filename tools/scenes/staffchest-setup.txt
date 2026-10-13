@@ -1,0 +1,11 @@
+forceload add 2650 2590 2680 2620
+fill 2655 -60 2595 2675 -50 2615 air
+fill 2655 -61 2595 2675 -61 2615 grass_block
+setblock 2668 -60 2604 air
+setblock 2668 -60 2604 goblinlabour:goblin_straw_bed[facing=south]
+setblock 2664 -60 2600 air
+setblock 2664 -60 2600 minecraft:barrel
+time set day
+weather clear
+goblinlabour spawn 2668 -60 2604 Carrier
+tp @e[type=goblinlabour:goblin,name=Carrier] 2666.5 -60 2602.5

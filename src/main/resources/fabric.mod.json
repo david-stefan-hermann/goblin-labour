@@ -5,7 +5,7 @@
   "name": "Goblin Labour",
   "description": "Craft goblins from rotten flesh, give them a straw bed and tools, and let them mine, dig and chop for you.",
   "authors": [
-    "David Hermann"
+    "BaconCakeFactory"
   ],
   "contact": {
     "sources": "https://github.com/david-stefan-hermann/goblin-labour"
@@ -27,6 +27,7 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",
+    "bcfguidebooklib": ">=1.0.0",
     "minecraft": "~26.2",
     "java": ">=25"
   }

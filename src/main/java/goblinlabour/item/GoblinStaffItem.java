@@ -88,6 +88,7 @@ public class GoblinStaffItem extends Item {
                                 Consumer<Component> tooltip, TooltipFlag flag) {
         tooltip.accept(Component.translatable("goblinlabour.staff.hint1").withStyle(ChatFormatting.GRAY));
         tooltip.accept(Component.translatable("goblinlabour.staff.hint2").withStyle(ChatFormatting.GRAY));
+        tooltip.accept(Component.translatable("goblinlabour.staff.hint4").withStyle(ChatFormatting.GRAY));
         tooltip.accept(Component.translatable("goblinlabour.staff.hint3").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

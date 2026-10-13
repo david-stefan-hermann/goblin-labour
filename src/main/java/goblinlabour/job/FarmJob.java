@@ -58,15 +58,22 @@ public final class FarmJob implements JobTask {
     /** Cocoa pods and sap spots sit higher up the trunks. */
     private static final int TRUNK_HEIGHT = 12;
     /** A cow gives milk again after five minutes. */
-    private static final int MILK_COOLDOWN = 6000;
+    public static final int MILK_COOLDOWN = 6000;
     /** An animal the goblin could not get to is left alone for a minute. */
     private static final int ANIMAL_SKIP = 1200;
     private static final Identifier RUBBER_LOG = Identifier.fromNamespaceAndPath("techreborn", "rubber_log");
     private static final Identifier SAP = Identifier.fromNamespaceAndPath("techreborn", "sap");
+    private static final Identifier RUBBER_LEAVES = Identifier.fromNamespaceAndPath("techreborn", "rubber_leaves");
 
     /** When each cow was milked last, and animals the goblins could not reach (until when). */
     private static final Map<UUID, Long> MILKED = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> ANIMALS_SKIPPED = new ConcurrentHashMap<>();
+
+    /** Forgets it all when the server stops: in single player the next world runs in the same JVM. */
+    public static void reset() {
+        MILKED.clear();
+        ANIMALS_SKIPPED.clear();
+    }
 
     private FarmJob() {
     }
@@ -168,6 +175,15 @@ public final class FarmJob implements JobTask {
                         cactusTop = cursor.immutable(); // the highest one wins
                         continue;
                     }
+                    if (!tools.treetap().isEmpty() && isRubberLog(state)) {
+                        // rubber leaves growing right against the trunk hide its sap spots: they go first
+                        for (Direction side : Direction.Plane.HORIZONTAL) {
+                            BlockPos leaf = cursor.relative(side);
+                            if (BuiltInRegistries.BLOCK.getKey(level.getBlockState(leaf).getBlock()).equals(RUBBER_LEAVES) && usable(level, leaf, skipped)) {
+                                best.offer(Pick.of(leaf), me, Vec3.atCenterOf(leaf));
+                            }
+                        }
+                    }
                     if (!tools.treetap().isEmpty() && hasSap(state)) {
                         if (usable(level, cursor, skipped)) {
                             BlockPos pos = cursor.immutable();
@@ -250,9 +266,13 @@ public final class FarmJob implements JobTask {
         }
     }
 
+    private static boolean isRubberLog(BlockState state) {
+        return BuiltInRegistries.BLOCK.getKey(state.getBlock()).equals(RUBBER_LOG);
+    }
+
     /** A Tech Reborn rubber log with sap on one side (its "hassap" property), looked up by name. */
     private static boolean hasSap(BlockState state) {
-        if (!BuiltInRegistries.BLOCK.getKey(state.getBlock()).equals(RUBBER_LOG)) return false;
+        if (!isRubberLog(state)) return false;
         Property<?> property = state.getBlock().getStateDefinition().getProperty("hassap");
         return property instanceof BooleanProperty sap && state.getValue(sap);
     }
@@ -416,7 +436,20 @@ public final class FarmJob implements JobTask {
     private record SapUse(BlockPos pos, ItemStack tool) implements Use {
         @Override
         public @Nullable Vec3 point(ServerLevel level) {
-            return hasSap(level.getBlockState(pos)) ? Vec3.atCenterOf(pos) : null;
+            BlockState state = level.getBlockState(pos);
+            if (!hasSap(state)) return null;
+            // the middle of the sap side (its "facing"), so the goblin works from that side
+            Property<?> facing = state.getBlock().getStateDefinition().getProperty("facing");
+            if (facing != null && state.getValue(facing) instanceof Direction side && side.getAxis().isHorizontal()) {
+                return Vec3.atCenterOf(pos).add(side.getStepX() * 0.5, 0.0, side.getStepZ() * 0.5);
+            }
+            return Vec3.atCenterOf(pos);
+        }
+
+        /** Sap spots sit anywhere up the trunk: the goblin climbs to them like to a high log. */
+        @Override
+        public boolean climbs() {
+            return true;
         }
 
         @Override

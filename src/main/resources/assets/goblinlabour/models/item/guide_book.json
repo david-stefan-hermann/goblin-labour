@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "goblinlabour:item/goblin_handbook"
+    "layer0": "goblinlabour:item/guide_book"
   }
 }

@@ -7,6 +7,7 @@ out/
 *.log
 libs/*.jar
 build.out
+publish.out
 HANDOFF-*.md
 
 # Python bytecode from the art/ and tools/ scripts

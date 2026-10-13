@@ -1,0 +1,52 @@
+{
+  "_comment": "Everything that shapes the goblin voice. Changing `model`, `reference` or `generate` changes future clips only (generate.py never re-renders an existing raw wav); changing `post` changes every ogg on the next run of process.py.",
+  "model": {
+    "repo": "ResembleAI/chatterbox",
+    "revision": "5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18",
+    "files": [
+      "ve.safetensors",
+      "t3_cfg.safetensors",
+      "s3gen.safetensors",
+      "tokenizer.json",
+      "conds.pt"
+    ]
+  },
+  "reference": null,
+  "generate": {
+    "exaggeration": 0.7,
+    "cfg_weight": 0.3,
+    "temperature": 0.8,
+    "seed": 1234
+  },
+  "post": {
+    "filters": "asetrate=24000*1.22,aresample=24000,atempo=0.9,highpass=f=120,loudnorm=I=-16:TP=-1.5:LRA=7",
+    "sample_rate": 24000,
+    "vorbis_quality": 4
+  },
+  "elevenlabs_candidates": {
+    "toby_goblin": {
+      "library_voice_id": "Z7RrOqZFTyLpIlzCgfsp",
+      "owner": "67df4a96b2437b433f33eae623512ea63ffe695865d023472f43c1fe7e6081d3",
+      "account_voice_id": "Z7RrOqZFTyLpIlzCgfsp",
+      "note": "high, croaky little goblin"
+    },
+    "dante_growly_monster": {
+      "library_voice_id": "wXvR48IpOq9HACltTmt7",
+      "owner": "7f33ed0e4126402ab181a73488dc937283902d6dfae6274884ea1230b85a48dd",
+      "account_voice_id": "wXvR48IpOq9HACltTmt7",
+      "note": "deep growling monster"
+    },
+    "blackbeard_gritty": {
+      "library_voice_id": "6VgigPFWF0sNZy1BthVg",
+      "owner": "eeb9240f13725fad2718b050c00721c379d390388b1b9871a58ebd5f232d8803",
+      "account_voice_id": "6VgigPFWF0sNZy1BthVg",
+      "note": "gritty british pirate"
+    },
+    "rusty_dwarfish": {
+      "library_voice_id": "507tTFX0IPtqFzGd1CAL",
+      "owner": "84170eba2e50e0df575fca41c02e69d51200016cc292e0f433bb2b37cea28126",
+      "account_voice_id": "507tTFX0IPtqFzGd1CAL",
+      "note": "deep raspy grumbling, dwarf-like; user wants this kept for later"
+    }
+  }
+}

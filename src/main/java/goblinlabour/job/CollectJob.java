@@ -3,16 +3,19 @@ package goblinlabour.job;
 import goblinlabour.entity.GoblinEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import org.jetbrains.annotations.Nullable;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 /**
  * Picks up loose items within {@code length} blocks of the bed (the home included) and brings them to the goblin
  * chests like any other loot. Works on item entities instead of blocks, so the runner drives it through
- * {@link #findItem} rather than {@link #pick}. Endless.
+ * {@link #items} rather than {@link #pick}. Endless.
  */
 public final class CollectJob implements JobTask {
     public static final CollectJob INSTANCE = new CollectJob();
@@ -37,21 +40,27 @@ public final class CollectJob implements JobTask {
         return Pick.DONE;
     }
 
-    /** The nearest item in the radius that can be picked up now and fits into the storage, or null. */
-    @Nullable
-    public ItemEntity findItem(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, Set<Integer> skipped) {
+    /**
+     * The items in the radius that can be picked up now and fit into the storage, nearest first. Only items that have
+     * landed on ground a goblin walks on: an item still falling, or lying on leaves, logs or a scaffold column (a
+     * tree crown drops them there), waits until it comes down; walking under it only gets the goblin stuck.
+     */
+    public List<ItemEntity> items(ServerLevel level, GoblinEntity goblin, JobHost bed, JobConfig config, Set<Integer> skipped) {
         int r = config.length();
         AABB area = new AABB(bed.getBlockPos()).inflate(r, VERTICAL, r);
-        ItemEntity best = null;
-        double bestDist = Double.MAX_VALUE;
-        for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, area, ItemEntity::isAlive)) {
-            if (item.hasPickUpDelay() || skipped.contains(item.getId()) || !goblin.canStore(item.getItem())) continue;
-            double d = goblin.distanceToSqr(item);
-            if (d < bestDist) {
-                bestDist = d;
-                best = item;
-            }
-        }
-        return best;
+        return level.getEntitiesOfClass(ItemEntity.class, area, item -> item.isAlive() && !item.hasPickUpDelay()
+                        && item.onGround() && !skipped.contains(item.getId()) && goblin.canStore(item.getItem())
+                        && onWalkableGround(level, item))
+                .stream().sorted(Comparator.comparingDouble(goblin::distanceToSqr)).toList();
+    }
+
+    private static boolean onWalkableGround(ServerLevel level, ItemEntity item) {
+        BlockPos pos = item.blockPosition();
+        BlockState at = level.getBlockState(pos), below = level.getBlockState(pos.below());
+        return !isCanopy(at) && !isCanopy(below);
+    }
+
+    private static boolean isCanopy(BlockState state) {
+        return state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS) || Climber.isScaffold(state);
     }
 }

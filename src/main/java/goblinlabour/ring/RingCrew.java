@@ -7,6 +7,7 @@ import goblinlabour.entity.GoblinEntity;
 import goblinlabour.entity.ai.CrewGoal;
 import goblinlabour.home.HomeRegistry;
 import goblinlabour.job.Mining;
+import goblinlabour.job.Standing;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBlockTags;
 import net.minecraft.core.BlockPos;
@@ -64,6 +65,7 @@ public final class RingCrew {
     /** Ticks before a crew picks up what its own player threw (the 40 tick pick-up delay covers the first half). */
     private static final int OWNER_GRACE = 60;
     private static final int ORE_SCAN_INTERVAL = 20;
+    private static final int TORCH_INTERVAL = 40;
     private static final int ORE_SCAN_DY = 6;
     /** A vein: at most this many connected ore blocks, reaching this far (horizontally) from the player. */
     private static final int MAX_VEIN = 64, VEIN_REACH = WORK_RADIUS + 4;
@@ -94,6 +96,10 @@ public final class RingCrew {
         private long endTick;
         private boolean warned;
         private long nextFullNotice;
+        /** At most one torch per crew every {@link #TORCH_INTERVAL} ticks. */
+        private long nextTorch;
+        /** The chest the player assigned with the staff: it counts for the whole crew. */
+        @Nullable private BlockPos chest;
         /** Exposed ores around the player, refreshed every second. */
         private List<BlockPos> ores = List.of();
         /** The ore vein the crew is taking out: every ore block connected to the first one, hidden ones included. */
@@ -134,6 +140,16 @@ public final class RingCrew {
 
         public Set<BlockPos> vein() {
             return vein;
+        }
+
+        /** The chest the staff assigned for the whole crew, or null (then they look for goblin chests nearby). */
+        @Nullable
+        public BlockPos chest() {
+            return chest;
+        }
+
+        public void setChest(@Nullable BlockPos pos) {
+            chest = pos == null ? null : pos.immutable();
         }
 
         /** The player broke a natural block here: the crew helps dig around it for the next 20 seconds. */
@@ -374,12 +390,29 @@ public final class RingCrew {
         }
     }
 
-    /** Fabric's after-break hook: a player with a crew who digs a natural block gets help around it. */
+    /**
+     * Fabric's after-break hook: a player with a crew who digs a block may have uncovered ore, so the crew looks at
+     * once instead of at the next rescan; a natural block also gets help around it.
+     */
     public static void afterBlockBreak(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity) {
-        if (level.isClientSide() || !state.is(NATURAL)) return;
+        if (level.isClientSide()) return;
         for (Session session : SESSIONS.values()) {
-            if (session.owner.getUUID().equals(player.getUUID())) session.assist(pos);
+            if (!session.owner.getUUID().equals(player.getUUID())) continue;
+            session.scanOres();
+            if (state.is(NATURAL)) session.assist(pos);
         }
+    }
+
+    /**
+     * A crew goblin puts up a torch where it is dark around its player (see {@link Mining#placeCrewTorchIfDark}), for
+     * free like bed goblins, within the work radius and at most one per crew every two seconds.
+     */
+    public static void placeTorchIfDark(ServerLevel level, GoblinEntity goblin, Player owner) {
+        Session session = goblin.crew();
+        if (session == null || level.getGameTime() < session.nextTorch) return;
+        double dx = goblin.getX() - owner.getX(), dz = goblin.getZ() - owner.getZ();
+        if (dx * dx + dz * dz > WORK_RADIUS * WORK_RADIUS) return;
+        if (Mining.placeCrewTorchIfDark(level, goblin)) session.nextTorch = level.getGameTime() + TORCH_INTERVAL;
     }
 
     /** Server stop: the crews vanish (their goblins are not saved anyway). */
@@ -463,7 +496,7 @@ public final class RingCrew {
             int z = Mth.floor(owner.getZ() + Math.sin(angle) * r);
             for (int y = feetY + 2; y >= feetY - 3; y--) {
                 BlockPos spot = new BlockPos(x, y, z);
-                if (!CrewGoal.standable(level, spot)) continue;
+                if (!Standing.dry(level, spot)) continue;
                 if (!nearTaken(spot, taken) && CrewGoal.clearOfWay(owner, Vec3.atBottomCenterOf(spot)) && Mining.canSee(level, eyes, spot.below())) {
                     return spot;
                 }

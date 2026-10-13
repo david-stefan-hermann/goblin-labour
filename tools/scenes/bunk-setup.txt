@@ -1,0 +1,26 @@
+forceload add 32 32 60 60
+time set day
+weather clear
+kill @e[type=minecraft:slime]
+kill @e[type=minecraft:cow]
+kill @e[type=goblinlabour:goblin,x=46,y=-60,z=46,distance=..24]
+fill 34 -60 34 58 -50 58 air
+fill 34 -61 34 58 -61 58 grass_block
+kill @e[type=minecraft:item]
+setblock 42 -60 42 goblinlabour:goblin_straw_bed[facing=north]
+setblock 42 -59 42 goblinlabour:goblin_straw_bed[facing=north]
+setblock 47 -60 42 goblinlabour:goblin_straw_bed[facing=east]
+setblock 47 -59 42 goblinlabour:goblin_straw_bed[facing=east]
+setblock 51 -60 42 goblinlabour:goblin_straw_bed[facing=north]
+goblinlabour spawn 42 -60 42 Grubnak
+goblinlabour spawn 42 -59 42 Snikkit
+goblinlabour spawn 51 -60 42 Muzgash
+data merge entity @e[type=goblinlabour:goblin,name=Grubnak,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Snikkit,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Muzgash,limit=1] {NoAI:1b}
+tp @e[type=goblinlabour:goblin,name=Grubnak] 38.5 -60 52.5 0 0
+tp @e[type=goblinlabour:goblin,name=Snikkit] 39.5 -60 52.5 0 0
+tp @e[type=goblinlabour:goblin,name=Muzgash] 40.5 -60 52.5 0 0
+goblinlabour job 42 -60 42 chop
+goblinlabour job 42 -59 42 farm
+goblinlabour job 51 -60 42 chop

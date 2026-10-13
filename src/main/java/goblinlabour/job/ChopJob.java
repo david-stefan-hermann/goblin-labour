@@ -10,14 +10,12 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
@@ -34,9 +32,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * tree nearest to it (all logs connected to each other, diagonals included) and takes that tree down from the lowest
  * log up before it moves on. A tree claimed by one goblin is left alone by the others, and the goblin keeps it until
  * its last log is down, waiting for logs it cannot reach yet rather than leaving them to another goblin. The goblin
- * picks up the logs and whatever the crowns drop (saplings, sticks, apples) and unloads all of it into the chests.
- * With {@code replant} on (the default) the stumps of a felled tree get a sapling, the tree's own kind first, from
- * the fresh drops or else from the tool row; saplings kept in the tool row are also planted out on free ground inside
+ * picks up its own drops (the logs, and the leaves it breaks itself) and unloads all of it into the chests; what the
+ * crowns drop later is the collector's business. With {@code replant} on (the default) the stumps of a felled tree get
+ * a sapling, the tree's own kind first, from its own drops or else from the tool row; saplings kept in the tool row are also planted out on free ground inside
  * the radius, 3 to 6 blocks from other trees and saplings. Endless: the goblin stays on duty and checks for new trees.
  */
 public final class ChopJob implements JobTask {
@@ -50,7 +48,8 @@ public final class ChopJob implements JobTask {
     /** A claimed tree that has not lost a log for this long is given up, though logs are left (they cannot be reached). */
     private static final int TREE_PATIENCE = 6000;
     /** Free planting: no log, leaf or sapling closer than this (horizontally), ideally this far from the nearest one. */
-    private static final double FREE_GAP = 3.0, FREE_IDEAL = 4.5;
+    public static final double FREE_GAP = 3.0;
+    private static final double FREE_IDEAL = 4.5;
     /** A stump nobody found a sapling for within ten minutes is forgotten. */
     private static final int STUMP_TIMEOUT = 12000;
 
@@ -80,6 +79,12 @@ public final class ChopJob implements JobTask {
     private static final Map<ResourceKey<Level>, Map<UUID, Tree>> CLAIMS = new ConcurrentHashMap<>();
     /** Stumps to replant per goblin, per dimension. */
     private static final Map<ResourceKey<Level>, Map<UUID, List<Stump>>> STUMPS = new ConcurrentHashMap<>();
+
+    /** Forgets it all when the server stops: in single player the next world runs in the same JVM. */
+    public static void reset() {
+        CLAIMS.clear();
+        STUMPS.clear();
+    }
 
     private ChopJob() {
     }
@@ -413,19 +418,6 @@ public final class ChopJob implements JobTask {
             return;
         }
         level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-    }
-
-    /** The work area: logs fall here, crowns drop their saplings, sticks and apples here. */
-    @Override
-    public AABB lootArea(JobHost bedEntity, JobConfig config) {
-        BlockPos bed = bedEntity.getBlockPos();
-        int r = config.length() + 4;
-        return new AABB(bed.getX() - r, bed.getY() - BELOW, bed.getZ() - r, bed.getX() + r + 1, bed.getY() + ABOVE, bed.getZ() + r + 1);
-    }
-
-    @Override
-    public boolean wantsLoot(ItemStack stack) {
-        return stack.is(ItemTags.SAPLINGS) || stack.is(Items.STICK) || stack.is(Items.APPLE);
     }
 
 

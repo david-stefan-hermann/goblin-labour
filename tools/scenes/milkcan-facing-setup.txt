@@ -1,0 +1,10 @@
+forceload add 2480 2450 2500 2470
+fill 2480 -60 2450 2500 -55 2470 air
+fill 2480 -61 2450 2500 -61 2470 grass_block
+kill @e[type=item,x=2480,y=-64,z=2450,dx=20,dy=10,dz=20]
+summon item 2485.5 -60 2455.5 {Item:{id:"goblinlabour:milk_churn",count:1},PickupDelay:32767}
+summon item 2487.5 -60 2455.5 {Item:{id:"goblinlabour:milk_churn",count:1},PickupDelay:32767}
+goblinlabour churn 2485 -60 2455 placedrop 180
+goblinlabour churn 2487 -60 2455 placedrop 90
+time set day
+weather clear

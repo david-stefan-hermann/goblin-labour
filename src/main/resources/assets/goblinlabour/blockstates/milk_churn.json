@@ -1,41 +1,43 @@
 {
   "multipart": [
-    {
-      "apply": {
-        "model": "goblinlabour:block/milk_can"
-      }
-    },
-    {
-      "when": {
-        "level": "1|2|3"
-      },
-      "apply": {
-        "model": "goblinlabour:block/milk_can_milk_1"
-      }
-    },
-    {
-      "when": {
-        "level": "4|5|6"
-      },
-      "apply": {
-        "model": "goblinlabour:block/milk_can_milk_2"
-      }
-    },
-    {
-      "when": {
-        "level": "7|8|9"
-      },
-      "apply": {
-        "model": "goblinlabour:block/milk_can_milk_3"
-      }
-    },
-    {
-      "when": {
-        "level": "10"
-      },
-      "apply": {
-        "model": "goblinlabour:block/milk_can_lid"
-      }
-    }
+    { "when": { "facing": "north" }, "apply": { "model": "goblinlabour:block/milk_can" } }
+    ,
+    { "when": { "facing": "north", "level": "1|2|3" }, "apply": { "model": "goblinlabour:block/milk_can_milk_1" } }
+    ,
+    { "when": { "facing": "north", "level": "4|5|6" }, "apply": { "model": "goblinlabour:block/milk_can_milk_2" } }
+    ,
+    { "when": { "facing": "north", "level": "7|8|9" }, "apply": { "model": "goblinlabour:block/milk_can_milk_3" } }
+    ,
+    { "when": { "facing": "north", "level": "10" }, "apply": { "model": "goblinlabour:block/milk_can_lid" } }
+    ,
+    { "when": { "facing": "east" }, "apply": { "model": "goblinlabour:block/milk_can", "y": 90 } }
+    ,
+    { "when": { "facing": "east", "level": "1|2|3" }, "apply": { "model": "goblinlabour:block/milk_can_milk_1", "y": 90 } }
+    ,
+    { "when": { "facing": "east", "level": "4|5|6" }, "apply": { "model": "goblinlabour:block/milk_can_milk_2", "y": 90 } }
+    ,
+    { "when": { "facing": "east", "level": "7|8|9" }, "apply": { "model": "goblinlabour:block/milk_can_milk_3", "y": 90 } }
+    ,
+    { "when": { "facing": "east", "level": "10" }, "apply": { "model": "goblinlabour:block/milk_can_lid", "y": 90 } }
+    ,
+    { "when": { "facing": "south" }, "apply": { "model": "goblinlabour:block/milk_can", "y": 180 } }
+    ,
+    { "when": { "facing": "south", "level": "1|2|3" }, "apply": { "model": "goblinlabour:block/milk_can_milk_1", "y": 180 } }
+    ,
+    { "when": { "facing": "south", "level": "4|5|6" }, "apply": { "model": "goblinlabour:block/milk_can_milk_2", "y": 180 } }
+    ,
+    { "when": { "facing": "south", "level": "7|8|9" }, "apply": { "model": "goblinlabour:block/milk_can_milk_3", "y": 180 } }
+    ,
+    { "when": { "facing": "south", "level": "10" }, "apply": { "model": "goblinlabour:block/milk_can_lid", "y": 180 } }
+    ,
+    { "when": { "facing": "west" }, "apply": { "model": "goblinlabour:block/milk_can", "y": 270 } }
+    ,
+    { "when": { "facing": "west", "level": "1|2|3" }, "apply": { "model": "goblinlabour:block/milk_can_milk_1", "y": 270 } }
+    ,
+    { "when": { "facing": "west", "level": "4|5|6" }, "apply": { "model": "goblinlabour:block/milk_can_milk_2", "y": 270 } }
+    ,
+    { "when": { "facing": "west", "level": "7|8|9" }, "apply": { "model": "goblinlabour:block/milk_can_milk_3", "y": 270 } }
+    ,
+    { "when": { "facing": "west", "level": "10" }, "apply": { "model": "goblinlabour:block/milk_can_lid", "y": 270 } }
   ]
 }

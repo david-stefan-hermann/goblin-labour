@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "goblinlabour:item/goblin_handbook"
+    "model": "goblinlabour:item/guide_book"
   }
 }

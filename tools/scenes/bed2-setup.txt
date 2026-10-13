@@ -1,0 +1,27 @@
+forceload add 32 32 60 60
+time set day
+weather clear
+kill @e[type=minecraft:slime]
+kill @e[type=minecraft:cow]
+kill @e[type=goblinlabour:goblin,x=46,y=-60,z=46,distance=..24]
+fill 34 -60 34 58 -50 58 air
+fill 34 -61 34 58 -61 58 grass_block
+kill @e[type=minecraft:item]
+setblock 40 -60 40 goblinlabour:goblin_straw_bed[facing=north]
+setblock 44 -60 40 goblinlabour:goblin_straw_bed[facing=east]
+setblock 48 -60 40 goblinlabour:goblin_straw_bed[facing=south]
+setblock 52 -60 40 goblinlabour:goblin_straw_bed[facing=west]
+setblock 42 -60 46 goblinlabour:goblin_straw_bed[facing=north]
+setblock 46 -60 46 goblinlabour:goblin_straw_bed[facing=north]
+setblock 50 -60 46 goblinlabour:goblin_straw_bed[facing=west]
+goblinlabour spawn 42 -60 46 Snoozer
+goblinlabour job 42 -60 46 chop
+goblinlabour fillstorage 42 -60 46 minecraft:cobblestone
+goblinlabour spawn 46 -60 46 Grubnak
+goblinlabour spawn 50 -60 46 Snikkit
+data merge entity @e[type=goblinlabour:goblin,name=Grubnak,limit=1] {NoAI:1b}
+data merge entity @e[type=goblinlabour:goblin,name=Snikkit,limit=1] {NoAI:1b}
+tp @e[type=goblinlabour:goblin,name=Grubnak] 36.5 -60 52.5 0 0
+tp @e[type=goblinlabour:goblin,name=Snikkit] 37.5 -60 52.5 0 0
+goblinlabour job 46 -60 46 chop
+goblinlabour job 50 -60 46 farm

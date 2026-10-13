@@ -1,11 +1,13 @@
 package goblinlabour.entity.ai;
 
 import goblinlabour.GoblinLabour;
+import goblinlabour.block.GoblinBedBlock;
 import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.home.HomeRegistry;
 import goblinlabour.job.Climber;
 import goblinlabour.job.Job;
+import goblinlabour.job.Reach;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
@@ -31,6 +33,8 @@ import java.util.EnumSet;
  */
 public class RestGoal extends Goal {
     private static final double AT_BED_SQ = 1.2 * 1.2;
+    /** How far up from the ground a goblin climbs into the upper bed of a bunk (it lies 1.56 blocks up). */
+    private static final double UPPER_BUNK_REACH = 1.7;
     private static final int WANDER_MIN = 1200, WANDER_MAX = 2000;
     private static final int SLEEP_MIN = 120, SLEEP_MAX = 220;
     private static final int HEAL_TICKS_BED = 20;
@@ -130,7 +134,7 @@ public class RestGoal extends Goal {
     private void sleepTick(boolean waiting) {
         BlockPos pos = bed.getBlockPos();
         Vec3 center = new Vec3(pos.getX() + 0.5, pos.getY() + 0.5625, pos.getZ() + 0.5);
-        if (goblin.position().distanceToSqr(center) > AT_BED_SQ) {
+        if (!closeEnough(center)) {
             goblin.setPose(Pose.STANDING);
             if (goblin.tickCount % 10 == 0) goblin.getNavigation().moveTo(center.x, center.y, center.z, 1.0);
             return;
@@ -145,6 +149,14 @@ public class RestGoal extends Goal {
         heal(HEAL_TICKS_BED);
     }
 
+    /** Near enough to lie down; the upper bed of a bunk is climbed into from the ground beside it. */
+    private boolean closeEnough(Vec3 center) {
+        if (goblin.position().distanceToSqr(center) <= AT_BED_SQ) return true;
+        if (!GoblinBedBlock.isUpperBunk(bed.getBlockState())) return false;
+        double dx = goblin.getX() - center.x, dz = goblin.getZ() - center.z, up = center.y - goblin.getY();
+        return dx * dx + dz * dz <= AT_BED_SQ && up > 0 && up <= UPPER_BUNK_REACH;
+    }
+
     private void wanderTick() {
         goblin.setPose(Pose.STANDING);
         bed.setStatus(GoblinBedBlockEntity.Status.RESTING);
@@ -156,6 +168,11 @@ public class RestGoal extends Goal {
         if (Climber.isUp(level, goblin)) {
             // left up on a scaffold column when the job ended: sneak down first, a path home starts at the bottom
             goblin.climber().descend(level);
+            walking = false;
+            return;
+        }
+        if (goblin.isOnBed(level) && Reach.stepOffBed(level, goblin)) {
+            // a bed is for sleeping in, not for standing on (after a nap, after a respawn)
             walking = false;
             return;
         }

@@ -1,7 +1,7 @@
 package goblinlabour.block;
 
-import com.mojang.serialization.MapCodec;
 import goblinlabour.GoblinLabour;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
@@ -12,16 +12,21 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUtils;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
@@ -41,23 +46,43 @@ public class MilkChurnBlock extends BaseEntityBlock {
      */
     public static final IntegerProperty LEVEL = IntegerProperty.create("level", 0,
             MilkChurnBlockEntity.CAPACITY / MilkChurnBlockEntity.BUCKET);
+    /**
+     * Towards the player who placed the can, so its handles (east and west in the model) are on that player's left
+     * and right. North, the model as drawn, is the default for cans placed before the can could turn.
+     */
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     /** The can is 12 px round and a full block high; the lid of a full can adds 2 px on top. */
     private static final VoxelShape OPEN = Block.box(2, 0, 2, 14, 16, 14);
     private static final VoxelShape CLOSED = Block.box(2, 0, 2, 14, 18, 14);
 
     public MilkChurnBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(LEVEL, 0));
-    }
-
-    @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(LEVEL);
+        registerDefaultState(stateDefinition.any().setValue(LEVEL, 0).setValue(FACING, Direction.NORTH));
     }
 
     @Override
     protected MapCodec<MilkChurnBlock> codec() {
         return CODEC;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(LEVEL, FACING);
+    }
+
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    }
+
+    @Override
+    protected BlockState rotate(BlockState state, Rotation rotation) {
+        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+    }
+
+    @Override
+    protected BlockState mirror(BlockState state, Mirror mirror) {
+        return state.rotate(mirror.getRotation(state.getValue(FACING)));
     }
 
     @Override

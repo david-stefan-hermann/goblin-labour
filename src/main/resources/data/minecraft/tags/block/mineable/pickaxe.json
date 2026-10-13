@@ -1,4 +1,4 @@
 {
   "replace": false,
-  "values": [ "goblinlabour:milk_churn", "goblinlabour:milk_can_expansion" ]
+  "values": [ "goblinlabour:milk_churn", "goblinlabour:milk_can_expansion", "#goblinlabour:goblin_chests" ]
 }
