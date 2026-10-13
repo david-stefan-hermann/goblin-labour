@@ -1,11 +1,11 @@
 package goblinlabour.block;
 
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -21,6 +21,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -36,10 +37,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * can stand on top of it, climb inside it (it is in the {@code minecraft:climbable} tag) and sneak to drop through
  * it; every block keeps its distance to a supporting block, so breaking the bottom of a column brings down everything
  * above it. Not craftable, drops nothing. Goblins never break it; a column removes itself two minutes after a goblin
- * last touched it, so it stays up while goblins are using it.
+ * last touched it, so it stays up while goblins are using it, and never while a player stands in it or on top.
  */
 public class GoblinScaffoldBlock extends Block implements SimpleWaterloggedBlock {
-    public static final MapCodec<GoblinScaffoldBlock> CODEC = simpleCodec(GoblinScaffoldBlock::new);
     /** Two minutes. */
     public static final int LIFETIME_TICKS = 2400;
     public static final int STABILITY_MAX_DISTANCE = 7;
@@ -55,6 +55,11 @@ public class GoblinScaffoldBlock extends Block implements SimpleWaterloggedBlock
      * unknown block back in (see {@link #randomTick}).
      */
     private static final Map<ResourceKey<Level>, Map<Long, Long>> TOUCHED = new ConcurrentHashMap<>();
+
+    /** Forgets it all when the server stops: in single player the next world runs in the same JVM. */
+    public static void reset() {
+        TOUCHED.clear();
+    }
 
     private static final VoxelShape SHAPE_STABLE = Shapes.or(
             Block.box(0, 14, 0, 16, 16, 16),
@@ -74,11 +79,6 @@ public class GoblinScaffoldBlock extends Block implements SimpleWaterloggedBlock
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(DISTANCE, STABILITY_MAX_DISTANCE)
                 .setValue(WATERLOGGED, false).setValue(BOTTOM, false));
-    }
-
-    @Override
-    protected MapCodec<GoblinScaffoldBlock> codec() {
-        return CODEC;
     }
 
     @Override
@@ -216,11 +216,29 @@ public class GoblinScaffoldBlock extends Block implements SimpleWaterloggedBlock
             if (entry.getValue() + LIFETIME_TICKS > now) continue;
             cursor.set(entry.getKey());
             if (!level.isLoaded(cursor)) continue; // decided when the chunk is back
-            it.remove();
-            if (level.getBlockState(cursor).getBlock() instanceof GoblinScaffoldBlock) {
-                level.destroyBlock(cursor, false);
+            boolean scaffold = level.getBlockState(cursor).getBlock() instanceof GoblinScaffoldBlock;
+            if (scaffold && playerOnColumn(level, cursor)) {
+                touchColumn(level, cursor); // never pull a column away under a player who is using it
+                continue;
             }
+            it.remove();
+            if (scaffold) level.destroyBlock(cursor, false);
         }
+    }
+
+    /** A player (not a spectator) stands in the column {@code pos} belongs to, or on its top. */
+    private static boolean playerOnColumn(ServerLevel level, BlockPos pos) {
+        BlockPos.MutableBlockPos cursor = pos.mutable();
+        int bottom = pos.getY();
+        for (int i = 0; i < COLUMN_SCAN && level.getBlockState(cursor.setY(bottom - 1)).getBlock() instanceof GoblinScaffoldBlock; i++) {
+            bottom--;
+        }
+        int top = pos.getY();
+        for (int i = 0; i < COLUMN_SCAN && level.getBlockState(cursor.setY(top + 1)).getBlock() instanceof GoblinScaffoldBlock; i++) {
+            top++;
+        }
+        AABB column = new AABB(pos.getX(), bottom, pos.getZ(), pos.getX() + 1, top + 2, pos.getZ() + 1);
+        return !level.getEntitiesOfClass(Player.class, column, player -> !player.isSpectator()).isEmpty();
     }
 
     /** A goblin touched the block at {@code pos}: the whole column it belongs to starts its two minutes again. */

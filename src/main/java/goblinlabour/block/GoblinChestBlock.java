@@ -1,7 +1,5 @@
 package goblinlabour.block;
 
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import goblinlabour.GoblinLabour;
 import goblinlabour.menu.GoblinChestMenu;
 import goblinlabour.menu.GoblinChestMenuProvider;
@@ -32,11 +30,6 @@ import java.util.Map;
  * double chest. Green is the plain {@code goblin_chest} the recipe makes; a dye turns any of them into another.
  */
 public class GoblinChestBlock extends ChestBlock {
-    public static final MapCodec<GoblinChestBlock> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            DyeColor.CODEC.fieldOf("color").forGetter(GoblinChestBlock::color),
-            propertiesCodec()
-    ).apply(instance, GoblinChestBlock::new));
-
     /**
      * The chest's own hull instead of vanilla's 14x14x14 box: the goblin chest fills its block from side to side
      * (plinth, rim and corner posts all reach the block edge) and its lid ends at the top of the block. Only the
@@ -48,7 +41,7 @@ public class GoblinChestBlock extends ChestBlock {
     private final DyeColor color;
 
     public GoblinChestBlock(DyeColor color, Properties properties) {
-        super(() -> GoblinLabour.GOBLIN_CHEST_BLOCK_ENTITY, SoundEvents.CHEST_OPEN, SoundEvents.CHEST_CLOSE, properties);
+        super(() -> GoblinLabour.GOBLIN_CHEST_BLOCK_ENTITY, SoundEvents.COPPER_CHEST_OPEN, SoundEvents.COPPER_CHEST_CLOSE, properties);
         this.color = color;
     }
 
@@ -67,11 +60,6 @@ public class GoblinChestBlock extends ChestBlock {
      */
     public static String texture(DyeColor color) {
         return color == DyeColor.GREEN ? "goblin" : "goblin_" + color.getSerializedName();
-    }
-
-    @Override
-    public MapCodec<? extends ChestBlock> codec() {
-        return CODEC;
     }
 
     @Override

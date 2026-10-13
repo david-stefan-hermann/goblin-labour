@@ -8,8 +8,10 @@
 set -u
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
-export JAVA_HOME="${JAVA_HOME:-C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot}"
-export TEMP='C:\jtmp' TMP='C:\jtmp'
+if [ "${OS:-}" = Windows_NT ]; then export JAVA_HOME="C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot"; fi
+if [ "${OS:-}" = Windows_NT ]; then export TEMP='C:\jtmp' TMP='C:\jtmp'; fi
+# 26.3 opens its window through SDL, which finds no GLX visual on the container's Xvfb: EGL works
+if [ "${OS:-}" != Windows_NT ]; then export SDL_VIDEO_FORCE_EGL=1; fi
 
 SHOT="${1:-goblin}"
 VIEW="${2:-4.5,-58,4.5,135,20}"

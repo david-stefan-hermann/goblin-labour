@@ -7,8 +7,8 @@
 set -u
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
-export JAVA_HOME="${JAVA_HOME:-C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot}"
-export TEMP='C:\jtmp' TMP='C:\jtmp'
+if [ "${OS:-}" = Windows_NT ]; then export JAVA_HOME="C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot"; fi
+if [ "${OS:-}" = Windows_NT ]; then export TEMP='C:\jtmp' TMP='C:\jtmp'; fi
 rcon() { "$JAVA_HOME/bin/java" tools/Rcon.java 127.0.0.1 25599 gl "$@"; }
 status() { rcon "goblinlabour status $1" | grep -v '^>' ; }
 short() { status "$1" | tr '\n' ' ' | sed 's/.*inventory:/inv:/; s/ | order=.*//; s/ | rest:.*//; s/skipped=[0-9]* retryIn=-*[0-9]* //'; }

@@ -48,10 +48,10 @@ public class GoblinChestSpecialRenderer implements NoDataSpecialModelRenderer {
     @Override
     public void submit(PoseStack poseStack, SubmitNodeCollector collector, int lightCoords, int overlayCoords,
                        boolean hasFoil, int outlineColor) {
-        collector.submitModel(model, openness, poseStack, lightCoords, overlayCoords, -1, sprite, sprites, outlineColor, null);
+        collector.submitModel(model, openness, poseStack, lightCoords, overlayCoords, -1, sprite, sprites, outlineColor);
         // the eye glows in the item too, the same way as in the world (see GoblinChestRenderer)
         collector.order(1).submitModel(model, openness, poseStack, LightCoordsUtil.FULL_BRIGHT, overlayCoords, -1,
-                glow, sprites, outlineColor, null);
+                glow, sprites, outlineColor);
     }
 
     @Override

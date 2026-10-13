@@ -129,15 +129,21 @@ public class GoblinChestRenderer implements BlockEntityRenderer<GoblinChestBlock
             return;
         }
         boolean isDouble = state.type != ChestType.SINGLE;
+        ChestModel model = isDouble ? twin : single;
+        SpriteId sprite = (isDouble ? DOUBLE : SINGLE).get(state.color);
         poseStack.pushPose();
         poseStack.mulPose(ChestRenderer.modelTransformation(state.facing));
         float open = 1.0f - state.open;
         open = 1.0f - open * open * open;
-        collector.submitModel(isDouble ? twin : single, open, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1,
-                (isDouble ? DOUBLE : SINGLE).get(state.color), sprites, 0, state.breakProgress);
-        // the eye, once more at full brightness; the crumbling overlay stays on the pass above
-        collector.order(1).submitModel(isDouble ? twin : single, open, poseStack, LightCoordsUtil.FULL_BRIGHT,
-                OverlayTexture.NO_OVERLAY, -1, isDouble ? DOUBLE_GLOW : SINGLE_GLOW, sprites, 0, null);
+        collector.submitModel(model, open, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, sprite, sprites, 0);
+        // the block being broken: its own pass, like vanilla's chest
+        if (state.breakProgress != null) {
+            collector.order(1).submitCrumblingOverlay(model, open, poseStack, sprite.renderType(model.renderType()),
+                    state.lightCoords, OverlayTexture.NO_OVERLAY, -1, state.breakProgress);
+        }
+        // the eye, once more at full brightness
+        collector.order(1).submitModel(model, open, poseStack, LightCoordsUtil.FULL_BRIGHT,
+                OverlayTexture.NO_OVERLAY, -1, isDouble ? DOUBLE_GLOW : SINGLE_GLOW, sprites, 0);
         poseStack.popPose();
     }
 }

@@ -6,8 +6,8 @@
 set -u
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
-export JAVA_HOME="${JAVA_HOME:-C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot}"
-export TEMP='C:\jtmp' TMP='C:\jtmp'
+if [ "${OS:-}" = Windows_NT ]; then export JAVA_HOME="C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot"; fi
+if [ "${OS:-}" = Windows_NT ]; then export TEMP='C:\jtmp' TMP='C:\jtmp'; fi
 rcon() { "$JAVA_HOME/bin/java" tools/Rcon.java 127.0.0.1 25599 gl "$@"; }
 pass=0; fail=0
 check() { if [[ "$3" == *"$2"* ]]; then echo "PASS $1"; pass=$((pass+1)); else echo "FAIL $1: expected '$2' in: $3"; fail=$((fail+1)); fi; }
@@ -48,13 +48,14 @@ rcon "goblinlabour spawn $V Peeper" "goblinlabour tool $V 0 minecraft:iron_picka
 rcon "tp @e[type=goblinlabour:goblin,name=Peeper] 1060.5 -60 1008.5" > /dev/null
 out=$(rcon "goblinlabour tunnel $V 1060 -60 1010 south 3 2 4"); check "V tunnel order" "Order for Peeper" "$out"
 
-# ---- R: two lumberjacks, one oak each; Sprout (replant on, no sapling, one lies on the ground), Stumpy (off, carries one) ----
+# ---- R: two lumberjacks, one oak each; Sprout (replant on, carries a sapling; one lies on the ground a few blocks off,
+#      which a lumberjack leaves to the collectors since round 8), Stumpy (off, carries one) ----
 rcon "place feature minecraft:oak 1112 -60 1112" "place feature minecraft:oak 1162 -60 1112" \
      "setblock $RA goblinlabour:goblin_straw_bed[facing=south]" "setblock $RB goblinlabour:goblin_straw_bed[facing=south]" > /dev/null
 sleep 1
 rcon "goblinlabour spawn $RA Sprout" "goblinlabour spawn $RB Stumpy" "goblinlabour tool $RA 0 minecraft:iron_axe" "goblinlabour tool $RB 0 minecraft:iron_axe" \
-     "goblinlabour tool $RB 9 minecraft:oak_sapling" > /dev/null
-rcon "summon item 1115.5 -60 1108.5 {Item:{id:\"minecraft:oak_sapling\",count:1}}" > /dev/null
+     "goblinlabour tool $RA 9 minecraft:oak_sapling" "goblinlabour tool $RB 9 minecraft:oak_sapling" > /dev/null
+rcon "summon item 1119.5 -60 1105.5 {Item:{id:\"minecraft:birch_sapling\",count:1},Age:-32768}" > /dev/null
 out=$(rcon "goblinlabour job $RA chop 16" "goblinlabour job $RB chop 16" "goblinlabour replant $RB false")
 check "R replanting off for Stumpy" "Replant at 1150, -60, 1100: false" "$out"
 
@@ -109,7 +110,7 @@ else echo "FAIL V hidden blocks: recorded='$(echo $hidden)' through the pillar='
 echo "  R: Sprout $(status "$RA" | tail -1 | sed 's/ | rest:.*//' | cut -c1-260)"
 echo "  R: Stumpy $(status "$RB" | tail -1 | sed 's/ | rest:.*//' | cut -c1-260)"
 if [ "$ra_done" = 1 ]; then echo "PASS R Sprout replanted its oak"; pass=$((pass+1)); else echo "FAIL R Sprout did not replant"; fail=$((fail+1)); fi
-out=$(rcon "execute if entity @e[type=item,x=1113,y=-61,z=1106,dx=4,dy=3,dz=4,nbt={Item:{id:\"minecraft:oak_sapling\"}}]"); check_not "R Sprout picked the sapling up" "Test passed" "$out"
+out=$(rcon "execute if entity @e[type=item,x=1117,y=-61,z=1103,dx=4,dy=3,dz=4,nbt={Item:{id:\"minecraft:birch_sapling\"}}]"); check "R Sprout left the sapling on the ground to the collectors" "Test passed" "$out"
 if [ "$rb_felled" = 1 ]; then echo "PASS R Stumpy felled its oak"; pass=$((pass+1)); else echo "FAIL R Stumpy did not fell its oak"; fail=$((fail+1)); fi
 out=$(rcon "execute if block 1162 -60 1112 #minecraft:saplings"); check_not "R Stumpy did not replant (replanting off)" "Test passed" "$out"
 out=$(status "$RB"); check "R Stumpy still carries its sapling" "oak_sapling" "$out"

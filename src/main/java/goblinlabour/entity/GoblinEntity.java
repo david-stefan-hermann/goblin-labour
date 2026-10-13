@@ -1,26 +1,27 @@
 package goblinlabour.entity;
 
-import goblinlabour.GoblinSounds;
-import net.minecraft.sounds.SoundEvent;
-
 import goblinlabour.GoblinLabour;
+import goblinlabour.GoblinSounds;
 import goblinlabour.GoblinSpeech;
 import goblinlabour.block.GoblinBedBlock;
 import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.block.GoblinScaffoldBlock;
 import goblinlabour.entity.ai.ClimbOutGoal;
 import goblinlabour.entity.ai.CrewGoal;
-import goblinlabour.ring.RingCrew;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.item.Items;
 import goblinlabour.entity.ai.FollowStaffGoal;
-import goblinlabour.job.Climber;
 import goblinlabour.entity.ai.RecoverItemsGoal;
 import goblinlabour.entity.ai.RestGoal;
 import goblinlabour.entity.ai.WorkGoal;
+import goblinlabour.home.HomeRegistry;
+import goblinlabour.home.HomeZone;
 import goblinlabour.item.GoblinData;
+import goblinlabour.job.Climber;
 import goblinlabour.job.JobRunner;
+import goblinlabour.job.Standing;
 import goblinlabour.menu.GoblinMenuProvider;
+import goblinlabour.ring.CrewOrder;
+import goblinlabour.ring.RingCrew;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -30,36 +31,48 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.ContainerUser;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
+import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.PathFinder;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Predicate;
 
 /**
  * A goblin worker. Bound to one {@link GoblinBedBlockEntity}; its inventory has nine tool slots (the "hotbar"),
@@ -92,17 +105,21 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     @Nullable private BlockPos lastTorchPos;
     @Nullable private BlockPos recoverPos;
     private long recoverUntil;
-    @Nullable private java.util.UUID following;
+    @Nullable private UUID following;
     /** The chest the goblin holds open while unloading; chests count it as an opener (lid up) until it lets go. */
     @Nullable private BlockPos openChest;
     /** The ring crew this goblin belongs to (server side), or null for a goblin with a bed. */
     @Nullable private RingCrew.Session crew;
     /** Climbing out of a hole: not to be pushed off the column (not saved, the goal starts over after loading). */
     private boolean climbing;
-    @Nullable private goblinlabour.ring.CrewOrder crewOrder;
+    @Nullable private CrewOrder crewOrder;
     private CrewGoal crewGoal;
+    private static final boolean DEV = FabricLoader.getInstance().isDevelopmentEnvironment();
+    private static final int SCAFFOLD_WATCH_TICKS = 200;
+    @Nullable private Vec3 scaffoldAnchor;
+    private int scaffoldSince;
     /** Client: whether the local player holds the staff (set by the client entry point). */
-    private static java.util.function.Predicate<GoblinEntity> clientStaffCheck = goblin -> false;
+    private static Predicate<GoblinEntity> clientStaffCheck = goblin -> false;
 
     public GoblinEntity(EntityType<? extends GoblinEntity> type, Level level) {
         super(type, level);
@@ -150,9 +167,9 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     protected PathNavigation createNavigation(Level level) {
         GroundPathNavigation navigation = new GroundPathNavigation(this, level) {
             @Override
-            protected net.minecraft.world.level.pathfinder.PathFinder createPathFinder(int maxVisitedNodes) {
+            protected PathFinder createPathFinder(int maxVisitedNodes) {
                 nodeEvaluator = new GoblinNodeEvaluator(); // otherwise exactly GroundPathNavigation's
-                return new net.minecraft.world.level.pathfinder.PathFinder(nodeEvaluator, maxVisitedNodes);
+                return new PathFinder(nodeEvaluator, maxVisitedNodes);
             }
         };
         navigation.setCanOpenDoors(true);
@@ -244,7 +261,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     /** Debug: the goals running right now. */
     public String goalDebug() {
         StringBuilder sb = new StringBuilder("goals:");
-        goalSelector.getAvailableGoals().stream().filter(net.minecraft.world.entity.ai.goal.WrappedGoal::isRunning)
+        goalSelector.getAvailableGoals().stream().filter(WrappedGoal::isRunning)
                 .forEach(goal -> sb.append(' ').append(goal.getGoal().getClass().getSimpleName())
                         .append(goal.getGoal() instanceof ClimbOutGoal climb ? "/" + climb.stageName() : ""));
         return sb.toString();
@@ -259,6 +276,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     public void tick() {
         super.tick();
         if (level().isClientSide() || isDeadOrDying()) return; // a dying goblin must not re-collect its own drops
+        if (DEV) watchScaffold((ServerLevel) level());
         if (bedCheckTimer % 10 == 0) {
             collectNearbyItems((ServerLevel) level());
             touchScaffolds((ServerLevel) level());
@@ -266,6 +284,29 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
         if (++bedCheckTimer < 20) return;
         bedCheckTimer = 0;
         checkBed((ServerLevel) level());
+    }
+
+    /**
+     * Dev: a goblin hanging in a scaffold column (above its foot, or in the air) that gets nowhere and is not being
+     * climbed or descended logs one line after ten seconds. The round 8 suite counts these lines.
+     */
+    private void watchScaffold(ServerLevel level) {
+        BlockPos feet = blockPosition();
+        boolean hanging = level.getBlockState(feet).getBlock() instanceof GoblinScaffoldBlock
+                && (!onGround() || level.getBlockState(feet.below()).getBlock() instanceof GoblinScaffoldBlock);
+        if (!hanging || tickCount - climber().lastUsedTick() < 20) {
+            scaffoldAnchor = null;
+            return;
+        }
+        if (scaffoldAnchor == null || position().distanceToSqr(scaffoldAnchor) > 0.25) {
+            scaffoldAnchor = position();
+            scaffoldSince = tickCount;
+            return;
+        }
+        if (tickCount - scaffoldSince == SCAFFOLD_WATCH_TICKS) {
+            GoblinLabour.LOGGER.info("Dev: {} stuck in scaffold at {}: {} runner={}", goblinName(), feet.toShortString(), goalDebug(),
+                    runner == null ? "-" : runner.debug());
+        }
     }
 
     /** Despawns (dropping a blank) when the bed is gone or has adopted another goblin. */
@@ -299,16 +340,14 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     }
 
     /** Minions Remastered's "blink": teleport next to the target when the path is hopeless (never inside a home). */
-    public void blinkTo(ServerLevel level, BlockPos target) {
+    public void blinkTo(ServerLevel level, BlockPos target, String why) {
         BlockPos bed = getBedPos().orElse(null);
-        if (bed != null && goblinlabour.home.HomeZone.contains(bed, blockPosition())) return;
+        if (bed != null && HomeZone.contains(bed, blockPosition())) return;
         BlockPos spot = null;
         for (Direction direction : Direction.Plane.HORIZONTAL) {
             for (int dy = 1; dy >= -1; dy--) {
                 BlockPos candidate = target.relative(direction).above(dy);
-                if (level.getBlockState(candidate).getCollisionShape(level, candidate).isEmpty()
-                        && level.getBlockState(candidate.above()).getCollisionShape(level, candidate.above()).isEmpty()
-                        && !level.getBlockState(candidate.below()).getCollisionShape(level, candidate.below()).isEmpty()) {
+                if (Standing.room(level, candidate)) {
                     spot = candidate;
                     break;
                 }
@@ -316,6 +355,12 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
             if (spot != null) break;
         }
         if (spot == null) return;
+        blinkOnto(level, spot, why);
+    }
+
+    /** The blink itself: a puff here, a puff at {@code spot}, and the goblin stands there. */
+    public void blinkOnto(ServerLevel level, BlockPos spot, String why) {
+        if (DEV) GoblinLabour.LOGGER.info("Dev: {} blinked ({}) from {} to {}", goblinName(), why, blockPosition().toShortString(), spot.toShortString());
         poof(level, getX(), getY(), getZ());
         snapTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, getYRot(), getXRot());
         getNavigation().stop();
@@ -335,7 +380,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     /** Turns a fresh goblin into a member of a ring crew: a miner in blue-grey with diamond tools, no bed, never saved. */
     public void joinCrew(RingCrew.Session session, String name) {
         crew = session;
-        crewOrder = new goblinlabour.ring.CrewOrder(this);
+        crewOrder = new CrewOrder(this);
         entityData.set(DATA_CREW, true);
         setPathfindingMalus(GoblinNodeEvaluator.IN_WAY, GoblinNodeEvaluator.IN_WAY_MALUS);
         setCustomName(Component.literal(name));
@@ -353,16 +398,19 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
 
     /** The staff order of a ring crew goblin (server side), or null for a goblin with a bed. */
     @Nullable
-    public goblinlabour.ring.CrewOrder crewOrder() {
+    public CrewOrder crewOrder() {
         return crewOrder;
     }
 
-    /** A crew goblin keeps out of the lane the player looks along, except while carrying out a staff order there. */
+    /**
+     * A crew goblin keeps out of the lane the player looks along, except while carrying out a staff order there or
+     * mining ore (which the player has usually just uncovered right in front of it).
+     */
     public boolean crewAvoidsLook() {
-        return crewOrder == null || !crewOrder.active();
+        return (crewOrder == null || !crewOrder.active()) && (crewGoal == null || !crewGoal.mining());
     }
 
-    public static void setClientStaffCheck(java.util.function.Predicate<GoblinEntity> check) {
+    public static void setClientStaffCheck(Predicate<GoblinEntity> check) {
         clientStaffCheck = check;
     }
 
@@ -396,6 +444,18 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     public boolean isPushable() {
         // crew goblins never shove the player; a climbing goblin is not pushed off its scaffold column
         return !isCrewMember() && !climbing && !Climber.isUp(level(), this) && super.isPushable();
+    }
+
+    /** Standing on a straw bed (its own or another one) instead of sleeping in it: no place to stand about. */
+    public boolean isOnBed(ServerLevel level) {
+        if (getPose() == Pose.SLEEPING) return false;
+        BlockPos feet = blockPosition();
+        // the block that carries it counts too: half on a bed's foot end, the feet are already in the next block
+        BlockPos support = mainSupportingBlockPos.orElse(feet);
+        return level.getBlockState(feet).is(GoblinLabour.GOBLIN_STRAW_BED)
+                || level.getBlockState(feet.below()).is(GoblinLabour.GOBLIN_STRAW_BED)
+                || level.getBlockState(support).is(GoblinLabour.GOBLIN_STRAW_BED)
+                || GoblinBedBlock.isFootEnd(level, feet);
     }
 
     /** Set while this goblin climbs out of a hole (ClimbOutGoal). */
@@ -488,13 +548,13 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     }
 
     /** The player this goblin was picked by with the staff (server side), or null. */
-    public void setFollowing(@Nullable java.util.UUID player) {
+    public void setFollowing(@Nullable UUID player) {
         following = player;
         setGlowingTag(player != null);
     }
 
     @Nullable
-    public java.util.UUID following() {
+    public UUID following() {
         return following;
     }
 
@@ -502,15 +562,15 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     private void collectNearbyItems(ServerLevel level) {
         if (crew != null) {
             // a crew goblin has no storage: the items go into its player's ring
-            for (net.minecraft.world.entity.item.ItemEntity item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
-                    getBoundingBox().inflate(2.0, 1.0, 2.0), net.minecraft.world.entity.item.ItemEntity::isAlive)) {
-                if (!item.hasPickUpDelay() && !goblinlabour.home.HomeRegistry.isProtected(level, item.blockPosition())) RingCrew.store(this, item);
+            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class,
+                    getBoundingBox().inflate(2.0, 1.0, 2.0), ItemEntity::isAlive)) {
+                if (!item.hasPickUpDelay() && !HomeRegistry.isProtected(level, item.blockPosition())) RingCrew.store(this, item);
             }
             return;
         }
         if (isStorageFull()) return;
-        for (net.minecraft.world.entity.item.ItemEntity item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
-                getBoundingBox().inflate(2.0, 1.0, 2.0), net.minecraft.world.entity.item.ItemEntity::isAlive)) {
+        for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class,
+                getBoundingBox().inflate(2.0, 1.0, 2.0), ItemEntity::isAlive)) {
             if (item.hasPickUpDelay() || !canStore(item.getItem())) continue;
             pickUp(item);
             if (isStorageFull()) return;
@@ -518,7 +578,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     }
 
     /** Takes as much of the item as fits into the storage, with the vanilla pick-up animation. */
-    public void pickUp(net.minecraft.world.entity.item.ItemEntity item) {
+    public void pickUp(ItemEntity item) {
         if (crew != null) {
             RingCrew.store(this, item);
             return;
@@ -547,11 +607,11 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
 
     /** Goblin scaffold the goblin stands in or on keeps its whole column from vanishing (see GoblinScaffoldBlock). */
     private void touchScaffolds(ServerLevel level) {
-        net.minecraft.world.phys.AABB box = getBoundingBox().inflate(0.05);
+        AABB box =getBoundingBox().inflate(0.05);
         int lastX = Integer.MIN_VALUE, lastZ = Integer.MIN_VALUE;
-        for (BlockPos pos : BlockPos.betweenClosed(net.minecraft.util.Mth.floor(box.minX), net.minecraft.util.Mth.floor(box.minY),
-                net.minecraft.util.Mth.floor(box.minZ), net.minecraft.util.Mth.floor(box.maxX), net.minecraft.util.Mth.floor(box.maxY),
-                net.minecraft.util.Mth.floor(box.maxZ))) {
+        for (BlockPos pos : BlockPos.betweenClosed(Mth.floor(box.minX), Mth.floor(box.minY),
+                Mth.floor(box.minZ), Mth.floor(box.maxX), Mth.floor(box.maxY),
+                Mth.floor(box.maxZ))) {
             if (pos.getX() == lastX && pos.getZ() == lastZ) continue; // column already refreshed
             if (level.getBlockState(pos).getBlock() instanceof GoblinScaffoldBlock) {
                 GoblinScaffoldBlock.touchColumn(level, pos);
@@ -618,7 +678,7 @@ public class GoblinEntity extends PathfinderMob implements ContainerUser {
     public void die(DamageSource source) {
         super.die(source);
         if (level().isClientSide()) return;
-        if (runner != null && net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()) {
+        if (runner != null && FabricLoader.getInstance().isDevelopmentEnvironment()) {
             // the dev test suites count deaths; this line says what the goblin was doing when it died
             GoblinLabour.LOGGER.info("Dev: {} died at {}: {}", goblinName(), blockPosition().toShortString(), runner.debug());
         }

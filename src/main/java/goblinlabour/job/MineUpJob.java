@@ -3,6 +3,7 @@ package goblinlabour.job;
 import goblinlabour.entity.GoblinEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
@@ -25,6 +26,16 @@ public final class MineUpJob implements JobTask {
         if (a == null) return null;
         // on the floor below the ceiling; an order without a floor (saved before floors existed) right under it
         return a.floorY() == Assignment.NO_FLOOR ? a.origin().below() : new BlockPos(a.origin().getX(), a.bottomY(), a.origin().getZ());
+    }
+
+    /** Inside the shaft: its stair steps and its scaffold, never a ledge of a cave the shaft cuts into. */
+    @Override
+    @Nullable
+    public BoundingBox standBounds(JobHost bed, JobConfig config) {
+        Assignment a = bed.getAssignment();
+        if (a == null || a.kind() != Assignment.Kind.DIG_UP) return null;
+        BoundingBox footprint = a.shaftFootprint();
+        return new BoundingBox(footprint.minX(), a.bottomY(), footprint.minZ(), footprint.maxX(), a.topY() + 1, footprint.maxZ());
     }
 
     @Override

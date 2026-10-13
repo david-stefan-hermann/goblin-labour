@@ -10,8 +10,8 @@
 set -u
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
-export JAVA_HOME="${JAVA_HOME:-C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot}"
-export TEMP='C:\jtmp' TMP='C:\jtmp'
+if [ "${OS:-}" = Windows_NT ]; then export JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot"; fi
+if [ "${OS:-}" = Windows_NT ]; then export TEMP='C:\jtmp' TMP='C:\jtmp'; fi
 rcon() { "$JAVA_HOME/bin/java" tools/Rcon.java 127.0.0.1 25599 gl "$@"; }
 pass=0; fail=0
 check() { if [[ "$3" == *"$2"* ]]; then echo "PASS $1"; pass=$((pass+1)); else echo "FAIL $1: expected '$2' in: $3"; fail=$((fail+1)); fi; }
@@ -72,6 +72,14 @@ rcon "setblock $EC goblinlabour:goblin_chest[facing=west]" "setblock $E goblinla
 rcon "setblock $F goblinlabour:goblin_straw_bed[facing=east]" "setblock 2106 -61 2300 farmland" "setblock 2106 -60 2300 wheat[age=7]" > /dev/null
 # ---- G: treetap and a rubber log with sap (Tech Reborn only) ----
 tr=$(rcon "setblock 2108 -60 2340 techreborn:rubber_log[hassap=true,facing=west]" | grep -v '^>')
+# and a rubber tree: six logs, rubber leaves around the trunk from the third log up, sap at the foot and at the top
+if [[ "$tr" == *"Changed the block"* ]]; then
+  rcon "fill 2112 -60 2336 2112 -55 2336 techreborn:rubber_log" \
+       "setblock 2112 -60 2336 techreborn:rubber_log[hassap=true,facing=south]" "setblock 2112 -55 2336 techreborn:rubber_log[hassap=true,facing=south]" > /dev/null
+  # persistent, or leaves set by a fill decay within a minute
+  leaves=$(rcon "fill 2111 -58 2335 2113 -55 2337 techreborn:rubber_leaves[persistent=true] replace air" | grep -v '^>')
+  echo "  G rubber leaves: $leaves"
+fi
 rcon "setblock $GC goblinlabour:goblin_chest[facing=west]" "setblock $G goblinlabour:goblin_straw_bed[facing=east]" > /dev/null
 sleep 1
 
@@ -109,6 +117,7 @@ check "B placed again, the churn has its milk back" "milk=4000 " "$out"
 out=$(wait_out 10 "Test passed" "execute if block $BC goblinlabour:milk_churn[level=4]"); check "B and shows it again" "Test passed" "$out"
 rcon "goblinlabour churn $BC 0" > /dev/null
 out=$(wait_out 10 "Test passed" "execute if block $BC goblinlabour:milk_churn[level=0]"); check "B an empty churn shows no milk" "Test passed" "$out"
+[[ "$out" == *"Test passed"* ]] || echo "  B: $(rcon "goblinlabour churn $BC" | grep -v '^>') | $(status "$B" | cut -c1-400)"
 
 # ---- A: wool in the chest ----
 out=$(wait_out 90 "wool" "data get block $AC Items"); check "A the wool of the sheared sheep is in the chest" "wool" "$out"
@@ -117,6 +126,7 @@ check "A both sheep were sheared" "Count: 2" "$out"
 
 # ---- C: cocoa ----
 out=$(wait_out 90 "Test passed" "execute if block 2111 -59 2180 cocoa[age=0,facing=west]"); check "C the ripe cocoa pod was harvested and replanted" "Test passed" "$out"
+[[ "$out" == *"Test passed"* ]] || echo "  C: pods $(rcon "execute if block 2111 -59 2180 cocoa" "execute if block 2111 -59 2180 cocoa[age=2]" "execute if block 2109 -59 2180 cocoa" "execute if block 2110 -59 2181 cocoa" "execute if block 2110 -59 2179 cocoa" | grep -v '^>' | tr '\n' ' ') | $(status "$C" | cut -c1-500)"
 out=$(wait_out 60 "cocoa_beans" "data get block $CC Items"); check "C the cocoa beans are in the chest" "cocoa_beans" "$out"
 rcon "goblinlabour tool $C 1 minecraft:cocoa_beans" > /dev/null
 pods=0
@@ -130,7 +140,9 @@ ok "C a cocoa bean from the tool row was planted on a free side of the log" "$((
 check_not "C the bean left the tool row" "1=1xminecraft:cocoa_beans" "$(status "$C")"
 
 # ---- D: berries ----
-out=$(wait_out 90 "Test passed" "execute if block 2108 -60 2220 sweet_berry_bush[age=1]"); check "D the sweet berry bush was picked (back to age 1)" "Test passed" "$out"
+# picked means no longer ripe: back to age 1, and it may have grown a stage again by the time this looks
+out=$(wait_out 90 "Test passed" "execute unless block 2108 -60 2220 sweet_berry_bush[age=3]"); check "D the sweet berry bush was picked (no longer ripe)" "Test passed" "$out"
+[[ "$out" == *"Test passed"* ]] || echo "  D: $(status "$D" | cut -c1-600)"
 out=$(wait_out 60 "Test passed" "execute if block 2110 -58 2223 cave_vines[berries=false]"); check "D the glow berries were picked" "Test passed" "$out"
 out=$(wait_out 60 "glow_berries" "data get block $DC Items"); check "D glow berries in the chest" "glow_berries" "$out"
 check "D sweet berries in the chest" "sweet_berries" "$(rcon "data get block $DC Items")"
@@ -152,6 +164,15 @@ ok "F it asks for a hoe" "$(grep -q 'Handless> The crops are ripe, but I have no
 if [[ "$tr" == *"Changed the block"* ]]; then
   out=$(wait_out 90 "Test passed" "execute if block 2108 -60 2340 techreborn:rubber_log[hassap=false]"); check "G the rubber log was tapped" "Test passed" "$out"
   out=$(wait_out 60 "techreborn:sap" "data get block $GC Items"); check "G the sap is in the chest" "techreborn:sap" "$out"
+  out=$(wait_out 90 "Test passed" "execute if block 2112 -60 2336 techreborn:rubber_log[hassap=false]"); check "G the rubber tree's foot was tapped" "Test passed" "$out"
+  out=$(wait_out 180 "Test passed" "execute if block 2112 -55 2336 techreborn:rubber_log[hassap=false]"); check "G the sap at the top of the trunk was tapped (climbing)" "Test passed" "$out"
+  out=$(rcon "execute if block 2111 -58 2336 air" "execute if block 2113 -55 2336 air" "execute if block 2112 -56 2335 air" "execute if block 2112 -57 2337 air")
+  check_not "G the leaves right at the trunk were broken" "Test failed" "$out"
+  # the 16 leaves at the corners are no reason to break anything; a scaffold column put up through a corner takes some
+  rcon "fill 2111 120 2335 2113 123 2337 air" > /dev/null
+  corners=$(rcon "clone 2111 -58 2335 2113 -55 2337 2111 120 2335 filtered techreborn:rubber_leaves force" | grep -o 'cloned [0-9]*' | grep -o '[0-9]*')
+  rcon "fill 2111 120 2335 2113 123 2337 air" > /dev/null
+  ok "G most of the other leaves are still there (${corners:-0} of 16)" "$(( ${corners:-0} >= 8 ? 1 : 0 ))"
 else
   echo "  G skipped: Tech Reborn is not loaded ($tr)"
 fi

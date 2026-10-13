@@ -26,6 +26,12 @@ public final class HomeRegistry {
     private static final Map<ResourceKey<Level>, Set<BlockPos>> BEDS = new ConcurrentHashMap<>();
     private static final Map<ResourceKey<Level>, List<BoundingBox>> FLATS = new ConcurrentHashMap<>();
 
+    /** Forgets it all when the server stops: in single player the next world runs in the same JVM. */
+    public static void reset() {
+        BEDS.clear();
+        FLATS.clear();
+    }
+
     private HomeRegistry() {
     }
 

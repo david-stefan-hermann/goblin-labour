@@ -4,6 +4,7 @@ import goblinlabour.GoblinLabour;
 import goblinlabour.block.GoblinScaffoldBlock;
 import goblinlabour.entity.GoblinEntity;
 import goblinlabour.home.HomeRegistry;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -11,11 +12,14 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Locale;
 
 /**
  * Goblin scaffold climbing, shared by the work loop (high logs, shafts up) and the climb out of pits. Goblins climb
@@ -35,6 +39,8 @@ public final class Climber {
     private static final int AIRBORNE_LOOK_DOWN = 3;
 
     private final GoblinEntity goblin;
+    /** Tick of the last climb or descend step (the dev scaffold watchdog leaves a goblin that climbs alone). */
+    private int lastUsedTick = -1000;
     private int cooldown;
     private int lastDescendTick = -1000;
     private double descendLowest;
@@ -93,6 +99,7 @@ public final class Climber {
      * spot is inside a home or the column is as high as it gets.
      */
     public boolean climb(ServerLevel level) {
+        lastUsedTick = goblin.tickCount;
         goblin.setShiftKeyDown(false);
         goblin.getNavigation().stop();
         BlockPos feet = goblin.blockPosition();
@@ -122,11 +129,11 @@ public final class Climber {
             level.destroyBlock(feet, true, goblin, 512); // own torch in the column: take it along, it gets re-placed later
         }
         if (columnBelow(level, feet) >= MAX_HEIGHT) return false;
-        BlockState scaffold = ((GoblinScaffoldBlock) GoblinLabour.GOBLIN_SCAFFOLD).placementState(level, feet);
+        BlockState scaffold = GoblinLabour.GOBLIN_SCAFFOLD.placementState(level, feet);
         if (scaffold == null) return false; // nothing below would hold it (vanilla stability rules)
         level.setBlock(feet, scaffold, 3);
         level.playSound(null, feet, SoundEvents.SCAFFOLDING_PLACE, SoundSource.BLOCKS, 0.8f, 1.0f);
-        goblin.swing(InteractionHand.MAIN_HAND);
+        goblin.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT);
         goblin.getJumpControl().jump();
         return true;
     }
@@ -136,6 +143,7 @@ public final class Climber {
      * that gets no lower for a few seconds (its hitbox caught on a neighbouring column) is set down at the foot.
      */
     public boolean descend(ServerLevel level) {
+        lastUsedTick = goblin.tickCount;
         goblin.getNavigation().stop();
         BlockPos column = columnUnder(level, goblin);
         if (column == null) {
@@ -159,7 +167,15 @@ public final class Climber {
         return true;
     }
 
-    /** When a job ends mid-climb: stop sneaking and set the goblin down at the foot of its column. */
+    /**
+     * For goals that have nothing to do up on a column (following the staff, fetching items, a crew's own tasks):
+     * while the goblin is up on one it first sneaks down. True while it is on the way down.
+     */
+    public boolean comeDownFirst(ServerLevel level) {
+        return isUp(level, goblin) && descend(level);
+    }
+
+    /** When a climb out of a hole is aborted: stop sneaking and set the goblin down at the foot of its column. */
     public void settle(ServerLevel level) {
         goblin.setShiftKeyDown(false);
         BlockPos column = columnUnder(level, goblin);
@@ -168,8 +184,16 @@ public final class Climber {
         for (int i = 0; i < MAX_HEIGHT && isScaffold(level.getBlockState(cursor.below())); i++) {
             cursor.move(0, -1, 0);
         }
+        if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            // the suites count these: a snap down the column looks like a teleport to the player
+            GoblinLabour.LOGGER.info("Dev: {} settled from y={} to y={}", goblin.goblinName(), String.format(Locale.ROOT, "%.2f", goblin.getY()), cursor.getY());
+        }
         goblin.snapTo(cursor.getX() + 0.5, cursor.getY(), cursor.getZ() + 0.5, goblin.getYRot(), goblin.getXRot());
         goblin.getNavigation().stop();
+    }
+
+    public int lastUsedTick() {
+        return lastUsedTick;
     }
 
     /** Scaffold blocks directly below {@code pos}. */

@@ -2,6 +2,10 @@
   "required": true,
   "package": "goblinlabour.mixin",
   "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlockItemMixin",
+    "LivingEntityMixin"
+  ],
   "client": [
     "SpecialModelRenderersMixin"
   ],

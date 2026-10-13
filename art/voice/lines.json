@@ -1,0 +1,62 @@
+{
+  "_comment": "Single source of truth for everything goblins say. `id` is stable forever (it names the sound file and the sound event), `group` maps to a GoblinSpeech constant, `text` is the chat line and the TTS input. Add lines at the end of a group; never rename an id.",
+  "lines": [
+    { "id": "spawned", "group": "SPAWNED", "text": "Reporting for duty, boss!" },
+    { "id": "respawned", "group": "RESPAWNED", "text": "Ugh... back at the bed. What hit me?" },
+    { "id": "inventory_full", "group": "INVENTORY_FULL", "text": "No room left for my loot. Empty the chests!" },
+    { "id": "no_exit", "group": "NO_EXIT", "text": "There's no way out of our home. Open a door for me!" },
+    { "id": "no_tool", "group": "NO_TOOL", "text": "I can't dig through this with my bare hands. Give me a pickaxe!" },
+    { "id": "tool_broken", "group": "TOOL_BROKEN", "text": "My tool broke. Got a spare?" },
+    { "id": "bed_gone", "group": "BED_GONE", "text": "My bed! Where's my bed?!" },
+    { "id": "stay", "group": "STAY", "text": "Staying here." },
+    { "id": "fetch_items", "group": "FETCH_ITEMS", "text": "Going back for my stuff." },
+
+    { "id": "follow_behind", "group": "FOLLOW", "text": "Right behind you, boss!" },
+    { "id": "follow_coming", "group": "FOLLOW", "text": "Coming, master!" },
+    { "id": "follow_lead", "group": "FOLLOW", "text": "Lead the way, master!" },
+    { "id": "follow_yes", "group": "FOLLOW", "text": "Yes, master?" },
+
+    { "id": "yes_master", "group": "YES", "text": "Yes, master!" },
+    { "id": "yes_wish", "group": "YES", "text": "As you wish, master!" },
+    { "id": "yes_right_away", "group": "YES", "text": "Right away, master!" },
+    { "id": "yes_me_do", "group": "YES", "text": "Me do it, master!" },
+    { "id": "yes_diggy", "group": "YES", "text": "Diggy diggy hole!" },
+
+    { "id": "done_next", "group": "DONE", "text": "Job's done, boss. What's next?" },
+    { "id": "done_all", "group": "DONE", "text": "All done, master!" },
+    { "id": "done_clever", "group": "DONE", "text": "Finished! Me clever goblin." },
+
+    { "id": "working_working", "group": "WORKING", "text": "Working, working, working!" },
+    { "id": "working_love", "group": "WORKING", "text": "I love my job!" },
+    { "id": "working_work", "group": "WORKING", "text": "Work work work!" },
+    { "id": "working_strong", "group": "WORKING", "text": "Me strong! Me useful!" },
+    { "id": "working_best", "group": "WORKING", "text": "Best job ever!" },
+    { "id": "working_block", "group": "WORKING", "text": "Another block, another day." },
+    { "id": "working_busy", "group": "WORKING", "text": "Busy busy busy!" },
+
+    { "id": "mine_diggy", "group": "WORKING_MINE", "text": "Diggy diggy hole!" },
+    { "id": "mine_shiny", "group": "WORKING_MINE", "text": "Shiny rocks for the boss!" },
+    { "id": "mine_deeper", "group": "WORKING_MINE", "text": "Deeper! Always deeper!" },
+    { "id": "mine_crunch", "group": "WORKING_MINE", "text": "Rocks go crunch!" },
+
+    { "id": "chop_chop", "group": "WORKING_CHOP", "text": "Chop chop chop!" },
+    { "id": "chop_timber", "group": "WORKING_CHOP", "text": "Timber!" },
+    { "id": "chop_fear", "group": "WORKING_CHOP", "text": "Trees fear me." },
+    { "id": "chop_wood", "group": "WORKING_CHOP", "text": "Wood for the boss!" },
+
+    { "id": "farm_grow", "group": "WORKING_FARM", "text": "Crops grow, goblin harvest." },
+    { "id": "farm_veggies", "group": "WORKING_FARM", "text": "Fresh veggies for master!" },
+    { "id": "farm_quiet", "group": "WORKING_FARM", "text": "Me like farming. Quiet." },
+    { "id": "farm_snip", "group": "WORKING_FARM", "text": "Snip snip, pluck pluck!" },
+
+    { "id": "collect_finders", "group": "WORKING_COLLECT", "text": "Finders keepers... for master!" },
+    { "id": "collect_shinies", "group": "WORKING_COLLECT", "text": "Shinies on the ground!" },
+    { "id": "collect_waste", "group": "WORKING_COLLECT", "text": "Nothing goes to waste!" },
+    { "id": "collect_pick", "group": "WORKING_COLLECT", "text": "Pick pick pick!" },
+
+    { "id": "climb_stairs", "group": "CLIMB", "text": "No stairs? Goblin makes own way up!" },
+    { "id": "climb_up", "group": "CLIMB", "text": "Up, up, up we go!" },
+    { "id": "climb_hole", "group": "CLIMB", "text": "Who dug this hole? Oh. Me." },
+    { "id": "climb_out", "group": "CLIMB", "text": "Climbing out, boss!" }
+  ]
+}

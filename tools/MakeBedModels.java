@@ -16,8 +16,10 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * Generates the straw bed block models: the bed, four "props" arrangements per goblin style (things lying under the
- * bed frame, between the legs) and the multipart blockstate, which picks one arrangement at random per bed position.
+ * Generates the straw bed's "props" models, four arrangements per goblin style (things lying under the bed frame,
+ * between the legs), and the multipart blockstate, which picks one arrangement at random per bed position. The bed
+ * models themselves (the bed and the lower bed of a bunk, "bunk=true") are copies of art/goblin_bed/assets (made by
+ * art/goblin_bed/build_goblin_bed.py); the upper bed of a bunk ("upper=true") has no props, they would hang in the air.
  * Item textures used here must also be listed in src/main/resources/assets/minecraft/atlases/blocks.json, where they
  * are added to the block atlas under goblinlabour:block/props/&lt;name&gt; (block models reject item-atlas sprites).
  * Run from the project root: java tools/MakeBedModels.java
@@ -29,7 +31,6 @@ public class MakeBedModels {
     static final int VARIANTS = 4;
 
     public static void main(String[] args) throws Exception {
-        write("models/block/goblin_straw_bed.json", bed());
         for (String style : STYLES) {
             for (int i = 0; i < VARIANTS; i++) {
                 write("models/block/bed_props/" + style + "_" + i + ".json", props(style, i).json());
@@ -37,35 +38,6 @@ public class MakeBedModels {
         }
         write("blockstates/goblin_straw_bed.json", blockstate());
         System.out.println("Bed models written");
-    }
-
-    // ---- the bed ----
-
-    static String bed() {
-        return """
-                {
-                  "parent": "minecraft:block/block",
-                  "textures": {
-                    "particle": "minecraft:block/hay_block_side",
-                    "planks": "minecraft:block/spruce_planks",
-                    "hay_side": "minecraft:block/hay_block_side",
-                    "hay_top": "minecraft:block/hay_block_top",
-                    "wool": "minecraft:block/white_wool"
-                  },
-                  "elements": [
-                    { "from": [0, 0, 0], "to": [2, 3, 2], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "down": {"texture": "#planks"} } },
-                    { "from": [14, 0, 0], "to": [16, 3, 2], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "down": {"texture": "#planks"} } },
-                    { "from": [0, 0, 14], "to": [2, 3, 16], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "down": {"texture": "#planks"} } },
-                    { "from": [14, 0, 14], "to": [16, 3, 16], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "down": {"texture": "#planks"} } },
-                    { "from": [0, 3, 0], "to": [16, 6, 16], "faces": { "north": {"texture": "#planks"}, "south": {"texture": "#planks"}, "east": {"texture": "#planks"}, "west": {"texture": "#planks"}, "down": {"texture": "#planks"} } },
-                    { "from": [0, 6, 6], "to": [16, 9, 16], "faces": { "south": {"texture": "#hay_side"}, "east": {"texture": "#hay_side"}, "west": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
-                    { "from": [0, 6, 0], "to": [3, 9, 6], "faces": { "north": {"texture": "#hay_side"}, "west": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
-                    { "from": [13, 6, 0], "to": [16, 9, 6], "faces": { "north": {"texture": "#hay_side"}, "east": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
-                    { "from": [3, 6, 0], "to": [13, 9, 2], "faces": { "north": {"texture": "#hay_side"}, "up": {"texture": "#hay_top"} } },
-                    { "from": [3, 6, 2], "to": [13, 9, 6], "faces": { "up": {"texture": "#wool"} } }
-                  ]
-                }
-                """;
     }
 
     // ---- props ----
@@ -228,13 +200,16 @@ public class MakeBedModels {
         List<String> parts = new ArrayList<>();
         for (int f = 0; f < FACINGS.length; f++) {
             String y = f == 0 ? "" : ", \"y\": " + f * 90;
-            parts.add("{ \"when\": {\"facing\": \"" + FACINGS[f] + "\"}, \"apply\": {\"model\": \"goblinlabour:block/goblin_straw_bed\"" + y + "} }");
+            for (boolean bunk : new boolean[]{false, true}) {
+                parts.add("{ \"when\": {\"facing\": \"" + FACINGS[f] + "\", \"bunk\": \"" + bunk + "\"}, \"apply\": {\"model\": "
+                        + "\"goblinlabour:block/goblin_straw_bed" + (bunk ? "_bunk" : "") + "\"" + y + "} }");
+            }
             for (String style : STYLES) {
                 List<String> models = new ArrayList<>();
                 for (int i = 0; i < VARIANTS; i++) {
                     models.add("{\"model\": \"goblinlabour:block/bed_props/" + style + "_" + i + "\"" + y + "}");
                 }
-                parts.add("{ \"when\": {\"facing\": \"" + FACINGS[f] + "\", \"props\": \"" + style + "\"}, \"apply\": ["
+                parts.add("{ \"when\": {\"facing\": \"" + FACINGS[f] + "\", \"props\": \"" + style + "\", \"upper\": \"false\"}, \"apply\": ["
                         + String.join(", ", models) + "] }");
             }
         }

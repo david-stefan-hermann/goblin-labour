@@ -4,8 +4,10 @@
 Run from the project root:  python art/goblin_bed/build_goblin_bed.py
 
 Writes  art/goblin_bed/assets/goblinlabour/models/block/goblin_straw_bed.json
+        art/goblin_bed/assets/goblinlabour/models/block/goblin_straw_bed_bunk.json
         art/goblin_bed/assets/goblinlabour/textures/block/goblin_bed_*.png
-        art/goblin_bed/blockbench.js   (risky_eval script: one java_block project, one group per part)
+        art/goblin_bed/blockbench.js        (risky_eval script: one java_block project, one group per part)
+        art/goblin_bed/blockbench_bunk.js   (the same for the bunk model, with a bed standing on it to look at)
 
 A goblin-made cot: a frame of bark poles, a heap of loose straw with tufts sticking out, a patchwork
 blanket sewn from scraps of leather, cloth and hide, lying on the frame over the lower part of the straw
@@ -17,6 +19,9 @@ model, so the blockstate keeps working and the head can stand against a wall); t
 the block to the south (z 24). The straw is 9 px high where the goblin sleeps (it lies at y 9, its head at
 the block's centre); the frame stays at y 4 and above with only the corner posts reaching the ground, so the
 job props still have room under it.
+
+The bunk model is the bed with another bed standing on it: the same, except that the foot posts run up a
+whole block like the head posts, to carry the upper bed's legs, and the blanket stops short of them.
 
 Every face maps its texture one texel per model pixel. Straw and pillow use Minecraft's default UVs
 (wrapped every 16 px, so boxes longer than that are split there), so their texture runs on across
@@ -42,6 +47,7 @@ TEXTURES = os.path.join(OUT, "textures", "block")
 NS = "goblinlabour:block/"
 PROJECT = "goblin_straw_bed"
 LENGTH = 24  # the foot end
+BUNK = False  # building the bunk model: another bed stands on this one
 
 
 # ---------------------------------------------------------------- colours
@@ -214,18 +220,25 @@ def paint_sheet():
 class ClothAtlas:
     """Blanket faces packed into one square texture (32 px if they fit, else 64), a texel per model pixel,
     each with a pixel of gutter that repeats its edge (keeps mipmaps from bleeding). The model is built
-    twice: the first pass only collects the faces' sizes, the second gets their packed spots."""
+    twice: the first pass only collects the faces' sizes, the second gets their packed spots. The texture
+    serves both models."""
 
     def __init__(self):
-        self.sizes, self.spots, self.faces, self.size = [], None, [], 32
+        self.sizes, self.keys, self.spots, self.faces, self.size = [], {}, None, [], 32
 
     def place(self, texels):
+        """Faces with the same texels (the bed and its bunk share most of them) share a spot."""
         h, w = len(texels), len(texels[0])
+        key = tuple(tuple(row) for row in texels)
         if self.spots is None:
-            self.sizes.append((w, h))
+            if key not in self.keys:
+                self.keys[key] = len(self.sizes)
+                self.sizes.append((w, h))
             return 0, 0
-        x, y = self.spots[len(self.faces)]
-        self.faces.append((x, y, texels))
+        k = self.keys[key]
+        x, y = self.spots[k]
+        if not any(f[0] == x and f[1] == y for f in self.faces):
+            self.faces.append((x, y, texels))
         return x, y
 
     def layout(self):
@@ -394,9 +407,10 @@ def frame():
     L = LENGTH
     box(g, "post_nw", [0, 0, 0], [2, 16, 2], wood())
     box(g, "post_ne", [14, 0, 0], [16, 16, 2], wood())
-    # the foot posts end at the rail top, under the blanket
-    box(g, "post_sw", [0, 0, L - 2], [2, 6, L], wood())
-    box(g, "post_se", [14, 0, L - 2], [16, 6, L], wood())
+    # the foot posts end at the rail top, under the blanket; a bunk's run up a block like the head posts
+    foot_top = 16 if BUNK else 6
+    box(g, "post_sw", [0, 0, L - 2], [2, foot_top, L], wood())
+    box(g, "post_se", [14, 0, L - 2], [16, foot_top, L], wood())
     box(g, "rail_w", [0, 4, 2], [2, 6, L - 2], wood(skip=("north", "south")))
     box(g, "rail_e", [14, 4, 2], [16, 6, L - 2], wood(skip=("north", "south")))
     box(g, "rail_head", [2, 4, 0], [14, 6, 2], wood(skip=("east", "west")))
@@ -502,16 +516,21 @@ def blanket():
     L = LENGTH
     z = BLANKET_Z
     box(g, "blanket_top", [1, 9, z], [15, 10, L - 1], cloth(skip=("north", "down")))
-    box(g, "blanket_w", [0, 6, z], [1, 9, L], cloth(skip=("north", "east", "down")))
-    box(g, "blanket_e", [15, 6, z], [16, 9, L], cloth(skip=("north", "west", "down")))
-    box(g, "blanket_foot", [1, 6, L - 1], [15, 9, L], cloth(skip=("north", "east", "west", "down")))
+    # on a bunk the tall foot posts stand in the blanket's foot corners: the sides and the foot stop at them
+    # (the top's corners lie inside the posts)
+    side_end, foot_x = (L - 2, (2, 14)) if BUNK else (L, (1, 15))
+    at_post = ("south",) if BUNK else ()
+    box(g, "blanket_w", [0, 6, z], [1, 9, side_end], cloth(skip=("north", "east", "down") + at_post))
+    box(g, "blanket_e", [15, 6, z], [16, 9, side_end], cloth(skip=("north", "west", "down") + at_post))
+    box(g, "blanket_foot", [foot_x[0], 6, L - 1], [foot_x[1], 9, L], cloth(skip=("north", "east", "west", "down")))
     # the top edge turned down, sheepskin side up, flat and rounded like the rest
     box(g, "fold_top", [1, 9, FOLD_Z], [15, 10, z], cloth(skip=("south", "down")))
     box(g, "fold_w", [0, 6, FOLD_Z], [1, 9, z], cloth(skip=("south", "east", "down")))
     box(g, "fold_e", [15, 6, FOLD_Z], [16, 9, z], cloth(skip=("south", "west", "down")))
     # the pixel of air inside the rounded edges, between cloth and straw, filled in the fold's sheepskin
-    box(g, "fill_w", [1, 8, FOLD_Z], [2, 9, L - 1], cloth(spot=fur_spot))
-    box(g, "fill_e", [14, 8, FOLD_Z], [15, 9, L - 1], cloth(spot=fur_spot))
+    fill_end = L - 2 if BUNK else L - 1
+    box(g, "fill_w", [1, 8, FOLD_Z], [2, 9, fill_end], cloth(spot=fur_spot))
+    box(g, "fill_e", [14, 8, FOLD_Z], [15, 9, fill_end], cloth(spot=fur_spot))
     box(g, "fill_foot", [2, 8, L - 2], [14, 9, L - 1], cloth(spot=fur_spot))
 
 
@@ -529,53 +548,86 @@ def headboard():
 
 # ---------------------------------------------------------------- output
 
+MODEL_NAMES = {False: "goblin_straw_bed", True: "goblin_straw_bed_bunk"}
+# the bed is half a block longer and has posts, so held and dropped it is drawn smaller than a plain block
+DISPLAY = {
+    "gui": {"rotation": [30, 45, 0], "translation": [0, 0, -2], "scale": [0.5, 0.5, 0.5]},
+    "firstperson_righthand": {"rotation": [0, 45, 0], "translation": [0, 0, 0], "scale": [0.28, 0.28, 0.28]},
+    "firstperson_lefthand": {"rotation": [0, 225, 0], "translation": [0, 0, 0], "scale": [0.28, 0.28, 0.28]},
+    "thirdperson_righthand": {"rotation": [75, 45, 0], "translation": [0, 2.5, 0], "scale": [0.25, 0.25, 0.25]},
+    "ground": {"rotation": [0, 0, 0], "translation": [0, 3, 0], "scale": [0.2, 0.2, 0.2]},
+    "fixed": {"rotation": [0, 0, 0], "translation": [0, 0, -1], "scale": [0.4, 0.4, 0.4]},
+}
+
+
+def build(bunk):
+    global BUNK
+    BUNK = bunk
+    ELEMENTS.clear()
+    for part in (frame, straw, blanket, pillow, headboard):
+        part()
+    return list(ELEMENTS)
+
+
+def lifted(element, dy):
+    e = json.loads(json.dumps(element))
+    e["from"][1] += dy
+    e["to"][1] += dy
+    if "rotation" in e:
+        e["rotation"]["origin"][1] += dy
+    return e
+
+
 def main():
     os.makedirs(MODELS, exist_ok=True)
     os.makedirs(TEXTURES, exist_ok=True)
     for old in os.listdir(TEXTURES):
         if old.startswith("goblin_bed_") and old[:-4] not in TEXTURE_PAINTERS:
             os.remove(os.path.join(TEXTURES, old))
-    parts = (frame, straw, blanket, pillow, headboard)
-    for part in parts:
-        part()
+    for bunk in MODEL_NAMES:
+        build(bunk)
     ATLAS.layout()
-    ELEMENTS.clear()
-    for part in parts:
-        part()
+    models = {bunk: build(bunk) for bunk in MODEL_NAMES}
     for name, painter in TEXTURE_PAINTERS.items():
         painter().save(os.path.join(TEXTURES, name + ".png"))
-    for _, e in ELEMENTS:
-        for c in e["from"] + e["to"]:
-            assert -16 <= c <= 32, e["name"]
 
-    used = sorted({f["texture"][1:] for _, e in ELEMENTS for f in e["faces"].values()})
-    textures = {"particle": NS + "goblin_bed_straw"}
-    textures.update({k: NS + TEXTURE_KEYS[k] for k in used})
-    model = {
-        "parent": "minecraft:block/block",
-        "textures": textures,
-        "elements": [e for _, e in ELEMENTS],
-        "display": {
-            "gui": {"rotation": [30, 45, 0], "translation": [0, 0, -2], "scale": [0.5, 0.5, 0.5]},
-        },
-    }
-    with open(os.path.join(MODELS, "goblin_straw_bed.json"), "w", encoding="utf-8", newline="\n") as f:
-        json.dump(model, f, indent=2)
-        f.write("\n")
-    print("goblin_straw_bed: %d elements, textures %s" % (len(ELEMENTS), ", ".join(used)))
+    used_all = set()
+    for bunk, elements in models.items():
+        for _, e in elements:
+            for c in e["from"] + e["to"]:
+                assert -16 <= c <= 32, e["name"]
+        used = sorted({f["texture"][1:] for _, e in elements for f in e["faces"].values()})
+        used_all.update(used)
+        textures = {"particle": NS + "goblin_bed_straw"}
+        textures.update({k: NS + TEXTURE_KEYS[k] for k in used})
+        model = {
+            "parent": "minecraft:block/block",
+            "textures": textures,
+            "elements": [e for _, e in elements],
+            "display": DISPLAY,
+        }
+        with open(os.path.join(MODELS, MODEL_NAMES[bunk] + ".json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump(model, f, indent=2)
+            f.write("\n")
+        print("%s: %d elements, textures %s" % (MODEL_NAMES[bunk], len(elements), ", ".join(used)))
 
-    groups = {}
-    for group, e in ELEMENTS:
-        groups.setdefault(group, []).append(e)
     # embedded as data URLs: Blockbench caches images by path and would keep showing an older paint; URL-safe
     # base64, because risky_eval refuses code containing two slashes in a row
     tex_data = {}
-    for k in used:
+    for k in sorted(used_all):
         with open(os.path.join(TEXTURES, TEXTURE_KEYS[k] + ".png"), "rb") as png:
             tex_data[k] = [TEXTURE_KEYS[k] + ".png", base64.urlsafe_b64encode(png.read()).decode()]
-    with open(os.path.join(HERE, "blockbench.js"), "w", encoding="utf-8", newline="\n") as f:
-        f.write(BLOCKBENCH_JS.replace("__GROUPS__", json.dumps(groups)).replace("__TEXTURES__", json.dumps(tex_data))
-                .replace("__PROJECT__", PROJECT))
+    bed, bunk = {}, {}
+    for group, e in models[False]:
+        bed.setdefault(group, []).append(e)
+    for group, e in models[True]:
+        bunk.setdefault(group, []).append(e)
+    # the bunk project shows a plain bed standing on the bunk, a block up
+    bunk["upper bed (preview)"] = [lifted(e, 16) for _, e in models[False]]
+    for script, groups, project in (("blockbench.js", bed, PROJECT), ("blockbench_bunk.js", bunk, PROJECT + "_bunk")):
+        with open(os.path.join(HERE, script), "w", encoding="utf-8", newline="\n") as f:
+            f.write(BLOCKBENCH_JS.replace("__GROUPS__", json.dumps(groups)).replace("__TEXTURES__", json.dumps(tex_data))
+                    .replace("__PROJECT__", project))
 
 
 BLOCKBENCH_JS = r"""

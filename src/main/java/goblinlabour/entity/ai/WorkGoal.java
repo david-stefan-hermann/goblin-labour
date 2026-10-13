@@ -2,7 +2,6 @@ package goblinlabour.entity.ai;
 
 import goblinlabour.block.GoblinBedBlockEntity;
 import goblinlabour.entity.GoblinEntity;
-import goblinlabour.job.Job;
 import goblinlabour.job.JobConfig;
 import goblinlabour.job.JobRunner;
 import goblinlabour.job.JobTask;
@@ -61,10 +60,5 @@ public class WorkGoal extends Goal {
     @Override
     public void tick() {
         goblin.runner().tick((ServerLevel) goblin.level(), bed, config, task);
-    }
-
-    /** Unused import guard so the REST constant stays referenced for readers. */
-    static boolean isRest(JobConfig config) {
-        return config.job() == Job.REST;
     }
 }

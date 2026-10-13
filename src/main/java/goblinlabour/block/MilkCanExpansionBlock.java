@@ -1,6 +1,5 @@
 package goblinlabour.block;
 
-import com.mojang.serialization.MapCodec;
 import goblinlabour.GoblinLabour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -27,15 +26,8 @@ import net.minecraft.world.phys.BlockHitResult;
  * with a milk bucket or an empty bucket like the can, with an empty hand for its screen.
  */
 public class MilkCanExpansionBlock extends BaseEntityBlock {
-    public static final MapCodec<MilkCanExpansionBlock> CODEC = simpleCodec(MilkCanExpansionBlock::new);
-
     public MilkCanExpansionBlock(Properties properties) {
         super(properties);
-    }
-
-    @Override
-    protected MapCodec<MilkCanExpansionBlock> codec() {
-        return CODEC;
     }
 
     @Override

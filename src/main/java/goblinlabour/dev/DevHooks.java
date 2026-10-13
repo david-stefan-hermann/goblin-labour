@@ -70,6 +70,15 @@ public final class DevHooks {
                     continue;
                 }
                 if (menuBed != null && server.overworld().getBlockEntity(menuBed) instanceof GoblinBedBlockEntity bed) {
+                    if (menuEndsWith(",staffchest")) {
+                        // -Dgoblinlabour.dev.menu=x,y,z,staffchest: staff in hand and the bed's goblin already picked,
+                        // so a left-click on a chest (see -PdevStaffChest) is all that is left to test
+                        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new net.minecraft.world.item.ItemStack(GoblinLabour.GOBLIN_STAFF));
+                        GoblinEntity goblin = bed.findGoblin(server.overworld());
+                        if (goblin != null) goblinlabour.staff.StaffSelection.toggle(server.overworld(), player, goblin);
+                        GoblinLabour.LOGGER.info("Dev view: staff in hand, picked {}", goblin == null ? "nobody" : goblin.goblinName());
+                        continue;
+                    }
                     if (menuIsHoldStaff()) {
                         player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new net.minecraft.world.item.ItemStack(GoblinLabour.GOBLIN_STAFF));
                         GoblinLabour.LOGGER.info("Dev view: handed over the staff");

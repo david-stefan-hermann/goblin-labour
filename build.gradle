@@ -1,17 +1,29 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version '1.17.0-alpha.7'
+    id 'net.fabricmc.fabric-loom' version '1.18.2'
+    id 'me.modmuss50.mod-publish-plugin' version '1.0.0'
 }
 
 version = project.mod_version
 group = project.maven_group
 
 repositories {
+    mavenCentral()
+    // bcf-guide-book-lib: `./gradlew publishToMavenLocal` in ../bcf-guide-book-lib
+    mavenLocal {
+        content {
+            includeGroup 'de.baconcakefactory'
+        }
+    }
 }
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // The guide book's screen (bundled as a nested jar).
+    implementation "de.baconcakefactory:bcf-guide-book-lib:${project.guide_book_version}"
+    include "de.baconcakefactory:bcf-guide-book-lib:${project.guide_book_version}"
 
     // Optional extra mods for dev testing; ignored when absent.
     fileTree(dir: 'libs', include: ['*.jar']).each { f ->
@@ -33,11 +45,28 @@ if (project.hasProperty('devScreenshot')) {
                 if (project.hasProperty('devBook')) vmArg "-Dgoblinlabour.dev.book=${project.devBook}"
                 if (project.hasProperty('devStaffClick')) vmArg "-Dgoblinlabour.dev.staffclick=1"
                 if (project.hasProperty('devStaffPick')) vmArg "-Dgoblinlabour.dev.staffpick=1"
+                if (project.hasProperty('devScaffold')) vmArg "-Dgoblinlabour.dev.scaffold=${project.devScaffold}"
+                if (project.hasProperty('devStaffChest')) vmArg "-Dgoblinlabour.dev.staffchest=1"
                 programArgs "--quickPlayMultiplayer", "localhost:25598", "--width", "1280", "--height", "720"
             }
             server {
                 vmArg "-Dgoblinlabour.dev.view=${view}"
                 if (project.hasProperty('devMenu')) vmArg "-Dgoblinlabour.dev.menu=${project.devMenu}"
+            }
+        }
+    }
+}
+
+// `./gradlew runClient -PbookShots`: the dev client joins the world run/saves/bookshots (item stacks need a world's
+// registries, the title screen has none), opens every page of the guide book, saves
+// run/screenshots/book_goblinlabour_<language>_<nr>.png and quits (see GuideBookClient in bcf-guide-book-lib). The
+// language comes from run/options.txt (lang:de_de; pauseOnLostFocus:false keeps the pause menu away).
+if (project.hasProperty('bookShots')) {
+    loom {
+        runs {
+            client {
+                vmArg "-Dbcf.guidebook.shots=${project.bookShots ?: 'goblinlabour'}"
+                programArgs "--quickPlaySingleplayer", "bookshots", "--width", "1280", "--height", "720"
             }
         }
     }
@@ -75,4 +104,44 @@ jar {
     from("LICENSE") {
         rename { "${it}_${project.archives_base_name}" }
     }
+}
+
+// `./gradlew publishMods` uploads build/libs/<jar> to CurseForge. Token and project id live in
+// ~/.gradle/gradle.properties (gl.curseforge.token / gl.curseforge.projectId), never in the repository.
+// Without a project id nothing is uploaded. The changelog is the top section of CHANGELOG.md.
+publishMods {
+    file = tasks.named('jar').flatMap { it.archiveFile }
+    changelog = provider { topChangelogSection() }
+    type = STABLE
+    displayName = "Goblin Labour ${project.version}"
+    version = project.version.toString()
+    modLoaders.add("fabric")
+
+    if (project.hasProperty('gl.curseforge.projectId')) {
+        curseforge {
+            accessToken = providers.gradleProperty("gl.curseforge.token")
+            projectId = providers.gradleProperty("gl.curseforge.projectId")
+            minecraftVersions.add(project.minecraft_version)
+            javaVersions.add(JavaVersion.VERSION_25)
+            clientRequired = true
+            serverRequired = true
+            requires("fabric-api")
+        }
+    }
+}
+
+/** First "## " section of CHANGELOG.md, without its heading. */
+String topChangelogSection() {
+    def lines = file("CHANGELOG.md").readLines()
+    def out = []
+    boolean inSection = false
+    for (line in lines) {
+        if (line.startsWith("## ")) {
+            if (inSection) break
+            inSection = true
+            continue
+        }
+        if (inSection) out << line
+    }
+    return out.join("\n").trim()
 }

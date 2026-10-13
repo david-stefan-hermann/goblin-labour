@@ -23,6 +23,8 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gamerules.GameRules;
@@ -42,6 +44,7 @@ import java.util.List;
 public final class Mining {
     public static final int TORCH_LIGHT = 8;
     public static final int TORCH_SPACING_SQ = 4 * 4;
+    private static final int CREW_TORCH_GAP = 5;
 
     private Mining() {
     }
@@ -207,6 +210,26 @@ public final class Mining {
         BlockPos last = goblin.lastTorchPos();
         if (last != null && last.distSqr(pos) < TORCH_SPACING_SQ) return false;
         if (HomeRegistry.isProtected(level, pos)) return false;
+        return placeTorch(level, goblin, pos);
+    }
+
+    /**
+     * The ring crew's torches: dark means little block light and little sky light, whatever the time of day (no torches
+     * in the open at night), and no torch within {@link #CREW_TORCH_GAP} blocks yet. Returns true if one was placed.
+     */
+    public static boolean placeCrewTorchIfDark(ServerLevel level, GoblinEntity goblin) {
+        BlockPos pos = goblin.blockPosition();
+        if (level.getBrightness(LightLayer.BLOCK, pos) >= TORCH_LIGHT || level.getBrightness(LightLayer.SKY, pos) >= TORCH_LIGHT) return false;
+        if (HomeRegistry.isProtected(level, pos)) return false;
+        for (BlockPos near : BlockPos.betweenClosed(pos.offset(-CREW_TORCH_GAP, -CREW_TORCH_GAP, -CREW_TORCH_GAP),
+                pos.offset(CREW_TORCH_GAP, CREW_TORCH_GAP, CREW_TORCH_GAP))) {
+            if (level.getBlockState(near).getBlock() instanceof TorchBlock) return false;
+        }
+        return placeTorch(level, goblin, pos);
+    }
+
+    /** A wall torch at head height or the feet, or a torch on the floor, in the goblin's own air block. */
+    private static boolean placeTorch(ServerLevel level, GoblinEntity goblin, BlockPos pos) {
         if (!level.getBlockState(pos).isAir()) return false;
 
         BlockState torch = null;

@@ -38,6 +38,8 @@ import net.minecraft.server.permissions.Permission.HasCommandLevel;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.util.Mth;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
@@ -102,14 +104,30 @@ public final class GoblinCommand {
                                         .then(Commands.argument("radius", IntegerArgumentType.integer(4, 64))
                                                 .executes(ctx -> job(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed"),
                                                         StringArgumentType.getString(ctx, "job"), IntegerArgumentType.getInteger(ctx, "radius")))))))
+                .then(Commands.literal("place")
+                        .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                .then(Commands.argument("item", ItemArgument.item(context))
+                                        .then(Commands.argument("yaw", FloatArgumentType.floatArg(-180.0f, 360.0f))
+                                                .executes(ctx -> place(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"),
+                                                        ItemArgument.getItem(ctx, "item").createItemStack(1), FloatArgumentType.getFloat(ctx, "yaw")))))))
                 .then(Commands.literal("churn")
                         .then(Commands.argument("pos", BlockPosArgument.blockPos())
                                 .executes(ctx -> churn(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"), -1))
                                 .then(Commands.literal("placedrop")
-                                        .executes(ctx -> churnPlaceDrop(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"))))
+                                        .executes(ctx -> churnPlaceDrop(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"), 0.0f))
+                                        .then(Commands.argument("yaw", FloatArgumentType.floatArg(-180.0f, 360.0f))
+                                                .executes(ctx -> churnPlaceDrop(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"),
+                                                        FloatArgumentType.getFloat(ctx, "yaw")))))
                                 .then(Commands.argument("milk", IntegerArgumentType.integer(0, goblinlabour.block.MilkChurnBlockEntity.CAPACITY))
                                         .executes(ctx -> churn(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos"),
                                                 IntegerArgumentType.getInteger(ctx, "milk"))))))
+                .then(Commands.literal("chest")
+                        .then(Commands.argument("bed", BlockPosArgument.blockPos())
+                                .then(Commands.literal("clear")
+                                        .executes(ctx -> chest(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed"), null)))
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .executes(ctx -> chest(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed"),
+                                                BlockPosArgument.getLoadedBlockPos(ctx, "pos"))))))
                 .then(Commands.literal("replant")
                         .then(Commands.argument("bed", BlockPosArgument.blockPos())
                                 .then(Commands.argument("on", BoolArgumentType.bool())
@@ -181,6 +199,19 @@ public final class GoblinCommand {
                                                                                 IntegerArgumentType.getInteger(ctx, "width"),
                                                                                 IntegerArgumentType.getInteger(ctx, "height"),
                                                                                 IntegerArgumentType.getInteger(ctx, "length")))))))))
+                        .then(Commands.literal("chest")
+                                .then(Commands.literal("clear").executes(ctx -> ringChest(ctx.getSource(), null)))
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .executes(ctx -> ringChest(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "pos")))))
+                        .then(Commands.literal("digup")
+                                .then(Commands.argument("origin", BlockPosArgument.blockPos())
+                                        .then(Commands.argument("width", IntegerArgumentType.integer(1, 5))
+                                                .then(Commands.argument("targetY", IntegerArgumentType.integer(-64, 320))
+                                                        .executes(ctx -> ringDigUp(ctx.getSource(),
+                                                                BlockPosArgument.getLoadedBlockPos(ctx, "origin"),
+                                                                IntegerArgumentType.getInteger(ctx, "width"),
+                                                                IntegerArgumentType.getInteger(ctx, "targetY")))))))
+                        .then(Commands.literal("empty").executes(ctx -> ringEmpty(ctx.getSource())))
                         .then(Commands.literal("give")
                                 .then(Commands.argument("item", ItemArgument.item(context))
                                         .then(Commands.argument("count", IntegerArgumentType.integer(1, RingInventory.SIZE * 64))
@@ -210,6 +241,9 @@ public final class GoblinCommand {
                                 .then(Commands.argument("item", ItemArgument.item(context))
                                         .executes(ctx -> fill(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed"),
                                                 ItemArgument.getItem(ctx, "item").createItemStack(1))))))
+                .then(Commands.literal("emptystorage")
+                        .then(Commands.argument("bed", BlockPosArgument.blockPos())
+                                .executes(ctx -> emptyStorage(ctx.getSource(), BlockPosArgument.getLoadedBlockPos(ctx, "bed")))))
                 .then(Commands.literal("tool")
                         .then(Commands.argument("bed", BlockPosArgument.blockPos())
                                 .then(Commands.argument("slot", IntegerArgumentType.integer(0, GoblinEntity.INVENTORY_SIZE - 1))
@@ -267,6 +301,7 @@ public final class GoblinCommand {
             sb.append(" | health=").append(goblin.getHealth()).append(" pos=").append(goblin.blockPosition().toShortString());
             sb.append(" onGround=").append(goblin.onGround()).append(" | ").append(goblin.runner().debug())
                     .append(" | ").append(goblin.restDebug()).append(" | ").append(goblin.goalDebug());
+            if (bed.depositChest() != null) sb.append(" | chest=").append(bed.depositChest().toShortString());
             if (bed.getAssignment() != null) sb.append(" | order=").append(bed.getAssignment());
             source.sendSuccess(() -> Component.literal(sb.toString()), false);
         }
@@ -309,7 +344,27 @@ public final class GoblinCommand {
      * Dev: takes a Milk Churn item lying within two blocks of {@code pos} and places it at {@code pos} the way a player
      * would (setblock would not carry the item's milk over), then shows the churn.
      */
-    private static int churnPlaceDrop(CommandSourceStack source, BlockPos pos) {
+    /**
+     * A stand-in player looking along {@code yaw} places the item at {@code pos} as if it clicked the top of the block
+     * below: placement rules (a bed's foot end, a can's facing) run as they do in the game.
+     */
+    private static int place(CommandSourceStack source, BlockPos pos, ItemStack stack, float yaw) {
+        ServerLevel level = source.getLevel();
+        FakePlayer placer = FakePlayer.get(level);
+        placer.setYRot(yaw);
+        placer.setItemInHand(InteractionHand.MAIN_HAND, stack);
+        BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos).subtract(0.0, 0.5, 0.0), Direction.UP, pos.below(), false);
+        InteractionResult result = stack.useOn(new UseOnContext(placer, InteractionHand.MAIN_HAND, hit));
+        placer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        if (!result.consumesAction()) {
+            source.sendFailure(Component.literal("Not placed at " + pos.toShortString() + ": " + result));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Placed " + level.getBlockState(pos)), false);
+        return 1;
+    }
+
+    private static int churnPlaceDrop(CommandSourceStack source, BlockPos pos, float yaw) {
         ServerLevel level = source.getLevel();
         ItemEntity drop = level.getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(2.0),
                 entity -> entity.getItem().is(GoblinLabour.MILK_CHURN_ITEM)).stream().findFirst().orElse(null);
@@ -318,6 +373,7 @@ public final class GoblinCommand {
             return 0;
         }
         FakePlayer placer = FakePlayer.get(level);
+        placer.setYRot(yaw); // the can turns towards whoever places it
         ItemStack stack = drop.getItem().copyWithCount(1);
         placer.setItemInHand(InteractionHand.MAIN_HAND, stack);
         BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos).subtract(0.0, 0.5, 0.0), Direction.UP, pos.below(), false);
@@ -423,6 +479,28 @@ public final class GoblinCommand {
 
     private static String stackText(net.minecraft.world.item.ItemStack stack) {
         return stack.isEmpty() ? "-" : stack.getCount() + "x" + net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+    }
+
+    /** Dev: the staff's chest assignment without a click (a FakePlayer cannot left-click a block). */
+    private static int chest(CommandSourceStack source, BlockPos bedPos, @Nullable BlockPos chestPos) {
+        GoblinBedBlockEntity bed = bed(source, bedPos);
+        if (bed == null) return 0;
+        bed.setDepositChest(chestPos);
+        source.sendSuccess(() -> Component.literal("Deposit chest of " + bed.getGoblinName() + ": "
+                + (chestPos == null ? "none" : chestPos.toShortString())), true);
+        return 1;
+    }
+
+    /** Dev: the same for the whole ring crew. */
+    private static int ringChest(CommandSourceStack source, @Nullable BlockPos chestPos) {
+        RingCrew.Session session = RingCrew.of(ringId(ringTester(source.getLevel())));
+        if (session == null) {
+            source.sendFailure(Component.literal("No ring crew"));
+            return 0;
+        }
+        session.setChest(chestPos);
+        source.sendSuccess(() -> Component.literal("Crew chest: " + (chestPos == null ? "none" : chestPos.toShortString())), false);
+        return 1;
     }
 
     private static int replant(CommandSourceStack source, BlockPos pos, boolean on) {
@@ -609,6 +687,28 @@ public final class GoblinCommand {
         return 1;
     }
 
+    /** Dev: the selected crew goblins dig a shaft up from the ceiling block {@code origin}, without stairs. */
+    private static int ringDigUp(CommandSourceStack source, BlockPos origin, int width, int targetY) {
+        ServerLevel level = source.getLevel();
+        int w = Math.min(5, width % 2 == 0 ? width + 1 : width);
+        Assignment assignment = new Assignment(Assignment.Kind.DIG_UP, origin, Direction.NORTH, w, 0, 0, targetY, false)
+                .withFloorFrom(level);
+        Component result = StaffSelection.assign(level, ringTester(level), assignment);
+        source.sendSuccess(() -> Component.literal("Order: " + result.getString()), false);
+        return 1;
+    }
+
+    /** Empties the tester's ring, so a scene that filled it does not leave the next one with nowhere to put loot. */
+    private static int ringEmpty(CommandSourceStack source) {
+        FakePlayer tester = ringTester(source.getLevel());
+        RingContainer ring = RingInventory.open(tester, ringId(tester));
+        if (ring == null) return 0;
+        ring.clearContent();
+        ring.setChanged();
+        source.sendSuccess(() -> Component.literal("Ring emptied"), false);
+        return 1;
+    }
+
     private static int ringGive(CommandSourceStack source, ItemStack stack, int count) {
         FakePlayer tester = ringTester(source.getLevel());
         RingContainer ring = RingInventory.open(tester, ringId(tester));
@@ -631,7 +731,10 @@ public final class GoblinCommand {
     private static int ringDrop(CommandSourceStack source, ItemStack stack) {
         ServerLevel level = source.getLevel();
         FakePlayer tester = ringTester(level);
-        ItemEntity item = new ItemEntity(level, tester.getX(), tester.getY() + 0.5, tester.getZ(), stack);
+        // thrown like a player throws (Player.drop): from the eyes, 0.3 blocks per tick along the look, a little up
+        ItemEntity item = new ItemEntity(level, tester.getX(), tester.getEyeY() - 0.3, tester.getZ(), stack);
+        float yaw = tester.getYRot() * Mth.DEG_TO_RAD, pitch = tester.getXRot() * Mth.DEG_TO_RAD;
+        item.setDeltaMovement(-Mth.sin(yaw) * Mth.cos(pitch) * 0.3, -Mth.sin(pitch) * 0.3 + 0.1, Mth.cos(yaw) * Mth.cos(pitch) * 0.3);
         item.setThrower(tester);
         item.setDefaultPickUpDelay();
         level.addFreshEntity(item);
@@ -648,6 +751,21 @@ public final class GoblinCommand {
         }
         session.setTicksLeft(seconds * 20);
         source.sendSuccess(() -> Component.literal("Ring crew leaves in " + seconds + " s"), false);
+        return 1;
+    }
+
+    /** Takes everything out of the goblin's storage, like a player emptying it through the goblin's screen. */
+    private static int emptyStorage(CommandSourceStack source, BlockPos pos) {
+        GoblinBedBlockEntity bed = bed(source, pos);
+        if (bed == null) return 0;
+        GoblinEntity goblin = bed.findGoblin(source.getLevel());
+        if (goblin == null) {
+            source.sendFailure(Component.literal("No goblin at " + pos.toShortString()));
+            return 0;
+        }
+        for (int i = GoblinEntity.HOTBAR_SIZE; i < goblin.storageEnd(); i++) goblin.getInventory().setItem(i, ItemStack.EMPTY);
+        goblin.getInventory().setChanged();
+        source.sendSuccess(() -> Component.literal("Emptied the storage of " + goblin.goblinName()), true);
         return 1;
     }
 

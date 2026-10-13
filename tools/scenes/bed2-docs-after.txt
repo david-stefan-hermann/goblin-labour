@@ -1,0 +1,2 @@
+item replace entity @a hotbar.0 with goblinlabour:goblin_straw_bed
+tp @a 45.3 -58.4 49.4 140 20
